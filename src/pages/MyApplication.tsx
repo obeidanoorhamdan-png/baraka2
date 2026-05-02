@@ -37,6 +37,7 @@ const MyApplication = () => {
   const [rejection, setRejection] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
 
   const [residence, setResidence] = useState({
     original_residence: "",
@@ -49,6 +50,32 @@ const MyApplication = () => {
   });
 
   const [members, setMembers] = useState<Member[]>([emptyMember()]);
+
+  const validateMemberField = (m: Member, key: string): string => {
+    switch (key) {
+      case "full_name":
+        if (!m.full_name?.trim()) return t("field_errors.name_required");
+        if (!isFullName(m.full_name)) return t("field_errors.name_format");
+        return "";
+      case "national_id":
+        if (m.national_id && !ID_RE.test(m.national_id)) return t("field_errors.id_format");
+        return "";
+      case "birth_date":
+        if (!m.birth_date) return t("field_errors.birth_required");
+        if (new Date(m.birth_date) > new Date()) return t("field_errors.birth_future");
+        return "";
+      case "relationship_other":
+        if (m.relationship === "other" && !m.relationship_other?.trim()) return t("field_errors.rel_other_required");
+        return "";
+      case "injury_report_url":
+        if (m.is_war_injured && !m.injury_report_url) return t("health.report_required");
+        return "";
+      case "pregnancy_report_url":
+        if (m.is_pregnant && !m.pregnancy_report_url) return t("health_extra.pregnancy_required");
+        return "";
+    }
+    return "";
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
