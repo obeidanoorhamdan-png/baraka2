@@ -234,6 +234,10 @@
     "invalid_file_type": "Unsupported file type. Please upload an image or PDF.",
     "file_too_large": "File is too large (max 5 MB)",
     "report_uploaded": "Medical report uploaded successfully",
-    "file_removed": "File removed"
+    "file_removed": "File removed",
+    "image_too_large_dimensions": "Image dimensions are too large. Please use a smaller image.",
+    "pin_changed": "Password changed successfully",
+    "wrong_current_pin": "Current password is incorrect",
+    "pin_same_as_current": "New password must differ from the current one"
   }
 }
