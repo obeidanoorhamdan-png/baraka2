@@ -41,6 +41,14 @@ const Admin = () => {
   const [reportUrls, setReportUrls] = useState<Record<string, string>>({});
   const [regOpen, setRegOpen] = useState(true);
   const [closedReason, setClosedReason] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+  // People filter state
+  const [pCategory, setPCategory] = useState<string>("all");
+  const [pAgeMin, setPAgeMin] = useState<string>("");
+  const [pAgeMax, setPAgeMax] = useState<string>("");
+  const [pSearch, setPSearch] = useState<string>("");
+  const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
 
   const loadSettings = async () => {
     const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
