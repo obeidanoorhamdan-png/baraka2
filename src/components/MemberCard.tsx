@@ -60,25 +60,64 @@ export const MemberCard = ({
 }) => {
   const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
+  const [signedPreview, setSignedPreview] = useState<string>("");
+  const [localPreview, setLocalPreview] = useState<string>("");
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
 
-  const handleUpload = async (file: File) => {
-    if (!file) return;
-    const okType = /^image\/(jpeg|jpg|png|webp|gif)$/i.test(file.type) || file.type === "application/pdf";
-    if (!okType) { toast.error(t("toast.invalid_file_type")); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error(t("toast.file_too_large")); return; }
+  useEffect(() => {
+    let active = true;
+    if (member.injury_report_url && !localPreview) {
+      supabase.storage
+        .from("medical-reports")
+        .createSignedUrl(member.injury_report_url, 3600)
+        .then(({ data }) => { if (active && data?.signedUrl) setSignedPreview(data.signedUrl); });
+    } else {
+      setSignedPreview("");
+    }
+    return () => { active = false; };
+  }, [member.injury_report_url, localPreview]);
+
+  const handleUpload = async (rawFile: File) => {
+    if (!rawFile) return;
     setUploading(true);
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-    const path = `${userId}/${Date.now()}-${index}.${ext}`;
-    const { error } = await supabase.storage.from("medical-reports").upload(path, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-    setUploading(false);
-    if (error) { toast.error(error.message); return; }
-    onChange({ ...member, injury_report_url: path });
-    toast.success(t("toast.report_uploaded"));
+    try {
+      const prepared = await prepareUpload(rawFile);
+      const ext = prepared.file.type === "application/pdf" ? "pdf"
+        : (prepared.file.type === "image/heic" || prepared.file.type === "image/heif") ? "heic"
+        : "jpg";
+      const path = `${userId}/${Date.now()}-${index}.${ext}`;
+      const { error } = await supabase.storage.from("medical-reports").upload(path, prepared.file, {
+        upsert: true,
+        contentType: prepared.file.type,
+      });
+      if (error) throw error;
+      onChange({ ...member, injury_report_url: path });
+      setLocalPreview(prepared.preview);
+      const saved = prepared.originalSize - prepared.finalSize;
+      if (saved > 50 * 1024) {
+        toast.success(`${t("toast.report_uploaded")} (${formatBytes(prepared.originalSize)} → ${formatBytes(prepared.finalSize)})`);
+      } else {
+        toast.success(t("toast.report_uploaded"));
+      }
+    } catch (e: any) {
+      const code = e?.message;
+      if (code === "invalid_file_type") toast.error(t("toast.invalid_file_type"));
+      else if (code === "file_too_large") toast.error(t("toast.file_too_large"));
+      else toast.error(e?.message || t("toast.error"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveFile = async () => {
+    if (!member.injury_report_url) return;
+    if (!confirm(t("confirm.remove_file"))) return;
+    await supabase.storage.from("medical-reports").remove([member.injury_report_url]);
+    onChange({ ...member, injury_report_url: null });
+    setLocalPreview("");
+    setSignedPreview("");
+    toast.success(t("toast.file_removed"));
   };
 
   return (
