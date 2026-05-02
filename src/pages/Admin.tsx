@@ -117,6 +117,7 @@ const Admin = () => {
   }, [rows, search, statusFilter, profiles]);
 
   const approve = async (r: Row) => {
+    if (!confirm(t("confirm.approve"))) return;
     const { error } = await supabase.from("applications").update({
       status: "approved", rejection_reason: null, reviewed_at: new Date().toISOString(), reviewed_by: user!.id,
     }).eq("id", r.id);
@@ -152,9 +153,9 @@ const Admin = () => {
     setReportUrls(urls);
   };
 
-  const exportData = (format: "csv" | "xlsx") => {
+  const buildRows = (subset: Row[]) => {
     const wsData: any[] = [];
-    rows.forEach((r) => {
+    subset.forEach((r) => {
       const p = profiles[r.user_id] || {};
       const fm = members[r.id] || [];
       // head row
@@ -164,7 +165,7 @@ const Admin = () => {
         SubmittedAt: r.submitted_at,
         FullName: p.full_name,
         NationalID: p.national_id,
-        Email: p.email,
+        Email: p.email || "",
         Phone: p.phone,
         AltPhone: p.alt_phone,
         BirthDate: p.birth_date,
@@ -215,12 +216,27 @@ const Admin = () => {
         });
       });
     });
+    return wsData;
+  };
+
+  const exportData = (format: "csv" | "xlsx") => {
+    const wsData = buildRows(rows);
     const ws = XLSX.utils.json_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Registrations");
     const fname = `baraka2-registrations-${new Date().toISOString().slice(0, 10)}`;
     if (format === "xlsx") XLSX.writeFile(wb, `${fname}.xlsx`);
     else XLSX.writeFile(wb, `${fname}.csv`, { bookType: "csv" });
+  };
+
+  const exportFamily = (r: Row) => {
+    const wsData = buildRows([r]);
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Family");
+    const p = profiles[r.user_id] || {};
+    const safe = (p.full_name || "family").replace(/\s+/g, "_");
+    XLSX.writeFile(wb, `baraka2-${safe}-${r.id.slice(0, 8)}.xlsx`);
   };
 
   if (loading || !isAdmin) return <Layout><div className="container py-20 text-center">...</div></Layout>;
@@ -378,12 +394,16 @@ const Admin = () => {
             const fm = members[selected.id] || [];
             return (
               <div className="space-y-5 text-sm">
+                <div className="flex justify-end">
+                  <Button size="sm" variant="outline" onClick={() => exportFamily(selected)} className="gap-1.5">
+                    <FileSpreadsheet className="h-4 w-4" /> {t("admin.export_family")}
+                  </Button>
+                </div>
                 <Card className="p-4 bg-accent-soft/40">
                   <h3 className="font-bold text-primary mb-2">{t("admin.head_of_family")}</h3>
                   <div className="grid grid-cols-2 gap-2">
                     <div><strong>{t("form.full_name")}:</strong> {p.full_name}</div>
                     <div><strong>{t("form.national_id")}:</strong> <span dir="ltr">{p.national_id}</span></div>
-                    <div><strong>{t("auth.email")}:</strong> <span dir="ltr">{p.email}</span></div>
                     <div><strong>{t("form.phone")}:</strong> <span dir="ltr">{p.phone}</span></div>
                     {p.alt_phone && <div><strong>{t("form.alt_phone")}:</strong> <span dir="ltr">{p.alt_phone}</span></div>}
                     <div><strong>{t("form.birth_date")}:</strong> {p.birth_date} ({calculateAge(p.birth_date)} {t("form.years")})</div>

@@ -64,14 +64,20 @@ export const MemberCard = ({
 
   const handleUpload = async (file: File) => {
     if (!file) return;
+    const okType = /^image\/(jpeg|jpg|png|webp|gif)$/i.test(file.type) || file.type === "application/pdf";
+    if (!okType) { toast.error(t("toast.invalid_file_type")); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("toast.file_too_large")); return; }
     setUploading(true);
-    const ext = file.name.split(".").pop();
+    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
     const path = `${userId}/${Date.now()}-${index}.${ext}`;
-    const { error } = await supabase.storage.from("medical-reports").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("medical-reports").upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+    });
     setUploading(false);
     if (error) { toast.error(error.message); return; }
     onChange({ ...member, injury_report_url: path });
-    toast.success(t("toast.saved"));
+    toast.success(t("toast.report_uploaded"));
   };
 
   return (
@@ -84,13 +90,15 @@ export const MemberCard = ({
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <div>
-          <Label>{t("form.full_name")}</Label>
-          <Input value={member.full_name} onChange={(e) => onChange({ ...member, full_name: e.target.value })} />
+          <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
+          <Input value={member.full_name} placeholder="الاسم الأول الأب الجد العائلة"
+            onChange={(e) => onChange({ ...member, full_name: e.target.value })} />
         </div>
         <div>
           <Label>{t("form.national_id")}</Label>
           <Input inputMode="numeric" maxLength={9} value={member.national_id}
-            onChange={(e) => onChange({ ...member, national_id: e.target.value.replace(/\D/g, "") })} />
+            placeholder="9 أرقام (اختياري للأطفال)"
+            onChange={(e) => onChange({ ...member, national_id: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
         </div>
         <div>
           <Label>{t("form.birth_date")}</Label>
