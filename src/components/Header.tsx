@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/baraka-logo.jpg";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 export const Header = () => {
   const { t, i18n } = useTranslation();
@@ -37,6 +38,7 @@ export const Header = () => {
           </Button>
           {user ? (
             <>
+              {!isAdmin && <NotificationsBell />}
               {isAdmin ? (
                 <Button asChild variant="outline" size="sm" className="gap-1.5">
                   <Link to="/admin"><ShieldCheck className="h-4 w-4" />{t("admin.title")}</Link>
