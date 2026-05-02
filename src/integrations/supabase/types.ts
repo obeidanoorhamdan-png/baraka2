@@ -14,6 +14,50 @@ export type Database = {
   }
   public: {
     Tables: {
+      aid_distributions: {
+        Row: {
+          application_id: string
+          contents: string | null
+          created_at: string
+          created_by: string | null
+          delivered_at: string
+          id: string
+          notes: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          contents?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string
+          id?: string
+          notes?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          contents?: string | null
+          created_at?: string
+          created_by?: string | null
+          delivered_at?: string
+          id?: string
+          notes?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aid_distributions_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
       app_settings: {
         Row: {
           closed_reason: string | null
