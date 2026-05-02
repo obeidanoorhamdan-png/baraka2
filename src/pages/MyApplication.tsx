@@ -206,6 +206,16 @@ const MyApplication = () => {
         <>
         <h1 className="text-2xl md:text-3xl text-primary mb-2">{t("my_app.title")}</h1>
 
+        {appId && !settings.registration_open && !settingsLoading && (
+          <Card className="p-4 mb-4 border-warning/40 bg-warning/10">
+            <div className="font-bold text-warning-foreground">{t("my_app.update_only_title")}</div>
+            <p className="text-sm text-warning-foreground/90">{t("my_app.update_only_subtitle")}</p>
+            {settings.closed_reason && (
+              <p className="text-xs mt-1"><strong>{t("closed.reason_label")}:</strong> {settings.closed_reason}</p>
+            )}
+          </Card>
+        )}
+
         {appStatus && (
           <Card className="p-4 mb-6 shadow-card flex items-center gap-3 flex-wrap">
             <span className="text-sm font-semibold">{t("admin.applications")}:</span>
