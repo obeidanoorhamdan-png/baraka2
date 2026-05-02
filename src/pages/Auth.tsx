@@ -15,7 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE } from "@/lib/validators";
+import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE, isAdminNid } from "@/lib/validators";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { KeyRound } from "lucide-react";
 
@@ -28,6 +29,7 @@ const Auth = () => {
   const initial = params.get("mode") === "signup" ? "signup" : "signin";
   const [tab, setTab] = useState<"signin" | "signup">(initial);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const confirmAsk = useConfirm();
 
   useEffect(() => {
     if (!loading && user) {
@@ -42,7 +44,7 @@ const Auth = () => {
 
   const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
+    if (!SIGNIN_ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
     if (!PIN_RE.test(siPassword)) { toast.error(t("form.invalid_pin")); return; }
     setSiBusy(true);
     const { error } = await supabase.auth.signInWithPassword({
