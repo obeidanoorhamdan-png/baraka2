@@ -24,7 +24,7 @@ import { AidPreview } from "@/pages/MyAid";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const { settings, loading: settingsLoading } = useAppSettings();
   const navigate = useNavigate();
   const isRtl = i18n.language === "ar";
