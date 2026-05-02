@@ -235,6 +235,7 @@
     "file_too_large": "File is too large (max 5 MB)",
     "report_uploaded": "Medical report uploaded successfully",
     "file_removed": "File removed",
+    "export_done": "File downloaded successfully",
     "image_too_large_dimensions": "Image dimensions are too large. Please use a smaller image.",
     "pin_changed": "Password changed successfully",
     "wrong_current_pin": "Current password is incorrect",
