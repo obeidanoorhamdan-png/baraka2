@@ -18,5 +18,10 @@ export const sanitizeDigits = (v: string) => v.replace(/\D/g, "");
 // The end-user never sees or types this — they sign in with national_id only.
 export const idToEmail = (nid: string) => `${nid}@baraka2.local`;
 
-// Admin reserved national_id
-export const ADMIN_NID = "000000000";
+// Admin reserved national_id (4 digits — separate format from regular 9-digit IDs)
+export const ADMIN_NID = "2026";
+export const ADMIN_PIN = "1234";
+
+// Sign-in IDs accept either the admin short ID or a full 9-digit national ID.
+export const SIGNIN_ID_RE = /^(2026|\d{9})$/;
+export const isAdminNid = (v: string) => v === ADMIN_NID;
