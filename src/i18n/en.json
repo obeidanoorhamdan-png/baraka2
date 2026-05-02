@@ -78,6 +78,8 @@
     "invalid_phone": "Mobile must be 10 digits and start with 059 or 056",
     "invalid_full_name": "Please enter the full name (at least 4 words, letters only)",
     "password_min": "Password must be at least 6 characters",
+    "invalid_pin": "Password must be exactly 4 digits",
+    "pin_hint": "4 digits",
     "step1": "Head of Family",
     "step2": "Residence",
     "step3": "Family Members"
