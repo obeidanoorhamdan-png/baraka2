@@ -64,6 +64,7 @@ const Auth = () => {
     national_id: "",
     full_name: "",
     password: "",
+    password_confirm: "",
     phone: "",
     alt_phone: "",
     birth_date: "",
@@ -75,7 +76,67 @@ const Auth = () => {
     health_notes: "",
   });
   const [suBusy, setSuBusy] = useState(false);
+  const [errors, setErrors] = useState<Record<string, string>>({});
   const age = calculateAge(su.birth_date);
+
+  const validateField = (key: string, value: any, full = su): string => {
+    switch (key) {
+      case "national_id":
+        if (!value) return t("field_errors.id_required");
+        if (!ID_RE.test(value)) return t("field_errors.id_format");
+        return "";
+      case "full_name":
+        if (!value?.trim()) return t("field_errors.name_required");
+        if (!isFullName(value)) return t("field_errors.name_format");
+        return "";
+      case "password":
+        if (!value) return t("field_errors.pin_required");
+        if (!PIN_RE.test(value)) return t("field_errors.pin_format");
+        return "";
+      case "password_confirm":
+        if (!value) return t("field_errors.pin_confirm_required");
+        if (value !== full.password) return t("field_errors.pin_mismatch");
+        return "";
+      case "birth_date":
+        if (!value) return t("field_errors.birth_required");
+        if (new Date(value) > new Date()) return t("field_errors.birth_future");
+        return "";
+      case "phone":
+        if (!value) return t("field_errors.phone_required");
+        if (!PHONE_RE.test(value)) return t("field_errors.phone_format");
+        return "";
+      case "alt_phone":
+        if (value && !PHONE_RE.test(value)) return t("field_errors.phone_format");
+        return "";
+      case "marital_status_other":
+        if (full.marital_status === "other" && !value?.trim()) return t("field_errors.marital_other_required");
+        return "";
+    }
+    return "";
+  };
+
+  const setField = (key: keyof typeof su, value: any) => {
+    const next = { ...su, [key]: value };
+    setSu(next);
+    if (errors[key] !== undefined) {
+      setErrors((p) => ({ ...p, [key]: validateField(key, value, next) }));
+    }
+    if (key === "password" && errors.password_confirm !== undefined) {
+      setErrors((p) => ({ ...p, password_confirm: validateField("password_confirm", next.password_confirm, next) }));
+    }
+  };
+
+  const validateAll = (): boolean => {
+    const keys = ["national_id","full_name","password","password_confirm","birth_date","phone","alt_phone","marital_status_other"];
+    const next: Record<string, string> = {};
+    let ok = true;
+    for (const k of keys) {
+      const msg = validateField(k, (su as any)[k]);
+      if (msg) { next[k] = msg; ok = false; } else next[k] = "";
+    }
+    setErrors(next);
+    return ok;
+  };
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -83,17 +144,7 @@ const Auth = () => {
       toast.error(t("toast.registration_closed_now"));
       return;
     }
-    const schema = z.object({
-      national_id: z.string().regex(ID_RE, t("form.invalid_id")),
-      full_name: z.string().trim().max(120).refine(isFullName, t("form.invalid_full_name")),
-      password: z.string().regex(PIN_RE, t("form.invalid_pin")),
-      phone: z.string().regex(PHONE_RE, t("form.invalid_phone")),
-      alt_phone: z.string().regex(PHONE_RE, t("form.invalid_phone")).optional().or(z.literal("")),
-      birth_date: z.string().min(1, t("form.required")),
-      marital_status_other: su.marital_status === "other" ? z.string().trim().min(1, t("form.required")) : z.string().optional(),
-    });
-    const parsed = schema.safeParse(su);
-    if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
+    if (!validateAll()) { toast.error(t("toast.fix_errors")); return; }
 
     if (!(await confirmAsk({
       title: t("confirm.create_account_title"),
@@ -105,6 +156,7 @@ const Auth = () => {
     const { data: dup } = await supabase.rpc("national_id_exists", { _nid: su.national_id });
     if (dup === true) {
       setSuBusy(false);
+      setErrors((p) => ({ ...p, national_id: t("field_errors.id_duplicate") }));
       toast.error(t("toast.id_exists_with_data", { id: su.national_id }));
       return;
     }
@@ -131,7 +183,10 @@ const Auth = () => {
     setSuBusy(false);
     if (error) {
       const msg = error.message.toLowerCase();
-      if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) toast.error(t("toast.id_exists"));
+      if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
+        setErrors((p) => ({ ...p, national_id: t("field_errors.id_duplicate") }));
+        toast.error(t("toast.id_exists"));
+      }
       else toast.error(error.message);
       return;
     }
