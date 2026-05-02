@@ -5,6 +5,7 @@ import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import logo from "@/assets/baraka-logo.jpg";
+import { NotificationsBell } from "@/components/NotificationsBell";
 
 export const Header = () => {
   const { t, i18n } = useTranslation();
