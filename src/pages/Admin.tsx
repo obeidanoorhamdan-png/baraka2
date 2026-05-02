@@ -678,7 +678,11 @@ const Admin = () => {
                   {(p.is_war_injured || p.chronic_diseases || p.health_notes) && (
                     <div className="mt-2 pt-2 border-t">
                       {p.is_war_injured && <div className="text-destructive font-semibold">{t("health.is_war_injured")}: {t("health.yes")}</div>}
-                      {reportUrls[`head-${p.id}`] && <a href={reportUrls[`head-${p.id}`]} target="_blank" rel="noreferrer" className="text-accent underline text-xs">{t("health.upload_report")}</a>}
+                      {p.injury_report_url && (
+                        <Button size="sm" variant="outline" className="gap-1.5 mt-1" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
+                          <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
+                        </Button>
+                      )}
                       {p.chronic_diseases && <div><strong>{t("health.chronic")}:</strong> {p.chronic_diseases}</div>}
                       {p.health_notes && <div><strong>{t("health.notes")}:</strong> {p.health_notes}</div>}
                     </div>
@@ -711,23 +715,39 @@ const Admin = () => {
                           {m.birth_date} ({calculateAge(m.birth_date)} {t("form.years")}) • {t(`form.${m.gender}`)}
                         </div>
                         {(m.is_war_injured || m.chronic_diseases || m.is_pregnant || m.is_breastfeeding || m.health_notes) && (
-                          <div className="text-xs mt-1 space-y-0.5">
-                            {m.is_war_injured && <div className="text-destructive">⚠ {t("health.is_war_injured")} {reportUrls[m.id] && <a href={reportUrls[m.id]} target="_blank" rel="noreferrer" className="text-accent underline ms-2">[{t("health.upload_report")}]</a>}</div>}
+                          <div className="text-xs mt-1 space-y-1">
+                            {m.is_war_injured && <div className="text-destructive">⚠ {t("health.is_war_injured")}</div>}
                             {m.chronic_diseases && <div>{t("health.chronic")}: {m.chronic_diseases}</div>}
                             {m.is_pregnant && <div>• {t("health.is_pregnant")}</div>}
                             {m.is_breastfeeding && <div>• {t("health.is_breastfeeding")}</div>}
                             {m.health_notes && <div>{t("health.notes")}: {m.health_notes}</div>}
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {m.injury_report_url && (
+                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
+                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
+                                </Button>
+                              )}
+                              {m.pregnancy_report_url && (
+                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
+                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
                 </Card>
+
+                <AidManager applicationId={selected.id} currentUserId={user!.id} />
               </div>
             );
           })()}
         </DialogContent>
       </Dialog>
+
+      <ImagePreviewDialog open={!!previewUrl} onClose={() => setPreviewUrl("")} url={previewUrl} title={previewTitle} />
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
