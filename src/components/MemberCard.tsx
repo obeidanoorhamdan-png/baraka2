@@ -48,57 +48,63 @@ export const emptyMember = (): Member => ({
   health_notes: "",
 });
 
+type FieldKey = "injury_report_url" | "pregnancy_report_url";
+
 export const MemberCard = ({
   index,
   member,
   userId,
   onChange,
   onRemove,
+  errors = {},
+  onFieldBlur,
 }: {
   index: number;
   member: Member;
   userId: string;
   onChange: (m: Member) => void;
   onRemove?: () => void;
+  errors?: Record<string, string>;
+  onFieldBlur?: (field: string) => void;
 }) => {
   const { t } = useTranslation();
   const confirmAsk = useConfirm();
-  const [uploading, setUploading] = useState(false);
-  const [signedPreview, setSignedPreview] = useState<string>("");
-  const [localPreview, setLocalPreview] = useState<string>("");
-  const [dragOver, setDragOver] = useState(false);
+  const [uploading, setUploading] = useState<FieldKey | null>(null);
+  const [signedPreviews, setSignedPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "" });
+  const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "" });
+  const [dragOver, setDragOver] = useState<FieldKey | null>(null);
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
 
   useEffect(() => {
     let active = true;
-    if (member.injury_report_url && !localPreview) {
-      supabase.storage
-        .from("medical-reports")
-        .createSignedUrl(member.injury_report_url, 3600)
-        .then(({ data }) => { if (active && data?.signedUrl) setSignedPreview(data.signedUrl); });
-    } else {
-      setSignedPreview("");
-    }
+    (["injury_report_url", "pregnancy_report_url"] as FieldKey[]).forEach((field) => {
+      const path = member[field];
+      if (path && !localPreviews[field]) {
+        supabase.storage.from("medical-reports").createSignedUrl(path, 3600)
+          .then(({ data }) => { if (active && data?.signedUrl) setSignedPreviews((p) => ({ ...p, [field]: data.signedUrl })); });
+      } else if (!path) {
+        setSignedPreviews((p) => ({ ...p, [field]: "" }));
+      }
+    });
     return () => { active = false; };
-  }, [member.injury_report_url, localPreview]);
+  }, [member.injury_report_url, member.pregnancy_report_url]);
 
-  const handleUpload = async (rawFile: File) => {
+  const handleUpload = async (rawFile: File, field: FieldKey) => {
     if (!rawFile) return;
-    setUploading(true);
+    setUploading(field);
     try {
       const prepared = await prepareUpload(rawFile);
       const ext = prepared.file.type === "application/pdf" ? "pdf"
         : (prepared.file.type === "image/heic" || prepared.file.type === "image/heif") ? "heic"
         : "jpg";
-      const path = `${userId}/${Date.now()}-${index}.${ext}`;
+      const path = `${userId}/${Date.now()}-${index}-${field}.${ext}`;
       const { error } = await supabase.storage.from("medical-reports").upload(path, prepared.file, {
-        upsert: true,
-        contentType: prepared.file.type,
+        upsert: true, contentType: prepared.file.type,
       });
       if (error) throw error;
-      onChange({ ...member, injury_report_url: path });
-      setLocalPreview(prepared.preview);
+      onChange({ ...member, [field]: path });
+      setLocalPreviews((p) => ({ ...p, [field]: prepared.preview }));
       const saved = prepared.originalSize - prepared.finalSize;
       if (saved > 50 * 1024) {
         toast.success(`${t("toast.report_uploaded")} (${formatBytes(prepared.originalSize)} → ${formatBytes(prepared.finalSize)})`);
@@ -112,31 +118,35 @@ export const MemberCard = ({
       else if (code === "image_too_large_dimensions") toast.error(t("toast.image_too_large_dimensions"));
       else toast.error(e?.message || t("toast.error"));
     } finally {
-      setUploading(false);
+      setUploading(null);
     }
   };
 
-  const handleRemoveFile = async () => {
-    if (!member.injury_report_url) return;
+  const handleRemoveFile = async (field: FieldKey) => {
+    const path = member[field];
+    if (!path) return;
     if (!(await confirmAsk({
       title: t("confirm.remove_file_title"),
       description: t("confirm.remove_file"),
       confirmText: t("health.remove"),
       variant: "danger",
     }))) return;
-    await supabase.storage.from("medical-reports").remove([member.injury_report_url]);
-    onChange({ ...member, injury_report_url: null });
-    setLocalPreview("");
-    setSignedPreview("");
+    await supabase.storage.from("medical-reports").remove([path]);
+    onChange({ ...member, [field]: null });
+    setLocalPreviews((p) => ({ ...p, [field]: "" }));
+    setSignedPreviews((p) => ({ ...p, [field]: "" }));
     toast.success(t("toast.file_removed"));
   };
 
-  const handleDrop = (e: React.DragEvent) => {
+  const handleDrop = (e: React.DragEvent, field: FieldKey) => {
     e.preventDefault();
-    setDragOver(false);
+    setDragOver(null);
     const f = e.dataTransfer.files?.[0];
-    if (f) handleUpload(f);
+    if (f) handleUpload(f, field);
   };
+
+  const errCls = (k: string) => errors[k] ? "border-destructive focus-visible:ring-destructive" : "";
+  const errMsg = (k: string) => errors[k] ? <p className="text-xs text-destructive mt-1">{errors[k]}</p> : null;
 
   return (
     <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
