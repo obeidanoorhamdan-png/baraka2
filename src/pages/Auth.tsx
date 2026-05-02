@@ -274,6 +274,7 @@ const Auth = () => {
                   </button>
                 </p>
               </form>
+              )}
             </TabsContent>
           </Tabs>
 
