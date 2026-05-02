@@ -13,7 +13,8 @@
     "phone_label": "Contact Number",
     "phone": "592244588",
     "coords_label": "Coordinates",
-    "coords": "34.5432440, 34.4550300"
+    "coords": "34.5432440, 34.4550300",
+    "open_in_maps": "Open location in Google Maps"
   },
   "landing": {
     "tagline": "Registration of displaced families at Baraka 2 Camp",
@@ -34,7 +35,20 @@
     "signin_link": "Sign in",
     "signup_link": "Create new account",
     "logout": "Sign out",
-    "back": "Back to home"
+    "back": "Back to home",
+    "forgot": "Forgot password?"
+  },
+  "forgot": {
+    "intro": "Enter your National ID, then answer 2 questions about a family member to recover your password.",
+    "next": "Next",
+    "answer_intro": "Please answer both questions correctly:",
+    "q_nid": "What is the National ID of: {{name}}?",
+    "q_birth": "What is the date of birth of: {{name}}?",
+    "verify": "Verify",
+    "verified": "Verified successfully — you may now set a new password.",
+    "new_password": "New password",
+    "new_password_confirm": "Confirm new password",
+    "save_password": "Save password"
   },
   "form": {
     "national_id": "National ID",
@@ -62,11 +76,17 @@
     "invalid_email": "Invalid email",
     "invalid_id": "National ID must be exactly 9 digits",
     "invalid_phone": "Mobile must be 10 digits and start with 059 or 056",
-    "invalid_full_name": "Please enter the full name (4 parts / 4 words minimum)",
+    "invalid_full_name": "Please enter the full name (at least 4 words, letters only)",
     "password_min": "Password must be at least 6 characters",
     "step1": "Head of Family",
     "step2": "Residence",
     "step3": "Family Members"
+  },
+  "confirm": {
+    "create_account": "Are you sure you want to create the account with this data?",
+    "submit_app": "Are you sure you want to submit the application? All data will be saved.",
+    "save_changes": "Are you sure you want to save the changes?",
+    "approve": "Are you sure you want to approve this application?"
   },
   "health": {
     "title": "Health Information",
@@ -74,6 +94,7 @@
     "yes": "Yes",
     "no": "No",
     "upload_report": "Upload medical report",
+    "upload_hint": "Image or PDF — max 5 MB",
     "report_required": "Medical report is required for war-injured",
     "chronic": "Chronic diseases (if any)",
     "is_pregnant": "Pregnant",
@@ -116,7 +137,9 @@
     "no_app": "You haven't submitted an application yet",
     "submit_now": "Submit a new application",
     "edit": "Edit",
-    "rejection_reason": "Rejection reason"
+    "rejection_reason": "Rejection reason",
+    "update_only_title": "Registration is currently closed — you may only update your data",
+    "update_only_subtitle": "New applications cannot be created, but your existing data can be updated."
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -139,6 +162,7 @@
     "reject_reason_label": "Rejection reason",
     "export_csv": "Export CSV",
     "export_xlsx": "Export Excel",
+    "export_family": "Export this family (Excel)",
     "no_results": "No applications",
     "details": "Application details",
     "head_of_family": "Head of family",
@@ -172,6 +196,14 @@
     "id_exists_with_data": "National ID {{id}} is already registered in another family. Please review.",
     "email_exists": "Email already registered",
     "registration_closed_now": "Registration is closed, no new applications can be submitted",
-    "settings_updated": "Settings updated"
+    "settings_updated": "Settings updated",
+    "invalid_credentials": "Incorrect National ID or password",
+    "no_questions_available": "Not enough security questions available. Please contact the camp administration.",
+    "wrong_answers": "Wrong answers",
+    "password_mismatch": "Passwords do not match",
+    "password_reset_success": "Password changed successfully — you can now sign in",
+    "invalid_file_type": "Unsupported file type. Please upload an image or PDF.",
+    "file_too_large": "File is too large (max 5 MB)",
+    "report_uploaded": "Medical report uploaded successfully"
   }
 }
