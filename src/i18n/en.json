@@ -36,7 +36,12 @@
     "signup_link": "Create new account",
     "logout": "Sign out",
     "back": "Back to home",
-    "forgot": "Forgot password?"
+    "forgot": "Forgot password?",
+    "change_pin": "Change Password (PIN)",
+    "current_pin": "Current password",
+    "new_pin": "New password",
+    "new_pin_confirm": "Confirm new password",
+    "change_pin_save": "Save new password"
   },
   "forgot": {
     "intro": "Enter your National ID, then answer 2 questions about a family member to recover your password.",
@@ -80,6 +85,7 @@
     "password_min": "Password must be at least 6 characters",
     "invalid_pin": "Password must be exactly 4 digits",
     "pin_hint": "4 digits",
+    "id_or_admin_placeholder": "9 digits (or camp admin ID)",
     "step1": "Head of Family",
     "step2": "Residence",
     "step3": "Family Members"
