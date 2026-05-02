@@ -152,9 +152,9 @@ const Admin = () => {
     setReportUrls(urls);
   };
 
-  const exportData = (format: "csv" | "xlsx") => {
+  const buildRows = (subset: Row[]) => {
     const wsData: any[] = [];
-    rows.forEach((r) => {
+    subset.forEach((r) => {
       const p = profiles[r.user_id] || {};
       const fm = members[r.id] || [];
       // head row
@@ -215,12 +215,27 @@ const Admin = () => {
         });
       });
     });
+    return wsData;
+  };
+
+  const exportData = (format: "csv" | "xlsx") => {
+    const wsData = buildRows(rows);
     const ws = XLSX.utils.json_to_sheet(wsData);
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, "Registrations");
     const fname = `baraka2-registrations-${new Date().toISOString().slice(0, 10)}`;
     if (format === "xlsx") XLSX.writeFile(wb, `${fname}.xlsx`);
     else XLSX.writeFile(wb, `${fname}.csv`, { bookType: "csv" });
+  };
+
+  const exportFamily = (r: Row) => {
+    const wsData = buildRows([r]);
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "Family");
+    const p = profiles[r.user_id] || {};
+    const safe = (p.full_name || "family").replace(/\s+/g, "_");
+    XLSX.writeFile(wb, `baraka2-${safe}-${r.id.slice(0, 8)}.xlsx`);
   };
 
   if (loading || !isAdmin) return <Layout><div className="container py-20 text-center">...</div></Layout>;
