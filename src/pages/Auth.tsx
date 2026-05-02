@@ -52,8 +52,11 @@ const Auth = () => {
       email: idToEmail(siNid),
       password: pinToAuthPassword(siPassword),
     });
+    const finalError = error
+      ? (await supabase.auth.signInWithPassword({ email: idToEmail(siNid), password: siPassword })).error
+      : null;
     setSiBusy(false);
-    if (error) {
+    if (finalError) {
       toast.error(t("toast.invalid_credentials"));
       return;
     }
