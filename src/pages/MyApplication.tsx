@@ -14,10 +14,14 @@ import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
+import { ID_RE, isFullName } from "@/lib/validators";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
   const { user, loading } = useAuth();
+  const { settings, loading: settingsLoading } = useAppSettings();
   const navigate = useNavigate();
   const isRtl = i18n.language === "ar";
   const Arrow = isRtl ? ArrowLeft : ArrowRight;
