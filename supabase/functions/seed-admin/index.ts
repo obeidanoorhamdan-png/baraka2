@@ -10,6 +10,11 @@ const corsHeaders = {
 const ADMIN_NID = "2026";
 const ADMIN_PIN = "1234";
 const ADMIN_EMAIL = `${ADMIN_NID}@baraka2.local`;
+const PIN_AUTH_PREFIX = "Baraka2-PampPIN";
+const pinToAuthPassword = (pin: string) => {
+  const clean = pin.replace(/\D/g, "").slice(0, 4);
+  return `${PIN_AUTH_PREFIX}-${clean}-${clean.split("").reverse().join("")}`;
+};
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -26,6 +31,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing?.id) {
+      await admin.auth.admin.updateUserById(existing.id, { password: pinToAuthPassword(ADMIN_PIN) });
       // Make sure it has admin role (idempotent)
       await admin.from("user_roles").upsert(
         { user_id: existing.id, role: "admin" },
@@ -36,7 +42,7 @@ Deno.serve(async (req) => {
 
     const { data: created, error } = await admin.auth.admin.createUser({
       email: ADMIN_EMAIL,
-      password: ADMIN_PIN,
+      password: pinToAuthPassword(ADMIN_PIN),
       email_confirm: true,
       user_metadata: {
         national_id: ADMIN_NID,

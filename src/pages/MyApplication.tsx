@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { ID_RE, isFullName, PIN_RE } from "@/lib/validators";
+import { pinToAuthPassword } from "@/lib/authPin";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -439,11 +440,17 @@ const ChangePinCard = ({ userId: _userId }: { userId: string }) => {
     setBusy(true);
     const { error: signInErr } = await supabase.auth.signInWithPassword({
       email: `${profile.national_id}@baraka2.local`,
-      password: current,
+      password: pinToAuthPassword(current),
     });
-    if (signInErr) { setBusy(false); toast.error(t("toast.wrong_current_pin")); return; }
+    if (signInErr) {
+      const { error: legacyErr } = await supabase.auth.signInWithPassword({
+        email: `${profile.national_id}@baraka2.local`,
+        password: current,
+      });
+      if (legacyErr) { setBusy(false); toast.error(t("toast.wrong_current_pin")); return; }
+    }
 
-    const { error } = await supabase.auth.updateUser({ password: next });
+    const { error } = await supabase.auth.updateUser({ password: pinToAuthPassword(next) });
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("toast.pin_changed"));
