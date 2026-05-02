@@ -76,7 +76,7 @@ const Auth = () => {
     }
     const schema = z.object({
       national_id: z.string().regex(ID_RE, t("form.invalid_id")),
-      full_name: z.string().trim().refine(isFullName, t("form.invalid_full_name")).max(120),
+      full_name: z.string().trim().max(120).refine(isFullName, t("form.invalid_full_name")),
       email: z.string().trim().email(t("form.invalid_email")).max(255),
       password: z.string().min(6, t("form.password_min")).max(72),
       phone: z.string().regex(PHONE_RE, t("form.invalid_phone")),
