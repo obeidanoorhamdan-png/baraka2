@@ -34,6 +34,26 @@ const Admin = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTarget, setRejectTarget] = useState<Row | null>(null);
   const [reportUrls, setReportUrls] = useState<Record<string, string>>({});
+  const [regOpen, setRegOpen] = useState(true);
+  const [closedReason, setClosedReason] = useState("");
+
+  const loadSettings = async () => {
+    const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
+    if (data) { setRegOpen(data.registration_open); setClosedReason(data.closed_reason || ""); }
+  };
+  useEffect(() => { if (isAdmin) loadSettings(); }, [isAdmin]);
+
+  const saveSettings = async (open: boolean) => {
+    const { error } = await supabase.from("app_settings").update({
+      registration_open: open,
+      closed_reason: open ? null : closedReason,
+      updated_at: new Date().toISOString(),
+      updated_by: user!.id,
+    }).eq("id", 1);
+    if (error) { toast.error(error.message); return; }
+    setRegOpen(open);
+    toast.success(t("toast.settings_updated"));
+  };
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) navigate("/");
