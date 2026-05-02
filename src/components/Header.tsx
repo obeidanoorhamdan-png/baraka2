@@ -38,6 +38,7 @@ export const Header = () => {
           </Button>
           {user ? (
             <>
+              {!isAdmin && <NotificationsBell />}
               {isAdmin ? (
                 <Button asChild variant="outline" size="sm" className="gap-1.5">
                   <Link to="/admin"><ShieldCheck className="h-4 w-4" />{t("admin.title")}</Link>
