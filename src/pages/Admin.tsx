@@ -498,9 +498,10 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="families" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full md:w-96">
+          <TabsList className="grid grid-cols-3 w-full md:w-[32rem]">
             <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
             <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
+            <TabsTrigger value="aid" className="gap-1.5"><PackageCheck className="h-4 w-4" /> {t("admin.tab_aid")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="families" className="mt-4">
