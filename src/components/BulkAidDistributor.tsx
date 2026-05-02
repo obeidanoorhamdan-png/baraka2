@@ -74,8 +74,9 @@ export const BulkAidDistributor = ({
       variant: "default",
     }))) return;
     setBusy(true);
-    const rows = Array.from(selected).map((appId) => ({
-      application_id: appId,
+    const selectedFamilies = families.filter((f) => selected.has(f.application_id));
+    const rows = selectedFamilies.map((f) => ({
+      application_id: f.application_id,
       title: title.trim(),
       contents: contents.trim() || null,
       delivered_at: date,
@@ -83,8 +84,19 @@ export const BulkAidDistributor = ({
       created_by: currentUserId,
     }));
     const { error } = await supabase.from("aid_distributions").insert(rows);
+    if (error) { setBusy(false); toast.error(error.message); return; }
+
+    // Send notifications to each family
+    const notifs = selectedFamilies.map((f) => ({
+      user_id: f.user_id,
+      title: t("notify.new_aid_title"),
+      body: t("notify.new_aid_body", { title: title.trim(), date }),
+      link: "/my-aid",
+      kind: "aid",
+    }));
+    if (notifs.length) await supabase.from("notifications").insert(notifs);
+
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
     toast.success(t("aid_bulk.saved", { count: rows.length }));
     setSelected(new Set()); setTitle(""); setContents(""); setNotes("");
     onSaved?.();
