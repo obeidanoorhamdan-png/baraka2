@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
-import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet, Filter, Image as ImageIcon } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { AidManager } from "@/components/AidManager";
+import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 
 type Row = any;
 
@@ -38,6 +41,14 @@ const Admin = () => {
   const [reportUrls, setReportUrls] = useState<Record<string, string>>({});
   const [regOpen, setRegOpen] = useState(true);
   const [closedReason, setClosedReason] = useState("");
+  const [previewUrl, setPreviewUrl] = useState<string>("");
+  const [previewTitle, setPreviewTitle] = useState<string>("");
+  // People filter state
+  const [pCategory, setPCategory] = useState<string>("all");
+  const [pAgeMin, setPAgeMin] = useState<string>("");
+  const [pAgeMax, setPAgeMax] = useState<string>("");
+  const [pSearch, setPSearch] = useState<string>("");
+  const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
 
   const loadSettings = async () => {
     const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
@@ -117,6 +128,99 @@ const Admin = () => {
       return an.localeCompare(bn, "ar", { sensitivity: "base" });
     });
   }, [rows, search, statusFilter, profiles]);
+
+  // Unified people list (heads + family members) with their family context
+  type Person = {
+    kind: "head" | "member";
+    id: string;
+    application_id: string;
+    head_name: string;
+    full_name: string;
+    national_id?: string;
+    birth_date?: string;
+    age: number;
+    gender?: string;
+    relationship: string;
+    marital_status?: string;
+    is_war_injured?: boolean;
+    is_pregnant?: boolean;
+    is_breastfeeding?: boolean;
+    chronic_diseases?: string;
+    health_notes?: string;
+    injury_report_url?: string | null;
+    pregnancy_report_url?: string | null;
+    raw: any;
+  };
+
+  const allPeople: Person[] = useMemo(() => {
+    const list: Person[] = [];
+    rows.forEach((r) => {
+      const p = profiles[r.user_id] || {};
+      const headName = p.full_name || "";
+      list.push({
+        kind: "head", id: p.id || r.user_id, application_id: r.id,
+        head_name: headName, full_name: p.full_name || "",
+        national_id: p.national_id, birth_date: p.birth_date,
+        age: calculateAge(p.birth_date), gender: p.gender,
+        relationship: "head", marital_status: p.marital_status,
+        is_war_injured: p.is_war_injured, chronic_diseases: p.chronic_diseases,
+        health_notes: p.health_notes, injury_report_url: p.injury_report_url, raw: p,
+      });
+      (members[r.id] || []).forEach((m: any) => {
+        list.push({
+          kind: "member", id: m.id, application_id: r.id, head_name: headName,
+          full_name: m.full_name, national_id: m.national_id, birth_date: m.birth_date,
+          age: calculateAge(m.birth_date), gender: m.gender, relationship: m.relationship,
+          is_war_injured: m.is_war_injured, is_pregnant: m.is_pregnant,
+          is_breastfeeding: m.is_breastfeeding, chronic_diseases: m.chronic_diseases,
+          health_notes: m.health_notes, injury_report_url: m.injury_report_url,
+          pregnancy_report_url: m.pregnancy_report_url, raw: m,
+        });
+      });
+    });
+    return list;
+  }, [rows, members, profiles]);
+
+  const filteredPeople = useMemo(() => {
+    const min = pAgeMin === "" ? -Infinity : parseInt(pAgeMin);
+    const max = pAgeMax === "" ? Infinity : parseInt(pAgeMax);
+    const q = pSearch.trim().toLowerCase();
+    return allPeople.filter((p) => {
+      if (p.age < min || p.age > max) return false;
+      if (q && !(
+        p.full_name?.toLowerCase().includes(q) ||
+        p.national_id?.includes(q) ||
+        p.head_name?.toLowerCase().includes(q)
+      )) return false;
+      switch (pCategory) {
+        case "all": return true;
+        case "injured": return !!p.is_war_injured;
+        case "pregnant": return !!p.is_pregnant;
+        case "breastfeeding": return !!p.is_breastfeeding;
+        case "widowed": return p.marital_status === "widowed";
+        case "divorced": return p.marital_status === "divorced";
+        case "married": return p.marital_status === "married";
+        case "single": return p.marital_status === "single";
+        case "male": return p.gender === "male";
+        case "female": return p.gender === "female";
+        case "children": return p.age < 12;
+        case "infants": return p.age < 1;
+        case "elderly": return p.age >= 60;
+      }
+      return true;
+    }).sort((a, b) =>
+      (a.head_name || "").localeCompare(b.head_name || "", "ar", { sensitivity: "base" }) ||
+      a.full_name.localeCompare(b.full_name, "ar", { sensitivity: "base" })
+    );
+  }, [allPeople, pCategory, pAgeMin, pAgeMax, pSearch]);
+
+  const openImagePreview = async (path: string, title: string) => {
+    if (!path) return;
+    const { data } = await supabase.storage.from("medical-reports").createSignedUrl(path, 3600);
+    if (!data?.signedUrl) { toast.error(t("toast.error")); return; }
+    setPreviewUrl(data.signedUrl);
+    setPreviewTitle(title);
+  };
 
   const approve = async (r: Row) => {
     if (!(await confirmAsk({
@@ -366,80 +470,184 @@ const Admin = () => {
           <StatCard icon={Baby} label={t("admin.pregnant")} value={stats.pregnant} color="bg-accent/15 text-accent-foreground" />
         </div>
 
-        <Card className="p-4 shadow-card">
-          <div className="flex flex-wrap gap-3 items-end mb-4">
-            <div className="flex-1 min-w-[220px]">
-              <Label className="text-xs">{t("admin.search")}</Label>
-              <div className="relative">
-                <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-muted-foreground" />
-                <Input className="ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.search")} />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">{t("admin.filter_status")}</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("admin.all")}</SelectItem>
-                  <SelectItem value="pending">{t("status.pending")}</SelectItem>
-                  <SelectItem value="approved">{t("status.approved")}</SelectItem>
-                  <SelectItem value="rejected">{t("status.rejected")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <Tabs defaultValue="families" className="w-full">
+          <TabsList className="grid grid-cols-2 w-full md:w-96">
+            <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
+            <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
+          </TabsList>
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("admin.head_of_family")}</TableHead>
-                  <TableHead>{t("form.national_id")}</TableHead>
-                  <TableHead>{t("form.phone")}</TableHead>
-                  <TableHead>{t("admin.family_size")}</TableHead>
-                  <TableHead>{t("admin.submitted_at")}</TableHead>
-                  <TableHead>{t("admin.filter_status")}</TableHead>
-                  <TableHead className="text-end"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
-                )}
-                {filtered.map((r) => {
-                  const p = profiles[r.user_id] || {};
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-semibold">{p.full_name || "—"}</TableCell>
-                      <TableCell dir="ltr">{p.national_id}</TableCell>
-                      <TableCell dir="ltr">{p.phone}</TableCell>
-                      <TableCell>{r.family_size}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground" dir="ltr">{new Date(r.submitted_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          r.status === "approved" ? "bg-success/15 text-success" :
-                          r.status === "rejected" ? "bg-destructive/15 text-destructive" :
-                          "bg-warning/20 text-warning-foreground"
-                        }`}>{t(`status.${r.status}`)}</span>
-                      </TableCell>
-                      <TableCell className="text-end">
-                        <div className="flex gap-1 justify-end">
-                          <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
-                          {r.status !== "approved" && (
-                            <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4" /></Button>
-                          )}
-                          {r.status !== "rejected" && (
-                            <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10"><XCircle className="h-4 w-4" /></Button>
-                          )}
-                        </div>
-                      </TableCell>
+          <TabsContent value="families" className="mt-4">
+            <Card className="p-4 shadow-card">
+              <div className="flex flex-wrap gap-3 items-end mb-4">
+                <div className="flex-1 min-w-[220px]">
+                  <Label className="text-xs">{t("admin.search")}</Label>
+                  <div className="relative">
+                    <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-muted-foreground" />
+                    <Input className="ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.search")} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("admin.filter_status")}</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("admin.all")}</SelectItem>
+                      <SelectItem value="pending">{t("status.pending")}</SelectItem>
+                      <SelectItem value="approved">{t("status.approved")}</SelectItem>
+                      <SelectItem value="rejected">{t("status.rejected")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("admin.head_of_family")}</TableHead>
+                      <TableHead>{t("form.national_id")}</TableHead>
+                      <TableHead>{t("form.phone")}</TableHead>
+                      <TableHead>{t("admin.family_size")}</TableHead>
+                      <TableHead>{t("admin.submitted_at")}</TableHead>
+                      <TableHead>{t("admin.filter_status")}</TableHead>
+                      <TableHead className="text-end"></TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
+                    )}
+                    {filtered.map((r) => {
+                      const p = profiles[r.user_id] || {};
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-semibold">
+                            <button className="text-start hover:text-accent hover:underline" onClick={() => openDetails(r)}>{p.full_name || "—"}</button>
+                          </TableCell>
+                          <TableCell dir="ltr">{p.national_id}</TableCell>
+                          <TableCell dir="ltr">{p.phone}</TableCell>
+                          <TableCell>{r.family_size}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground" dir="ltr">{new Date(r.submitted_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                              r.status === "approved" ? "bg-success/15 text-success" :
+                              r.status === "rejected" ? "bg-destructive/15 text-destructive" :
+                              "bg-warning/20 text-warning-foreground"
+                            }`}>{t(`status.${r.status}`)}</span>
+                          </TableCell>
+                          <TableCell className="text-end">
+                            <div className="flex gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
+                              {r.status !== "approved" && (
+                                <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4" /></Button>
+                              )}
+                              {r.status !== "rejected" && (
+                                <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10"><XCircle className="h-4 w-4" /></Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="people" className="mt-4">
+            <Card className="p-4 shadow-card">
+              <div className="grid gap-3 md:grid-cols-4 mb-4">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">{t("admin.search_person")}</Label>
+                  <Input value={pSearch} onChange={(e) => setPSearch(e.target.value)} placeholder={t("admin.search_person_placeholder")} />
+                </div>
+                <div>
+                  <Label className="text-xs">{t("admin.category")}</Label>
+                  <Select value={pCategory} onValueChange={setPCategory}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("admin.all")}</SelectItem>
+                      <SelectItem value="injured">{t("admin.cat_injured")}</SelectItem>
+                      <SelectItem value="pregnant">{t("admin.cat_pregnant")}</SelectItem>
+                      <SelectItem value="breastfeeding">{t("admin.cat_breastfeeding")}</SelectItem>
+                      <SelectItem value="widowed">{t("admin.cat_widowed")}</SelectItem>
+                      <SelectItem value="divorced">{t("admin.cat_divorced")}</SelectItem>
+                      <SelectItem value="married">{t("admin.cat_married")}</SelectItem>
+                      <SelectItem value="single">{t("admin.cat_single")}</SelectItem>
+                      <SelectItem value="male">{t("admin.cat_male")}</SelectItem>
+                      <SelectItem value="female">{t("admin.cat_female")}</SelectItem>
+                      <SelectItem value="infants">{t("admin.cat_infants")}</SelectItem>
+                      <SelectItem value="children">{t("admin.cat_children")}</SelectItem>
+                      <SelectItem value="elderly">{t("admin.cat_elderly")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">{t("admin.age_min")}</Label>
+                    <Input type="number" min={0} max={120} value={pAgeMin} onChange={(e) => setPAgeMin(e.target.value)} placeholder="0" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("admin.age_max")}</Label>
+                    <Input type="number" min={0} max={120} value={pAgeMax} onChange={(e) => setPAgeMax(e.target.value)} placeholder="120" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground mb-2">{t("admin.results_count")}: <strong className="text-primary">{filteredPeople.length}</strong></div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("admin.head_of_family")}</TableHead>
+                      <TableHead>{t("form.full_name")}</TableHead>
+                      <TableHead>{t("family.relationship")}</TableHead>
+                      <TableHead>{t("form.age")}</TableHead>
+                      <TableHead>{t("form.gender")}</TableHead>
+                      <TableHead>{t("form.national_id")}</TableHead>
+                      <TableHead>{t("admin.tags")}</TableHead>
+                      <TableHead className="text-end"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPeople.length === 0 && (
+                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
+                    )}
+                    {filteredPeople.map((p) => {
+                      const r = rows.find((x) => x.id === p.application_id);
+                      return (
+                        <TableRow key={`${p.kind}-${p.id}`}>
+                          <TableCell className="font-semibold">
+                            <button className="text-start hover:text-accent hover:underline" onClick={() => r && openDetails(r)}>{p.head_name || "—"}</button>
+                          </TableCell>
+                          <TableCell>{p.full_name}</TableCell>
+                          <TableCell className="text-xs">{p.relationship === "head" ? t("family.rel_head") : t(`family.rel_${p.relationship}`)}</TableCell>
+                          <TableCell>{p.age}</TableCell>
+                          <TableCell className="text-xs">{p.gender ? t(`form.${p.gender}`) : "—"}</TableCell>
+                          <TableCell dir="ltr" className="text-xs">{p.national_id || "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {p.is_war_injured && <span className="px-1.5 py-0.5 rounded bg-destructive/15 text-destructive text-[10px] font-bold">{t("admin.cat_injured")}</span>}
+                              {p.is_pregnant && <span className="px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground text-[10px] font-bold">{t("admin.cat_pregnant")}</span>}
+                              {p.is_breastfeeding && <span className="px-1.5 py-0.5 rounded bg-accent/15 text-accent-foreground text-[10px] font-bold">{t("admin.cat_breastfeeding")}</span>}
+                              {p.marital_status === "widowed" && <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary text-[10px] font-bold">{t("admin.cat_widowed")}</span>}
+                              {p.marital_status === "divorced" && <span className="px-1.5 py-0.5 rounded bg-warning/20 text-warning-foreground text-[10px] font-bold">{t("admin.cat_divorced")}</span>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-end">
+                            <Button size="sm" variant="ghost" onClick={() => r && openDetails(r)}><Eye className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </section>
 
       {/* Details dialog */}
@@ -470,7 +678,11 @@ const Admin = () => {
                   {(p.is_war_injured || p.chronic_diseases || p.health_notes) && (
                     <div className="mt-2 pt-2 border-t">
                       {p.is_war_injured && <div className="text-destructive font-semibold">{t("health.is_war_injured")}: {t("health.yes")}</div>}
-                      {reportUrls[`head-${p.id}`] && <a href={reportUrls[`head-${p.id}`]} target="_blank" rel="noreferrer" className="text-accent underline text-xs">{t("health.upload_report")}</a>}
+                      {p.injury_report_url && (
+                        <Button size="sm" variant="outline" className="gap-1.5 mt-1" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
+                          <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
+                        </Button>
+                      )}
                       {p.chronic_diseases && <div><strong>{t("health.chronic")}:</strong> {p.chronic_diseases}</div>}
                       {p.health_notes && <div><strong>{t("health.notes")}:</strong> {p.health_notes}</div>}
                     </div>
@@ -503,23 +715,39 @@ const Admin = () => {
                           {m.birth_date} ({calculateAge(m.birth_date)} {t("form.years")}) • {t(`form.${m.gender}`)}
                         </div>
                         {(m.is_war_injured || m.chronic_diseases || m.is_pregnant || m.is_breastfeeding || m.health_notes) && (
-                          <div className="text-xs mt-1 space-y-0.5">
-                            {m.is_war_injured && <div className="text-destructive">⚠ {t("health.is_war_injured")} {reportUrls[m.id] && <a href={reportUrls[m.id]} target="_blank" rel="noreferrer" className="text-accent underline ms-2">[{t("health.upload_report")}]</a>}</div>}
+                          <div className="text-xs mt-1 space-y-1">
+                            {m.is_war_injured && <div className="text-destructive">⚠ {t("health.is_war_injured")}</div>}
                             {m.chronic_diseases && <div>{t("health.chronic")}: {m.chronic_diseases}</div>}
                             {m.is_pregnant && <div>• {t("health.is_pregnant")}</div>}
                             {m.is_breastfeeding && <div>• {t("health.is_breastfeeding")}</div>}
                             {m.health_notes && <div>{t("health.notes")}: {m.health_notes}</div>}
+                            <div className="flex flex-wrap gap-1.5 pt-1">
+                              {m.injury_report_url && (
+                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
+                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
+                                </Button>
+                              )}
+                              {m.pregnancy_report_url && (
+                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
+                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
+                                </Button>
+                              )}
+                            </div>
                           </div>
                         )}
                       </div>
                     ))}
                   </div>
                 </Card>
+
+                <AidManager applicationId={selected.id} currentUserId={user!.id} />
               </div>
             );
           })()}
         </DialogContent>
       </Dialog>
+
+      <ImagePreviewDialog open={!!previewUrl} onClose={() => setPreviewUrl("")} url={previewUrl} title={previewTitle} />
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>

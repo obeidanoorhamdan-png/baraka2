@@ -11,6 +11,7 @@ import { supabase } from "@/integrations/supabase/client";
 import Landing from "./pages/Landing";
 import Auth from "./pages/Auth";
 import MyApplication from "./pages/MyApplication";
+import MyAid from "./pages/MyAid";
 import Admin from "./pages/Admin";
 import NotFound from "./pages/NotFound";
 
@@ -33,6 +34,7 @@ const App = () => {
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/my-application" element={<MyApplication />} />
+                <Route path="/my-aid" element={<MyAid />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
