@@ -15,7 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE, isAdminNid } from "@/lib/validators";
+import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE } from "@/lib/validators";
+import { pinToAuthPassword } from "@/lib/authPin";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { KeyRound } from "lucide-react";
@@ -49,7 +50,7 @@ const Auth = () => {
     setSiBusy(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: idToEmail(siNid),
-      password: siPassword,
+      password: pinToAuthPassword(siPassword),
     });
     setSiBusy(false);
     if (error) {
@@ -162,7 +163,7 @@ const Auth = () => {
     }
     const { error } = await supabase.auth.signUp({
       email: idToEmail(su.national_id),
-      password: su.password,
+      password: pinToAuthPassword(su.password),
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
