@@ -28,6 +28,7 @@ export type Member = {
   chronic_diseases: string;
   is_pregnant: boolean;
   is_breastfeeding: boolean;
+  pregnancy_report_url?: string | null;
   health_notes: string;
 };
 
@@ -43,6 +44,7 @@ export const emptyMember = (): Member => ({
   chronic_diseases: "",
   is_pregnant: false,
   is_breastfeeding: false,
+  pregnancy_report_url: null,
   health_notes: "",
 });
 
