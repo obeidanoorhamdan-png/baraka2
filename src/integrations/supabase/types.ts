@@ -14,6 +14,30 @@ export type Database = {
   }
   public: {
     Tables: {
+      app_settings: {
+        Row: {
+          closed_reason: string | null
+          id: number
+          registration_open: boolean
+          updated_at: string
+          updated_by: string | null
+        }
+        Insert: {
+          closed_reason?: string | null
+          id?: number
+          registration_open?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Update: {
+          closed_reason?: string | null
+          id?: number
+          registration_open?: boolean
+          updated_at?: string
+          updated_by?: string | null
+        }
+        Relationships: []
+      }
       applications: {
         Row: {
           created_at: string
@@ -221,6 +245,10 @@ export type Database = {
           _role: Database["public"]["Enums"]["app_role"]
           _user_id: string
         }
+        Returns: boolean
+      }
+      national_id_exists: {
+        Args: { _exclude_user?: string; _nid: string }
         Returns: boolean
       }
     }
