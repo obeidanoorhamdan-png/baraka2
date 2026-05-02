@@ -37,6 +37,7 @@ const MyApplication = () => {
   const [rejection, setRejection] = useState<string | null>(null);
   const [busy, setBusy] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
+  const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
 
   const [residence, setResidence] = useState({
     original_residence: "",
@@ -49,6 +50,32 @@ const MyApplication = () => {
   });
 
   const [members, setMembers] = useState<Member[]>([emptyMember()]);
+
+  const validateMemberField = (m: Member, key: string): string => {
+    switch (key) {
+      case "full_name":
+        if (!m.full_name?.trim()) return t("field_errors.name_required");
+        if (!isFullName(m.full_name)) return t("field_errors.name_format");
+        return "";
+      case "national_id":
+        if (m.national_id && !ID_RE.test(m.national_id)) return t("field_errors.id_format");
+        return "";
+      case "birth_date":
+        if (!m.birth_date) return t("field_errors.birth_required");
+        if (new Date(m.birth_date) > new Date()) return t("field_errors.birth_future");
+        return "";
+      case "relationship_other":
+        if (m.relationship === "other" && !m.relationship_other?.trim()) return t("field_errors.rel_other_required");
+        return "";
+      case "injury_report_url":
+        if (m.is_war_injured && !m.injury_report_url) return t("health.report_required");
+        return "";
+      case "pregnancy_report_url":
+        if (m.is_pregnant && !m.pregnancy_report_url) return t("health_extra.pregnancy_required");
+        return "";
+    }
+    return "";
+  };
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -88,45 +115,43 @@ const MyApplication = () => {
 
   const validateMembers = async () => {
     const seen = new Set<string>();
+    const allErrors: Record<number, Record<string, string>> = {};
+    let firstErrorIdx = -1;
+    const fields = ["full_name","national_id","birth_date","relationship_other","injury_report_url","pregnancy_report_url"];
     for (let i = 0; i < members.length; i++) {
       const m = members[i];
-      if (!m.full_name.trim() || !m.birth_date || !m.relationship) {
-        toast.error(`${t("family.person")} #${i + 1}: ${t("form.required")}`);
-        return false;
+      const errs: Record<string, string> = {};
+      for (const f of fields) {
+        const msg = validateMemberField(m, f);
+        if (msg) errs[f] = msg;
       }
-      if (!isFullName(m.full_name)) {
-        toast.error(`${t("family.person")} #${i + 1}: ${t("form.invalid_full_name")}`);
-        return false;
+      if (m.national_id && !errs.national_id) {
+        if (seen.has(m.national_id)) errs.national_id = t("toast.id_exists_with_data", { id: m.national_id });
+        else seen.add(m.national_id);
       }
-      if (m.national_id) {
-        if (!ID_RE.test(m.national_id)) {
-          toast.error(`${t("family.person")} #${i + 1}: ${t("form.invalid_id")}`);
-          return false;
-        }
-        if (seen.has(m.national_id)) {
-          toast.error(`${t("family.person")} #${i + 1}: ${t("toast.id_exists_with_data", { id: m.national_id })}`);
-          return false;
-        }
-        seen.add(m.national_id);
+      if (Object.keys(errs).length) {
+        allErrors[i] = errs;
+        if (firstErrorIdx < 0) firstErrorIdx = i;
       }
-      if (m.is_war_injured && !m.injury_report_url) {
-        toast.error(`${t("family.person")} #${i + 1}: ${t("health.report_required")}`);
-        return false;
-      }
+    }
+    setMemberErrors(allErrors);
+    if (firstErrorIdx >= 0) {
+      toast.error(`${t("family.person")} #${firstErrorIdx + 1}: ${t("toast.fix_errors")}`);
+      return false;
     }
     if (residence.has_martyr && (!residence.martyr_name.trim() || !residence.martyr_relationship.trim())) {
       toast.error(t("form.required"));
       return false;
     }
-    // Check duplicates against the rest of the camp (exclude this user, and exclude same member id when editing)
-    for (const m of members) {
+    // Check duplicates against the rest of the camp
+    for (let i = 0; i < members.length; i++) {
+      const m = members[i];
       if (!m.national_id) continue;
       const { data } = await supabase.rpc("national_id_used_by_others", {
-        _nid: m.national_id,
-        _exclude_user: user!.id,
-        _exclude_member: m.id ?? null,
+        _nid: m.national_id, _exclude_user: user!.id, _exclude_member: m.id ?? null,
       });
       if (data === true) {
+        setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), national_id: t("field_errors.id_duplicate") } }));
         toast.error(t("toast.id_exists_with_data", { id: m.national_id }));
         return false;
       }
@@ -188,6 +213,7 @@ const MyApplication = () => {
           chronic_diseases: m.chronic_diseases || null,
           is_pregnant: m.is_pregnant,
           is_breastfeeding: m.is_breastfeeding,
+          pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
           health_notes: m.health_notes || null,
         }));
         const { error: fmErr } = await supabase.from("family_members").insert(rows);
@@ -329,8 +355,26 @@ const MyApplication = () => {
                 index={i}
                 member={m}
                 userId={user!.id}
-                onChange={(nm) => setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)))}
-                onRemove={appStatus === "approved" ? undefined : () => setMembers((prev) => prev.filter((_, idx) => idx !== i))}
+                errors={memberErrors[i] || {}}
+                onFieldBlur={(field) => {
+                  const msg = validateMemberField(m, field);
+                  setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), [field]: msg } }));
+                }}
+                onChange={(nm) => {
+                  setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)));
+                  // re-validate fields that may now be fixed
+                  if (memberErrors[i]) {
+                    const next: Record<string, string> = {};
+                    Object.keys(memberErrors[i]).forEach((k) => {
+                      next[k] = validateMemberField(nm, k);
+                    });
+                    setMemberErrors((p) => ({ ...p, [i]: next }));
+                  }
+                }}
+                onRemove={appStatus === "approved" ? undefined : () => {
+                  setMembers((prev) => prev.filter((_, idx) => idx !== i));
+                  setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
+                }}
               />
             ))}
 

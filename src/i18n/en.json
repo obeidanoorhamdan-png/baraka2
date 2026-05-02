@@ -240,6 +240,34 @@
     "image_too_large_dimensions": "Image dimensions are too large. Please use a smaller image.",
     "pin_changed": "Password changed successfully",
     "wrong_current_pin": "Current password is incorrect",
-    "pin_same_as_current": "New password must differ from the current one"
+    "pin_same_as_current": "New password must differ from the current one",
+    "fix_errors": "Please fix the highlighted fields before continuing",
+    "pregnancy_report_required": "Please attach proof of pregnancy (medical report)"
+  },
+  "field_errors": {
+    "id_required": "National ID is required",
+    "id_format": "National ID must be exactly 9 digits",
+    "id_duplicate": "National ID already registered in the camp",
+    "name_required": "Full name is required",
+    "name_format": "Enter four name parts (First Father Grandfather Family) — letters only",
+    "birth_required": "Birth date is required",
+    "birth_future": "Birth date can't be in the future",
+    "phone_required": "Phone is required",
+    "phone_format": "Phone must be 10 digits starting with 059 or 056",
+    "pin_required": "Password is required",
+    "pin_format": "Password must be exactly 4 digits",
+    "pin_confirm_required": "Please confirm your password",
+    "pin_mismatch": "Passwords do not match",
+    "marital_other_required": "Please specify marital status",
+    "rel_other_required": "Please specify relationship"
+  },
+  "auth_extra": {
+    "password_confirm": "Confirm password",
+    "after_signup_hint": "After creating your account you'll go to the residence & family details page"
+  },
+  "health_extra": {
+    "pregnancy_report": "Proof of pregnancy (medical report)",
+    "pregnancy_uploaded": "Proof of pregnancy uploaded",
+    "pregnancy_required": "A medical report proving pregnancy is required"
   }
 }
