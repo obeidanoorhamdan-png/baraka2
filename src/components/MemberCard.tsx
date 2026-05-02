@@ -227,74 +227,28 @@ export const MemberCard = ({
             <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="no" />{t("health.no")}</label>
           </RadioGroup>
           {member.is_war_injured && (
-            <div className="mt-2 space-y-2">
-              <input
-                type="file"
-                accept="image/*,application/pdf"
-                id={`upload-${index}`}
-                className="hidden"
-                onChange={(e) => {
-                  const f = e.target.files?.[0];
-                  if (f) handleUpload(f);
-                  e.target.value = "";
-                }}
-              />
-              {!member.injury_report_url ? (
-                <div
-                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
-                  onDragLeave={() => setDragOver(false)}
-                  onDrop={handleDrop}
-                  className={`rounded-lg border-2 border-dashed p-3 text-center transition-colors ${
-                    dragOver ? "border-accent bg-accent-soft/50" : "border-accent/30 bg-background"
-                  }`}
-                >
-                  <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
-                    <label htmlFor={`upload-${index}`} className="cursor-pointer gap-2">
-                      {uploading ? <span className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
-                      {uploading ? t("health.uploading") : t("health.upload_report")}
-                    </label>
-                  </Button>
-                  <p className="text-xs text-muted-foreground mt-2">{t("health.upload_hint")}</p>
-                  <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-1">
-                    <ShieldCheck className="h-3 w-3 text-success" /> {t("health.upload_secure")}
-                  </p>
-                  <p className="text-xs text-destructive mt-1">{t("health.report_required")}</p>
-                </div>
-              ) : (
-                <div className="flex items-start gap-3 p-2 rounded-md border border-success/30 bg-success/5">
-                  {(localPreview || signedPreview) && !member.injury_report_url.endsWith(".pdf") ? (
-                    <a href={signedPreview || localPreview} target="_blank" rel="noreferrer" className="shrink-0">
-                      <img
-                        src={localPreview || signedPreview}
-                        alt={t("health.upload_report")}
-                        className="h-16 w-16 object-cover rounded-md ring-1 ring-success/30"
-                      />
-                    </a>
-                  ) : (
-                    <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center shrink-0">
-                      <FileImage className="h-6 w-6 text-muted-foreground" />
-                    </div>
-                  )}
-                  <div className="flex-1 min-w-0">
-                    <div className="text-xs font-semibold text-success">✓ {t("health.report_uploaded")}</div>
-                    <div className="text-[11px] text-muted-foreground truncate" dir="ltr">
-                      {member.injury_report_url.split("/").pop()}
-                    </div>
-                    <div className="flex gap-1 mt-1.5">
-                      <Button type="button" variant="outline" size="sm" disabled={uploading} asChild className="h-7 px-2 text-xs">
-                        <label htmlFor={`upload-${index}`} className="cursor-pointer gap-1">
-                          <Replace className="h-3 w-3" /> {t("health.replace")}
-                        </label>
-                      </Button>
-                      <Button type="button" variant="ghost" size="sm" onClick={handleRemoveFile}
-                        className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1">
-                        <X className="h-3 w-3" /> {t("health.remove")}
-                      </Button>
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
+            <UploadBlock
+              field="injury_report_url"
+              index={index}
+              path={member.injury_report_url || ""}
+              uploading={uploading === "injury_report_url"}
+              dragOver={dragOver === "injury_report_url"}
+              localPreview={localPreviews.injury_report_url}
+              signedPreview={signedPreviews.injury_report_url}
+              onUpload={(f) => handleUpload(f, "injury_report_url")}
+              onRemove={() => handleRemoveFile("injury_report_url")}
+              setDragOver={(v) => setDragOver(v ? "injury_report_url" : null)}
+              onDrop={(e) => handleDrop(e, "injury_report_url")}
+              requiredText={t("health.report_required")}
+              uploadLabel={t("health.upload_report")}
+              uploadingLabel={t("health.uploading")}
+              hintLabel={t("health.upload_hint")}
+              secureLabel={t("health.upload_secure")}
+              uploadedLabel={t("health.report_uploaded")}
+              replaceLabel={t("health.replace")}
+              removeLabel={t("health.remove")}
+              error={errors.injury_report_url}
+            />
           )}
         </div>
         <div>
