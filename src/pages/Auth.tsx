@@ -15,7 +15,8 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE } from "@/lib/validators";
+import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE, isAdminNid } from "@/lib/validators";
+import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { KeyRound } from "lucide-react";
 
@@ -28,6 +29,7 @@ const Auth = () => {
   const initial = params.get("mode") === "signup" ? "signup" : "signin";
   const [tab, setTab] = useState<"signin" | "signup">(initial);
   const [forgotOpen, setForgotOpen] = useState(false);
+  const confirmAsk = useConfirm();
 
   useEffect(() => {
     if (!loading && user) {
@@ -42,7 +44,7 @@ const Auth = () => {
 
   const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
+    if (!SIGNIN_ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
     if (!PIN_RE.test(siPassword)) { toast.error(t("form.invalid_pin")); return; }
     setSiBusy(true);
     const { error } = await supabase.auth.signInWithPassword({
@@ -93,7 +95,12 @@ const Auth = () => {
     const parsed = schema.safeParse(su);
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
 
-    if (!confirm(t("confirm.create_account"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.create_account_title"),
+      description: t("confirm.create_account"),
+      confirmText: t("auth.signup_btn"),
+      variant: "default",
+    }))) return;
     setSuBusy(true);
     const { data: dup } = await supabase.rpc("national_id_exists", { _nid: su.national_id });
     if (dup === true) {
@@ -146,7 +153,7 @@ const Auth = () => {
                 <div>
                   <Label>{t("form.national_id")}</Label>
                   <Input inputMode="numeric" maxLength={9} required value={siNid}
-                    placeholder="9 أرقام"
+                    placeholder={t("form.id_or_admin_placeholder")}
                     onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
                 </div>
                 <div>
@@ -313,6 +320,7 @@ type SecQ = { question_id: string; kind: "national_id" | "birth_date"; label: st
 
 const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const { t } = useTranslation();
+  const confirmAsk = useConfirm();
   const [stage, setStage] = useState<"id" | "questions" | "reset">("id");
   const [nid, setNid] = useState("");
   const [busy, setBusy] = useState(false);
@@ -356,7 +364,12 @@ const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () =>
   const performReset = async () => {
     if (!PIN_RE.test(newPw)) { toast.error(t("form.invalid_pin")); return; }
     if (newPw !== newPw2) { toast.error(t("toast.password_mismatch")); return; }
-    if (!confirm(t("confirm.reset_password"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.reset_password_title"),
+      description: t("confirm.reset_password"),
+      confirmText: t("forgot.save_password"),
+      variant: "warning",
+    }))) return;
     setBusy(true);
     // Sign in with a temporary recovery using the verify RPC outcome:
     // we call an edge function or rely on supabase.auth.updateUser? updateUser requires session.

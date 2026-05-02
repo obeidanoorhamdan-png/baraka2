@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, Upload, FileImage, Replace, X } from "lucide-react";
+import { Trash2, Upload, FileImage, Replace, X, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { calculateAge } from "@/lib/age";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { prepareUpload, formatBytes } from "@/lib/imageUpload";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export type Member = {
   id?: string;
@@ -59,9 +60,11 @@ export const MemberCard = ({
   onRemove: () => void;
 }) => {
   const { t } = useTranslation();
+  const confirmAsk = useConfirm();
   const [uploading, setUploading] = useState(false);
   const [signedPreview, setSignedPreview] = useState<string>("");
   const [localPreview, setLocalPreview] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
 
@@ -104,6 +107,7 @@ export const MemberCard = ({
       const code = e?.message;
       if (code === "invalid_file_type") toast.error(t("toast.invalid_file_type"));
       else if (code === "file_too_large") toast.error(t("toast.file_too_large"));
+      else if (code === "image_too_large_dimensions") toast.error(t("toast.image_too_large_dimensions"));
       else toast.error(e?.message || t("toast.error"));
     } finally {
       setUploading(false);
@@ -112,7 +116,12 @@ export const MemberCard = ({
 
   const handleRemoveFile = async () => {
     if (!member.injury_report_url) return;
-    if (!confirm(t("confirm.remove_file"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.remove_file_title"),
+      description: t("confirm.remove_file"),
+      confirmText: t("health.remove"),
+      variant: "danger",
+    }))) return;
     await supabase.storage.from("medical-reports").remove([member.injury_report_url]);
     onChange({ ...member, injury_report_url: null });
     setLocalPreview("");
@@ -120,12 +129,26 @@ export const MemberCard = ({
     toast.success(t("toast.file_removed"));
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleUpload(f);
+  };
+
   return (
     <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-primary">{t("family.person")} #{index + 1}</h4>
         <Button type="button" variant="ghost" size="sm"
-          onClick={() => { if (confirm(t("confirm.remove_person"))) onRemove(); }}
+          onClick={async () => {
+            if (await confirmAsk({
+              title: t("confirm.remove_person_title"),
+              description: t("confirm.remove_person"),
+              confirmText: t("family.remove"),
+              variant: "danger",
+            })) onRemove();
+          }}
           className="text-destructive hover:bg-destructive/10">
           <Trash2 className="h-4 w-4" />
         </Button>
@@ -203,16 +226,26 @@ export const MemberCard = ({
                 }}
               />
               {!member.injury_report_url ? (
-                <>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  className={`rounded-lg border-2 border-dashed p-3 text-center transition-colors ${
+                    dragOver ? "border-accent bg-accent-soft/50" : "border-accent/30 bg-background"
+                  }`}
+                >
                   <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
                     <label htmlFor={`upload-${index}`} className="cursor-pointer gap-2">
-                      <Upload className="h-4 w-4" />
+                      {uploading ? <span className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
                       {uploading ? t("health.uploading") : t("health.upload_report")}
                     </label>
                   </Button>
-                  <p className="text-xs text-muted-foreground">{t("health.upload_hint")}</p>
-                  <p className="text-xs text-destructive">{t("health.report_required")}</p>
-                </>
+                  <p className="text-xs text-muted-foreground mt-2">{t("health.upload_hint")}</p>
+                  <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-1">
+                    <ShieldCheck className="h-3 w-3 text-success" /> {t("health.upload_secure")}
+                  </p>
+                  <p className="text-xs text-destructive mt-1">{t("health.report_required")}</p>
+                </div>
               ) : (
                 <div className="flex items-start gap-3 p-2 rounded-md border border-success/30 bg-success/5">
                   {(localPreview || signedPreview) && !member.injury_report_url.endsWith(".pdf") ? (

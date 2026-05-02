@@ -36,7 +36,12 @@
     "signup_link": "Create new account",
     "logout": "Sign out",
     "back": "Back to home",
-    "forgot": "Forgot password?"
+    "forgot": "Forgot password?",
+    "change_pin": "Change Password (PIN)",
+    "current_pin": "Current password",
+    "new_pin": "New password",
+    "new_pin_confirm": "Confirm new password",
+    "change_pin_save": "Save new password"
   },
   "forgot": {
     "intro": "Enter your National ID, then answer 2 questions about a family member to recover your password.",
@@ -80,18 +85,32 @@
     "password_min": "Password must be at least 6 characters",
     "invalid_pin": "Password must be exactly 4 digits",
     "pin_hint": "4 digits",
+    "id_or_admin_placeholder": "9 digits (or camp admin ID)",
     "step1": "Head of Family",
     "step2": "Residence",
     "step3": "Family Members"
   },
+  "common": {
+    "confirm": "Confirm",
+    "cancel": "Cancel"
+  },
   "confirm": {
-    "create_account": "Are you sure you want to create the account with this data?",
-    "submit_app": "Are you sure you want to submit the application? All data will be saved.",
-    "save_changes": "Are you sure you want to save the changes?",
+    "create_account_title": "Confirm account creation",
+    "create_account": "Are you sure you want to create the account with this data? You'll use it to sign in later.",
+    "submit_app_title": "Confirm submission",
+    "submit_app": "Are you sure you want to submit the application? All data will be saved and sent to the admin for review.",
+    "save_changes_title": "Confirm save",
+    "save_changes": "Are you sure you want to save these changes?",
+    "approve_title": "Confirm approval",
     "approve": "Are you sure you want to approve this application?",
-    "remove_person": "Are you sure you want to remove this person?",
+    "remove_person_title": "Remove family member",
+    "remove_person": "Are you sure you want to remove this person? This cannot be undone.",
+    "remove_file_title": "Delete uploaded file",
     "remove_file": "Are you sure you want to delete the uploaded file?",
-    "reset_password": "Are you sure you want to change the password?"
+    "reset_password_title": "Confirm password reset",
+    "reset_password": "Are you sure you want to change the password? You will need the new one to sign in.",
+    "change_pin_title": "Change password (PIN)",
+    "change_pin": "This will update your account password. Make sure to remember it."
   },
   "health": {
     "title": "Health Information",
@@ -105,6 +124,7 @@
     "replace": "Replace",
     "remove": "Remove",
     "report_required": "Medical report is required for war-injured",
+    "upload_secure": "Secure upload — file type is verified and images are auto-compressed",
     "chronic": "Chronic diseases (if any)",
     "is_pregnant": "Pregnant",
     "is_breastfeeding": "Breastfeeding",
@@ -214,6 +234,10 @@
     "invalid_file_type": "Unsupported file type. Please upload an image or PDF.",
     "file_too_large": "File is too large (max 5 MB)",
     "report_uploaded": "Medical report uploaded successfully",
-    "file_removed": "File removed"
+    "file_removed": "File removed",
+    "image_too_large_dimensions": "Image dimensions are too large. Please use a smaller image.",
+    "pin_changed": "Password changed successfully",
+    "wrong_current_pin": "Current password is incorrect",
+    "pin_same_as_current": "New password must differ from the current one"
   }
 }

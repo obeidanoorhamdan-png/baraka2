@@ -16,6 +16,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 type Row = any;
 
@@ -23,6 +24,7 @@ const Admin = () => {
   const { t } = useTranslation();
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
+  const confirmAsk = useConfirm();
 
   const [rows, setRows] = useState<Row[]>([]);
   const [members, setMembers] = useState<Record<string, any[]>>({});
@@ -117,7 +119,12 @@ const Admin = () => {
   }, [rows, search, statusFilter, profiles]);
 
   const approve = async (r: Row) => {
-    if (!confirm(t("confirm.approve"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.approve_title"),
+      description: t("confirm.approve"),
+      confirmText: t("admin.approve"),
+      variant: "success",
+    }))) return;
     const { error } = await supabase.from("applications").update({
       status: "approved", rejection_reason: null, reviewed_at: new Date().toISOString(), reviewed_by: user!.id,
     }).eq("id", r.id);

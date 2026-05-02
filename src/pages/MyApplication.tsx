@@ -14,9 +14,12 @@ import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ID_RE, isFullName } from "@/lib/validators";
+import { ID_RE, isFullName, PIN_RE } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { Card as UICard } from "@/components/ui/card";
+import { KeyRound } from "lucide-react";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -26,6 +29,7 @@ const MyApplication = () => {
   const isRtl = i18n.language === "ar";
   const Arrow = isRtl ? ArrowLeft : ArrowRight;
   const ArrowBack = isRtl ? ArrowRight : ArrowLeft;
+  const confirmAsk = useConfirm();
 
   const [step, setStep] = useState(1);
   const [appId, setAppId] = useState<string | null>(null);
@@ -138,7 +142,12 @@ const MyApplication = () => {
       return;
     }
     if (!(await validateMembers())) return;
-    if (!confirm(appId ? t("confirm.save_changes") : t("confirm.submit_app"))) return;
+    if (!(await confirmAsk({
+      title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
+      description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
+      confirmText: appId ? t("form.save") : t("form.submit"),
+      variant: "default",
+    }))) return;
     setBusy(true);
     try {
       let currentAppId = appId;
@@ -341,8 +350,87 @@ const MyApplication = () => {
         )}
         </>
         )}
+
+        {user && <ChangePinCard userId={user.id} />}
       </section>
     </Layout>
+  );
+};
+
+// ----------------- Change PIN card -----------------
+const ChangePinCard = ({ userId: _userId }: { userId: string }) => {
+  const { t } = useTranslation();
+  const confirmAsk = useConfirm();
+  const [open, setOpen] = useState(false);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [next2, setNext2] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const onSave = async () => {
+    if (!PIN_RE.test(current) || !PIN_RE.test(next)) { toast.error(t("form.invalid_pin")); return; }
+    if (next !== next2) { toast.error(t("toast.password_mismatch")); return; }
+    if (current === next) { toast.error(t("toast.pin_same_as_current")); return; }
+
+    // Verify current PIN by re-authenticating
+    const { data: profile } = await supabase.from("profiles").select("national_id").eq("id", _userId).maybeSingle();
+    if (!profile?.national_id) { toast.error(t("toast.error")); return; }
+
+    if (!(await confirmAsk({
+      title: t("confirm.change_pin_title"),
+      description: t("confirm.change_pin"),
+      confirmText: t("auth.change_pin_save"),
+      variant: "warning",
+    }))) return;
+
+    setBusy(true);
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: `${profile.national_id}@baraka2.local`,
+      password: current,
+    });
+    if (signInErr) { setBusy(false); toast.error(t("toast.wrong_current_pin")); return; }
+
+    const { error } = await supabase.auth.updateUser({ password: next });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("toast.pin_changed"));
+    setCurrent(""); setNext(""); setNext2(""); setOpen(false);
+  };
+
+  return (
+    <UICard className="p-5 mt-6 shadow-card border-accent/20">
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 text-start">
+        <span className="flex items-center gap-2 font-semibold text-primary">
+          <KeyRound className="h-4 w-4 text-accent" /> {t("auth.change_pin")}
+        </span>
+        <span className="text-xs text-muted-foreground">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="grid gap-3 md:grid-cols-3 mt-4 animate-fade-in">
+          <div>
+            <Label className="text-xs">{t("auth.current_pin")}</Label>
+            <Input type="password" inputMode="numeric" maxLength={4} value={current}
+              onChange={(e) => setCurrent(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          <div>
+            <Label className="text-xs">{t("auth.new_pin")}</Label>
+            <Input type="password" inputMode="numeric" maxLength={4} value={next}
+              onChange={(e) => setNext(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          <div>
+            <Label className="text-xs">{t("auth.new_pin_confirm")}</Label>
+            <Input type="password" inputMode="numeric" maxLength={4} value={next2}
+              onChange={(e) => setNext2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          <div className="md:col-span-3 flex justify-end">
+            <Button onClick={onSave} disabled={busy} className="brand-gradient text-primary-foreground gap-2">
+              <KeyRound className="h-4 w-4" /> {busy ? "..." : t("auth.change_pin_save")}
+            </Button>
+          </div>
+        </div>
+      )}
+    </UICard>
   );
 };
 
