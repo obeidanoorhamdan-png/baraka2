@@ -324,6 +324,8 @@ const MyApplication = () => {
             </div>
           </div>
         )}
+        </>
+        )}
       </section>
     </Layout>
   );
