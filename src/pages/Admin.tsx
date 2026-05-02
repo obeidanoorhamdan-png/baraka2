@@ -224,6 +224,31 @@ const Admin = () => {
     setPreviewTitle(title);
   };
 
+  const deleteReportImage = async (
+    path: string,
+    kind: "head_injury" | "member_injury" | "member_pregnancy",
+    refId: string,
+  ) => {
+    if (!path) return;
+    if (!(await confirmAsk({
+      title: t("preview.delete_image_title"),
+      description: t("preview.delete_image_desc"),
+      confirmText: t("common.delete"),
+      variant: "danger",
+    }))) return;
+    await supabase.storage.from("medical-reports").remove([path]);
+    if (kind === "head_injury") {
+      await supabase.from("profiles").update({ injury_report_url: null }).eq("id", refId);
+    } else if (kind === "member_injury") {
+      await supabase.from("family_members").update({ injury_report_url: null }).eq("id", refId);
+    } else {
+      await supabase.from("family_members").update({ pregnancy_report_url: null }).eq("id", refId);
+    }
+    toast.success(t("toast.file_removed"));
+    if (selected) await openDetails(selected);
+    load();
+  };
+
   const approve = async (r: Row) => {
     if (!(await confirmAsk({
       title: t("confirm.approve_title"),
