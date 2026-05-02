@@ -20,6 +20,7 @@ import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { Card as UICard } from "@/components/ui/card";
 import { KeyRound } from "lucide-react";
+import { AidPreview } from "@/pages/MyAid";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -402,6 +403,7 @@ const MyApplication = () => {
         </>
         )}
 
+        {appId && <AidPreview applicationId={appId} />}
         {user && <ChangePinCard userId={user.id} />}
       </section>
     </Layout>
