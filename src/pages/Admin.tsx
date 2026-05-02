@@ -675,6 +675,20 @@ const Admin = () => {
               </div>
             </Card>
           </TabsContent>
+
+          <TabsContent value="aid" className="mt-4">
+            <BulkAidDistributor
+              currentUserId={user!.id}
+              families={rows.map((r) => ({
+                application_id: r.id,
+                user_id: r.user_id,
+                head_name: profiles[r.user_id]?.full_name || "",
+                national_id: profiles[r.user_id]?.national_id || "",
+                family_size: r.family_size || 0,
+                status: r.status,
+              }))}
+            />
+          </TabsContent>
         </Tabs>
       </section>
 
