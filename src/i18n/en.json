@@ -213,6 +213,7 @@
     "password_reset_success": "Password changed successfully — you can now sign in",
     "invalid_file_type": "Unsupported file type. Please upload an image or PDF.",
     "file_too_large": "File is too large (max 5 MB)",
-    "report_uploaded": "Medical report uploaded successfully"
+    "report_uploaded": "Medical report uploaded successfully",
+    "file_removed": "File removed"
   }
 }
