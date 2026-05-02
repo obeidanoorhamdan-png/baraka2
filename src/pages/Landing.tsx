@@ -64,6 +64,14 @@ const Landing = () => {
             <Compass className="h-8 w-8 text-accent mb-3" />
             <div className="text-sm text-muted-foreground">{t("camp.coords_label")}</div>
             <div className="text-base font-semibold text-primary mt-1" dir="ltr">{t("camp.coords")}</div>
+            <a
+              href="https://maps.app.goo.gl/r6DWkE55nsBY8UrW8"
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center gap-1 mt-3 text-sm text-accent font-semibold hover:underline"
+            >
+              <MapPin className="h-4 w-4" /> {t("camp.open_in_maps")}
+            </a>
           </Card>
         </div>
       </section>
