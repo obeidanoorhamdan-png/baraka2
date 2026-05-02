@@ -107,6 +107,7 @@ export const MemberCard = ({
       const code = e?.message;
       if (code === "invalid_file_type") toast.error(t("toast.invalid_file_type"));
       else if (code === "file_too_large") toast.error(t("toast.file_too_large"));
+      else if (code === "image_too_large_dimensions") toast.error(t("toast.image_too_large_dimensions"));
       else toast.error(e?.message || t("toast.error"));
     } finally {
       setUploading(false);
@@ -115,7 +116,12 @@ export const MemberCard = ({
 
   const handleRemoveFile = async () => {
     if (!member.injury_report_url) return;
-    if (!confirm(t("confirm.remove_file"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.remove_file_title"),
+      description: t("confirm.remove_file"),
+      confirmText: t("health.remove"),
+      variant: "danger",
+    }))) return;
     await supabase.storage.from("medical-reports").remove([member.injury_report_url]);
     onChange({ ...member, injury_report_url: null });
     setLocalPreview("");
@@ -123,12 +129,26 @@ export const MemberCard = ({
     toast.success(t("toast.file_removed"));
   };
 
+  const handleDrop = (e: React.DragEvent) => {
+    e.preventDefault();
+    setDragOver(false);
+    const f = e.dataTransfer.files?.[0];
+    if (f) handleUpload(f);
+  };
+
   return (
     <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-primary">{t("family.person")} #{index + 1}</h4>
         <Button type="button" variant="ghost" size="sm"
-          onClick={() => { if (confirm(t("confirm.remove_person"))) onRemove(); }}
+          onClick={async () => {
+            if (await confirmAsk({
+              title: t("confirm.remove_person_title"),
+              description: t("confirm.remove_person"),
+              confirmText: t("family.remove"),
+              variant: "danger",
+            })) onRemove();
+          }}
           className="text-destructive hover:bg-destructive/10">
           <Trash2 className="h-4 w-4" />
         </Button>
