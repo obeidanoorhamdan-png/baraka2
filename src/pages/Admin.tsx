@@ -770,14 +770,24 @@ const Admin = () => {
                             {m.health_notes && <div>{t("health.notes")}: {m.health_notes}</div>}
                             <div className="flex flex-wrap gap-1.5 pt-1">
                               {m.injury_report_url && (
-                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
-                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
+                                    <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(m.injury_report_url, "member_injury", m.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </>
                               )}
                               {m.pregnancy_report_url && (
-                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
-                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
+                                    <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(m.pregnancy_report_url, "member_pregnancy", m.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </div>
