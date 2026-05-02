@@ -150,8 +150,11 @@ const Auth = () => {
                     onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
                 </div>
                 <div>
-                  <Label>{t("auth.password")}</Label>
-                  <Input type="password" required value={siPassword} onChange={(e) => setSiPassword(e.target.value)} />
+                  <Label>{t("auth.password")} <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
+                  <Input type="password" inputMode="numeric" maxLength={4} required
+                    placeholder="••••"
+                    value={siPassword}
+                    onChange={(e) => setSiPassword(e.target.value.replace(/\D/g, "").slice(0, 4))} />
                 </div>
                 <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground">
                   {t("auth.signin_btn")}
