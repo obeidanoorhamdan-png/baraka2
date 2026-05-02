@@ -64,14 +64,20 @@ export const MemberCard = ({
 
   const handleUpload = async (file: File) => {
     if (!file) return;
+    const okType = /^image\/(jpeg|jpg|png|webp|gif)$/i.test(file.type) || file.type === "application/pdf";
+    if (!okType) { toast.error(t("toast.invalid_file_type")); return; }
+    if (file.size > 5 * 1024 * 1024) { toast.error(t("toast.file_too_large")); return; }
     setUploading(true);
-    const ext = file.name.split(".").pop();
+    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
     const path = `${userId}/${Date.now()}-${index}.${ext}`;
-    const { error } = await supabase.storage.from("medical-reports").upload(path, file, { upsert: true });
+    const { error } = await supabase.storage.from("medical-reports").upload(path, file, {
+      upsert: true,
+      contentType: file.type,
+    });
     setUploading(false);
     if (error) { toast.error(error.message); return; }
     onChange({ ...member, injury_report_url: path });
-    toast.success(t("toast.saved"));
+    toast.success(t("toast.report_uploaded"));
   };
 
   return (
