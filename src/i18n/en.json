@@ -145,7 +145,20 @@
     "residence": "Residence",
     "members": "Members",
     "submitted_at": "Submitted at",
-    "family_size": "Family size"
+    "family_size": "Family size",
+    "registration_control": "Registration Control",
+    "registration_open": "Registration is OPEN",
+    "registration_closed": "Registration is CLOSED",
+    "open_registration": "Open Registration",
+    "close_registration": "Close Registration",
+    "closed_reason": "Reason for closure",
+    "closed_reason_placeholder": "Reason that will be shown to users..."
+  },
+  "closed": {
+    "title": "Registration is temporarily closed",
+    "subtitle": "We're sorry, new family registration at Baraka 2 Camp is currently closed",
+    "reason_label": "Reason",
+    "contact": "For inquiries please contact"
   },
   "toast": {
     "signup_success": "Account created successfully",
@@ -155,7 +168,10 @@
     "approved": "Application approved",
     "rejected": "Application rejected",
     "error": "An error occurred",
-    "id_exists": "National ID already registered",
-    "email_exists": "Email already registered"
+    "id_exists": "National ID is already registered in the camp",
+    "id_exists_with_data": "National ID {{id}} is already registered in another family. Please review.",
+    "email_exists": "Email already registered",
+    "registration_closed_now": "Registration is closed, no new applications can be submitted",
+    "settings_updated": "Settings updated"
   }
 }
