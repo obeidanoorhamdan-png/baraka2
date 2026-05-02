@@ -213,6 +213,7 @@ const MyApplication = () => {
           chronic_diseases: m.chronic_diseases || null,
           is_pregnant: m.is_pregnant,
           is_breastfeeding: m.is_breastfeeding,
+          pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
           health_notes: m.health_notes || null,
         }));
         const { error: fmErr } = await supabase.from("family_members").insert(rows);
