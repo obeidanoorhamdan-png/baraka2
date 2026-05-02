@@ -95,7 +95,12 @@ const Auth = () => {
     const parsed = schema.safeParse(su);
     if (!parsed.success) { toast.error(parsed.error.issues[0].message); return; }
 
-    if (!confirm(t("confirm.create_account"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.create_account_title"),
+      description: t("confirm.create_account"),
+      confirmText: t("auth.signup_btn"),
+      variant: "default",
+    }))) return;
     setSuBusy(true);
     const { data: dup } = await supabase.rpc("national_id_exists", { _nid: su.national_id });
     if (dup === true) {
@@ -148,7 +153,7 @@ const Auth = () => {
                 <div>
                   <Label>{t("form.national_id")}</Label>
                   <Input inputMode="numeric" maxLength={9} required value={siNid}
-                    placeholder="9 أرقام"
+                    placeholder={t("form.id_or_admin_placeholder")}
                     onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
                 </div>
                 <div>
@@ -358,7 +363,12 @@ const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () =>
   const performReset = async () => {
     if (!PIN_RE.test(newPw)) { toast.error(t("form.invalid_pin")); return; }
     if (newPw !== newPw2) { toast.error(t("toast.password_mismatch")); return; }
-    if (!confirm(t("confirm.reset_password"))) return;
+    if (!(await confirmAsk({
+      title: t("confirm.reset_password_title"),
+      description: t("confirm.reset_password"),
+      confirmText: t("forgot.save_password"),
+      variant: "warning",
+    }))) return;
     setBusy(true);
     // Sign in with a temporary recovery using the verify RPC outcome:
     // we call an edge function or rely on supabase.auth.updateUser? updateUser requires session.
