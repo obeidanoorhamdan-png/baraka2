@@ -43,6 +43,7 @@ const Auth = () => {
   const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
+    if (!PIN_RE.test(siPassword)) { toast.error(t("form.invalid_pin")); return; }
     setSiBusy(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: idToEmail(siNid),
