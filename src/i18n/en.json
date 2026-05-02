@@ -168,7 +168,8 @@
     "edit": "Edit",
     "rejection_reason": "Rejection reason",
     "update_only_title": "Registration is currently closed — you may only update your data",
-    "update_only_subtitle": "New applications cannot be created, but your existing data can be updated."
+    "update_only_subtitle": "New applications cannot be created, but your existing data can be updated.",
+    "approved_locked_add": "Your application has been approved ✓ — members cannot be added or removed; you can only edit their data."
   },
   "admin": {
     "title": "Admin Dashboard",
@@ -235,6 +236,7 @@
     "file_too_large": "File is too large (max 5 MB)",
     "report_uploaded": "Medical report uploaded successfully",
     "file_removed": "File removed",
+    "export_done": "File downloaded successfully",
     "image_too_large_dimensions": "Image dimensions are too large. Please use a smaller image.",
     "pin_changed": "Password changed successfully",
     "wrong_current_pin": "Current password is incorrect",

@@ -160,90 +160,140 @@ const Admin = () => {
     setReportUrls(urls);
   };
 
+  const STATUS_AR: Record<string, string> = { pending: "قيد المراجعة", approved: "مقبول", rejected: "مرفوض" };
+  const GENDER_AR: Record<string, string> = { male: "ذكر", female: "أنثى" };
+  const MARITAL_AR: Record<string, string> = { married: "متزوج", single: "أعزب", widowed: "أرمل/ة", divorced: "مطلق/ة", other: "أخرى" };
+  const REL_AR: Record<string, string> = {
+    wife: "زوجة", husband: "زوج", son: "ابن", daughter: "ابنة",
+    father: "والد", mother: "والدة", brother: "أخ", sister: "أخت", other: "أخرى",
+    head: "رب الأسرة",
+  };
+  const yn = (v: any) => (v ? "نعم" : "لا");
+
   const buildRows = (subset: Row[]) => {
     const wsData: any[] = [];
-    subset.forEach((r) => {
+    subset.forEach((r, idx) => {
       const p = profiles[r.user_id] || {};
       const fm = members[r.id] || [];
-      // head row
+      const base = {
+        "م": idx + 1,
+        "حالة الطلب": STATUS_AR[r.status] ?? r.status,
+        "تاريخ التقديم": r.submitted_at ? new Date(r.submitted_at).toLocaleString("ar-EG") : "",
+        "السكن الأصلي": r.original_residence || "",
+        "أقرب معلم (الأصلي)": r.original_landmark || "",
+        "أقرب معلم (الحالي)": r.current_landmark || "",
+        "عدد الأفراد": r.family_size || 0,
+        "يوجد شهيد": yn(r.has_martyr),
+        "اسم الشهيد": r.martyr_name || "",
+        "صلة القرابة بالشهيد": r.martyr_relationship || "",
+      };
       wsData.push({
-        Type: "Head",
-        ApplicationStatus: r.status,
-        SubmittedAt: r.submitted_at,
-        FullName: p.full_name,
-        NationalID: p.national_id,
-        Email: p.email || "",
-        Phone: p.phone,
-        AltPhone: p.alt_phone,
-        BirthDate: p.birth_date,
-        Age: calculateAge(p.birth_date),
-        Gender: p.gender,
-        MaritalStatus: p.marital_status,
-        MaritalOther: p.marital_status_other,
-        Relationship: "head",
-        OriginalResidence: r.original_residence,
-        OriginalLandmark: r.original_landmark,
-        CurrentLandmark: r.current_landmark,
-        FamilySize: r.family_size,
-        HasMartyr: r.has_martyr,
-        MartyrName: r.martyr_name,
-        MartyrRelationship: r.martyr_relationship,
-        WarInjured: p.is_war_injured,
-        ChronicDiseases: p.chronic_diseases,
-        HealthNotes: p.health_notes,
+        ...base,
+        "النوع": "رب الأسرة",
+        "الاسم الرباعي": p.full_name || "",
+        "رقم الهوية": p.national_id || "",
+        "تاريخ الميلاد": p.birth_date || "",
+        "العمر": calculateAge(p.birth_date),
+        "الجنس": GENDER_AR[p.gender] ?? "",
+        "الحالة الاجتماعية": p.marital_status_other || MARITAL_AR[p.marital_status] || "",
+        "صلة القرابة": "رب الأسرة",
+        "رقم الجوال": p.phone || "",
+        "جوال بديل": p.alt_phone || "",
+        "مصاب حرب": yn(p.is_war_injured),
+        "أمراض مزمنة": p.chronic_diseases || "",
+        "ملاحظات صحية": p.health_notes || "",
+        "حامل": "",
+        "مرضعة": "",
       });
       fm.forEach((m: any) => {
         wsData.push({
-          Type: "Member",
-          ApplicationStatus: r.status,
-          SubmittedAt: r.submitted_at,
-          FullName: m.full_name,
-          NationalID: m.national_id,
-          Email: "",
-          Phone: "",
-          AltPhone: "",
-          BirthDate: m.birth_date,
-          Age: calculateAge(m.birth_date),
-          Gender: m.gender,
-          MaritalStatus: "",
-          MaritalOther: "",
-          Relationship: m.relationship_other || m.relationship,
-          OriginalResidence: r.original_residence,
-          OriginalLandmark: r.original_landmark,
-          CurrentLandmark: r.current_landmark,
-          FamilySize: r.family_size,
-          HasMartyr: r.has_martyr,
-          MartyrName: r.martyr_name,
-          MartyrRelationship: r.martyr_relationship,
-          WarInjured: m.is_war_injured,
-          ChronicDiseases: m.chronic_diseases,
-          HealthNotes: m.health_notes,
-          IsPregnant: m.is_pregnant,
-          IsBreastfeeding: m.is_breastfeeding,
+          ...base,
+          "النوع": "فرد",
+          "الاسم الرباعي": m.full_name || "",
+          "رقم الهوية": m.national_id || "",
+          "تاريخ الميلاد": m.birth_date || "",
+          "العمر": calculateAge(m.birth_date),
+          "الجنس": GENDER_AR[m.gender] ?? "",
+          "الحالة الاجتماعية": "",
+          "صلة القرابة": m.relationship_other || REL_AR[m.relationship] || m.relationship,
+          "رقم الجوال": "",
+          "جوال بديل": "",
+          "مصاب حرب": yn(m.is_war_injured),
+          "أمراض مزمنة": m.chronic_diseases || "",
+          "ملاحظات صحية": m.health_notes || "",
+          "حامل": yn(m.is_pregnant),
+          "مرضعة": yn(m.is_breastfeeding),
         });
       });
     });
     return wsData;
   };
 
+  const styleSheet = (ws: XLSX.WorkSheet) => {
+    // RTL & sensible column widths
+    (ws as any)["!sheetView"] = [{ RTL: true }];
+    const ref = ws["!ref"]; if (!ref) return;
+    const range = XLSX.utils.decode_range(ref);
+    const widths: number[] = [];
+    for (let C = range.s.c; C <= range.e.c; C++) {
+      let max = 8;
+      for (let R = range.s.r; R <= range.e.r; R++) {
+        const cell = ws[XLSX.utils.encode_cell({ r: R, c: C })];
+        const v = cell?.v == null ? "" : String(cell.v);
+        if (v.length > max) max = Math.min(40, v.length + 2);
+      }
+      widths.push(max);
+    }
+    ws["!cols"] = widths.map((w) => ({ wch: w }));
+  };
+
+  const buildStatsSheet = () => {
+    const totalFamilies = rows.length;
+    const totalMembers = rows.reduce((s, r) => s + ((members[r.id]?.length ?? 0) + 1), 0);
+    const stats = [
+      ["تاريخ التصدير", new Date().toLocaleString("ar-EG")],
+      ["عدد العائلات", totalFamilies],
+      ["إجمالي الأفراد", totalMembers],
+      ["قيد المراجعة", rows.filter((r) => r.status === "pending").length],
+      ["مقبولة", rows.filter((r) => r.status === "approved").length],
+      ["مرفوضة", rows.filter((r) => r.status === "rejected").length],
+    ];
+    const ws = XLSX.utils.aoa_to_sheet([["البيان", "القيمة"], ...stats]);
+    styleSheet(ws);
+    return ws;
+  };
+
   const exportData = (format: "csv" | "xlsx") => {
-    const wsData = buildRows(rows);
+    // Sort by head full name (Arabic-aware) before export
+    const sorted = [...rows].sort((a, b) => {
+      const an = profiles[a.user_id]?.full_name || "";
+      const bn = profiles[b.user_id]?.full_name || "";
+      return an.localeCompare(bn, "ar");
+    });
+    const wsData = buildRows(sorted);
     const ws = XLSX.utils.json_to_sheet(wsData);
+    styleSheet(ws);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Registrations");
-    const fname = `baraka2-registrations-${new Date().toISOString().slice(0, 10)}`;
+    XLSX.utils.book_append_sheet(wb, ws, "العائلات");
+    if (format === "xlsx") {
+      XLSX.utils.book_append_sheet(wb, buildStatsSheet(), "إحصائيات");
+    }
+    const fname = `مخيم-بركة2-العائلات-${new Date().toISOString().slice(0, 10)}`;
     if (format === "xlsx") XLSX.writeFile(wb, `${fname}.xlsx`);
     else XLSX.writeFile(wb, `${fname}.csv`, { bookType: "csv" });
+    toast.success(t("toast.export_done"));
   };
 
   const exportFamily = (r: Row) => {
     const wsData = buildRows([r]);
     const ws = XLSX.utils.json_to_sheet(wsData);
+    styleSheet(ws);
     const wb = XLSX.utils.book_new();
-    XLSX.utils.book_append_sheet(wb, ws, "Family");
+    XLSX.utils.book_append_sheet(wb, ws, "العائلة");
     const p = profiles[r.user_id] || {};
-    const safe = (p.full_name || "family").replace(/\s+/g, "_");
-    XLSX.writeFile(wb, `baraka2-${safe}-${r.id.slice(0, 8)}.xlsx`);
+    const safe = (p.full_name || "عائلة").replace(/\s+/g, "_");
+    XLSX.writeFile(wb, `بركة2-${safe}.xlsx`);
+    toast.success(t("toast.export_done"));
   };
 
   if (loading || !isAdmin) return <Layout><div className="container py-20 text-center">...</div></Layout>;

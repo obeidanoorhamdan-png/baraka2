@@ -57,7 +57,7 @@ export const MemberCard = ({
   member: Member;
   userId: string;
   onChange: (m: Member) => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) => {
   const { t } = useTranslation();
   const confirmAsk = useConfirm();
@@ -140,18 +140,20 @@ export const MemberCard = ({
     <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-primary">{t("family.person")} #{index + 1}</h4>
-        <Button type="button" variant="ghost" size="sm"
-          onClick={async () => {
-            if (await confirmAsk({
-              title: t("confirm.remove_person_title"),
-              description: t("confirm.remove_person"),
-              confirmText: t("family.remove"),
-              variant: "danger",
-            })) onRemove();
-          }}
-          className="text-destructive hover:bg-destructive/10">
-          <Trash2 className="h-4 w-4" />
-        </Button>
+        {onRemove && (
+          <Button type="button" variant="ghost" size="sm"
+            onClick={async () => {
+              if (await confirmAsk({
+                title: t("confirm.remove_person_title"),
+                description: t("confirm.remove_person"),
+                confirmText: t("family.remove"),
+                variant: "danger",
+              })) onRemove();
+            }}
+            className="text-destructive hover:bg-destructive/10">
+            <Trash2 className="h-4 w-4" />
+          </Button>
+        )}
       </div>
       <div className="grid gap-3 md:grid-cols-2">
         <div>
