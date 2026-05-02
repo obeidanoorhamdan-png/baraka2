@@ -354,8 +354,9 @@ const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () =>
   };
 
   const performReset = async () => {
-    if (newPw.length < 6) { toast.error(t("form.password_min")); return; }
+    if (!PIN_RE.test(newPw)) { toast.error(t("form.invalid_pin")); return; }
     if (newPw !== newPw2) { toast.error(t("toast.password_mismatch")); return; }
+    if (!confirm(t("confirm.reset_password"))) return;
     setBusy(true);
     // Sign in with a temporary recovery using the verify RPC outcome:
     // we call an edge function or rely on supabase.auth.updateUser? updateUser requires session.
@@ -428,10 +429,12 @@ const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () =>
         {stage === "reset" && (
           <div className="space-y-3">
             <p className="text-sm text-success font-semibold">{t("forgot.verified")}</p>
-            <Label>{t("forgot.new_password")}</Label>
-            <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+            <Label>{t("forgot.new_password")} <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
+            <Input type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              value={newPw} onChange={(e) => setNewPw(e.target.value.replace(/\D/g, "").slice(0, 4))} />
             <Label>{t("forgot.new_password_confirm")}</Label>
-            <Input type="password" value={newPw2} onChange={(e) => setNewPw2(e.target.value)} />
+            <Input type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              value={newPw2} onChange={(e) => setNewPw2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
             <DialogFooter>
               <Button onClick={performReset} disabled={busy} className="brand-gradient text-primary-foreground">
                 {t("forgot.save_password")}
