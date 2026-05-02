@@ -183,7 +183,12 @@ const MyApplication = () => {
       setRejection(null);
       toast.success(t("toast.submitted"));
     } catch (e: any) {
-      toast.error(e.message || t("toast.error"));
+      const msg = (e?.message || "").toLowerCase();
+      if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
+        toast.error(t("toast.id_exists"));
+      } else {
+        toast.error(e?.message || t("toast.error"));
+      }
     }
     setBusy(false);
   };
@@ -193,6 +198,11 @@ const MyApplication = () => {
   return (
     <Layout>
       <section className="container py-8 max-w-4xl">
+        {!appId && !settings.registration_open && !settingsLoading && (
+          <RegistrationClosedNotice reason={settings.closed_reason} />
+        )}
+        {(appId || settings.registration_open || settingsLoading) && (
+        <>
         <h1 className="text-2xl md:text-3xl text-primary mb-2">{t("my_app.title")}</h1>
 
         {appStatus && (
