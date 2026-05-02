@@ -424,7 +424,6 @@ const ChangePinCard = ({ userId: _userId }: { userId: string }) => {
   const onSave = async () => {
     if (!PIN_RE.test(current) || !PIN_RE.test(next)) { toast.error(t("form.invalid_pin")); return; }
     if (next !== next2) { toast.error(t("toast.password_mismatch")); return; }
-    if (current === next) { toast.error(t("toast.pin_same_as_current")); return; }
 
     // Verify current PIN by re-authenticating
     const { data: profile } = await supabase.from("profiles").select("national_id").eq("id", _userId).maybeSingle();
