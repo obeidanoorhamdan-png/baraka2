@@ -24,7 +24,7 @@ import { AidPreview } from "@/pages/MyAid";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const { settings, loading: settingsLoading } = useAppSettings();
   const navigate = useNavigate();
   const isRtl = i18n.language === "ar";
@@ -80,7 +80,8 @@ const MyApplication = () => {
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
-  }, [user, loading, navigate]);
+    else if (!loading && user && isAdmin) navigate("/admin", { replace: true });
+  }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
     if (!user) return;

@@ -20,6 +20,8 @@ import { calculateAge } from "@/lib/age";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
+import { BulkAidDistributor } from "@/components/BulkAidDistributor";
+import { PackageCheck, Trash2 } from "lucide-react";
 
 type Row = any;
 
@@ -220,6 +222,31 @@ const Admin = () => {
     if (!data?.signedUrl) { toast.error(t("toast.error")); return; }
     setPreviewUrl(data.signedUrl);
     setPreviewTitle(title);
+  };
+
+  const deleteReportImage = async (
+    path: string,
+    kind: "head_injury" | "member_injury" | "member_pregnancy",
+    refId: string,
+  ) => {
+    if (!path) return;
+    if (!(await confirmAsk({
+      title: t("preview.delete_image_title"),
+      description: t("preview.delete_image_desc"),
+      confirmText: t("common.delete"),
+      variant: "danger",
+    }))) return;
+    await supabase.storage.from("medical-reports").remove([path]);
+    if (kind === "head_injury") {
+      await supabase.from("profiles").update({ injury_report_url: null }).eq("id", refId);
+    } else if (kind === "member_injury") {
+      await supabase.from("family_members").update({ injury_report_url: null }).eq("id", refId);
+    } else {
+      await supabase.from("family_members").update({ pregnancy_report_url: null }).eq("id", refId);
+    }
+    toast.success(t("toast.file_removed"));
+    if (selected) await openDetails(selected);
+    load();
   };
 
   const approve = async (r: Row) => {
@@ -471,9 +498,10 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="families" className="w-full">
-          <TabsList className="grid grid-cols-2 w-full md:w-96">
+          <TabsList className="grid grid-cols-3 w-full md:w-[32rem]">
             <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
             <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
+            <TabsTrigger value="aid" className="gap-1.5"><PackageCheck className="h-4 w-4" /> {t("admin.tab_aid")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="families" className="mt-4">
@@ -647,6 +675,20 @@ const Admin = () => {
               </div>
             </Card>
           </TabsContent>
+
+          <TabsContent value="aid" className="mt-4">
+            <BulkAidDistributor
+              currentUserId={user!.id}
+              families={rows.map((r) => ({
+                application_id: r.id,
+                user_id: r.user_id,
+                head_name: profiles[r.user_id]?.full_name || "",
+                national_id: profiles[r.user_id]?.national_id || "",
+                family_size: r.family_size || 0,
+                status: r.status,
+              }))}
+            />
+          </TabsContent>
         </Tabs>
       </section>
 
@@ -679,9 +721,14 @@ const Admin = () => {
                     <div className="mt-2 pt-2 border-t">
                       {p.is_war_injured && <div className="text-destructive font-semibold">{t("health.is_war_injured")}: {t("health.yes")}</div>}
                       {p.injury_report_url && (
-                        <Button size="sm" variant="outline" className="gap-1.5 mt-1" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
-                          <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
-                        </Button>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
+                            <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
+                          </Button>
+                          <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(p.injury_report_url, "head_injury", p.id)}>
+                            <Trash2 className="h-3.5 w-3.5" /> {t("preview.delete_image")}
+                          </Button>
+                        </div>
                       )}
                       {p.chronic_diseases && <div><strong>{t("health.chronic")}:</strong> {p.chronic_diseases}</div>}
                       {p.health_notes && <div><strong>{t("health.notes")}:</strong> {p.health_notes}</div>}
@@ -723,14 +770,24 @@ const Admin = () => {
                             {m.health_notes && <div>{t("health.notes")}: {m.health_notes}</div>}
                             <div className="flex flex-wrap gap-1.5 pt-1">
                               {m.injury_report_url && (
-                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
-                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
+                                    <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(m.injury_report_url, "member_injury", m.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </>
                               )}
                               {m.pregnancy_report_url && (
-                                <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
-                                  <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
-                                </Button>
+                                <>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
+                                    <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
+                                  </Button>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(m.pregnancy_report_url, "member_pregnancy", m.id)}>
+                                    <Trash2 className="h-3 w-3" />
+                                  </Button>
+                                </>
                               )}
                             </div>
                           </div>

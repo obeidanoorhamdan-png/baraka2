@@ -100,7 +100,24 @@
     "view_injury": "عرض إثبات الإصابة",
     "view_pregnancy": "عرض إثبات الحمل",
     "open_new_tab": "فتح في تبويب جديد",
-    "download": "تنزيل"
+    "download": "تنزيل",
+    "delete_image": "حذف الصورة",
+    "delete_image_title": "حذف الصورة المرفقة",
+    "delete_image_desc": "سيتم حذف الصورة نهائياً من المخيم. هل أنت متأكد؟"
+  },
+  "aid_bulk": {
+    "form_title": "تسجيل توزيع مساعدة",
+    "pick_families": "اختر العائلات المستلمة",
+    "only_approved": "العائلات المقبولة فقط",
+    "select_all_visible": "تحديد الكل المعروض",
+    "deselect_all": "إلغاء تحديد الكل",
+    "selected_count": "عدد العائلات المحددة",
+    "save_btn": "تسجيل التوزيع لجميع العائلات المحددة",
+    "select_required": "يرجى تحديد عائلة واحدة على الأقل",
+    "confirm_title": "تأكيد توزيع المساعدة",
+    "confirm_desc": "سيتم تسجيل هذه المساعدة لـ {{count}} عائلة. هل تريد المتابعة؟",
+    "saved": "تم تسجيل التوزيع لـ {{count}} عائلة",
+    "persons": "فرد"
   },
   "aid": {
     "title_section": "المساعدات المسلَّمة",
@@ -245,6 +262,7 @@
     "closed_reason_placeholder": "اكتب السبب الذي سيظهر للمستخدمين...",
     "tab_families": "العائلات",
     "tab_people": "تصفية الأفراد",
+    "tab_aid": "إدارة المساعدات",
     "search_person": "بحث",
     "search_person_placeholder": "اسم الفرد أو رب الأسرة أو رقم الهوية",
     "category": "التصنيف",
