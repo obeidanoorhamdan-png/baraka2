@@ -14,16 +14,231 @@ export type Database = {
   }
   public: {
     Tables: {
-      [_ in never]: never
+      applications: {
+        Row: {
+          created_at: string
+          current_camp: string
+          current_landmark: string
+          family_size: number
+          has_martyr: boolean
+          id: string
+          martyr_name: string | null
+          martyr_relationship: string | null
+          original_landmark: string
+          original_residence: string
+          rejection_reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          status: Database["public"]["Enums"]["application_status"]
+          submitted_at: string
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          current_camp?: string
+          current_landmark: string
+          family_size: number
+          has_martyr?: boolean
+          id?: string
+          martyr_name?: string | null
+          martyr_relationship?: string | null
+          original_landmark: string
+          original_residence: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          submitted_at?: string
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          current_camp?: string
+          current_landmark?: string
+          family_size?: number
+          has_martyr?: boolean
+          id?: string
+          martyr_name?: string | null
+          martyr_relationship?: string | null
+          original_landmark?: string
+          original_residence?: string
+          rejection_reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          status?: Database["public"]["Enums"]["application_status"]
+          submitted_at?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      family_members: {
+        Row: {
+          application_id: string
+          birth_date: string
+          chronic_diseases: string | null
+          created_at: string
+          full_name: string
+          gender: Database["public"]["Enums"]["gender"]
+          health_notes: string | null
+          id: string
+          injury_report_url: string | null
+          is_breastfeeding: boolean
+          is_pregnant: boolean
+          is_war_injured: boolean
+          national_id: string | null
+          relationship: Database["public"]["Enums"]["relationship"]
+          relationship_other: string | null
+        }
+        Insert: {
+          application_id: string
+          birth_date: string
+          chronic_diseases?: string | null
+          created_at?: string
+          full_name: string
+          gender: Database["public"]["Enums"]["gender"]
+          health_notes?: string | null
+          id?: string
+          injury_report_url?: string | null
+          is_breastfeeding?: boolean
+          is_pregnant?: boolean
+          is_war_injured?: boolean
+          national_id?: string | null
+          relationship: Database["public"]["Enums"]["relationship"]
+          relationship_other?: string | null
+        }
+        Update: {
+          application_id?: string
+          birth_date?: string
+          chronic_diseases?: string | null
+          created_at?: string
+          full_name?: string
+          gender?: Database["public"]["Enums"]["gender"]
+          health_notes?: string | null
+          id?: string
+          injury_report_url?: string | null
+          is_breastfeeding?: boolean
+          is_pregnant?: boolean
+          is_war_injured?: boolean
+          national_id?: string | null
+          relationship?: Database["public"]["Enums"]["relationship"]
+          relationship_other?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "family_members_application_id_fkey"
+            columns: ["application_id"]
+            isOneToOne: false
+            referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      profiles: {
+        Row: {
+          alt_phone: string | null
+          birth_date: string
+          chronic_diseases: string | null
+          created_at: string
+          email: string
+          full_name: string
+          gender: Database["public"]["Enums"]["gender"]
+          health_notes: string | null
+          id: string
+          injury_report_url: string | null
+          is_war_injured: boolean
+          marital_status: Database["public"]["Enums"]["marital_status"]
+          marital_status_other: string | null
+          national_id: string
+          phone: string
+          updated_at: string
+        }
+        Insert: {
+          alt_phone?: string | null
+          birth_date: string
+          chronic_diseases?: string | null
+          created_at?: string
+          email: string
+          full_name: string
+          gender: Database["public"]["Enums"]["gender"]
+          health_notes?: string | null
+          id: string
+          injury_report_url?: string | null
+          is_war_injured?: boolean
+          marital_status: Database["public"]["Enums"]["marital_status"]
+          marital_status_other?: string | null
+          national_id: string
+          phone: string
+          updated_at?: string
+        }
+        Update: {
+          alt_phone?: string | null
+          birth_date?: string
+          chronic_diseases?: string | null
+          created_at?: string
+          email?: string
+          full_name?: string
+          gender?: Database["public"]["Enums"]["gender"]
+          health_notes?: string | null
+          id?: string
+          injury_report_url?: string | null
+          is_war_injured?: boolean
+          marital_status?: Database["public"]["Enums"]["marital_status"]
+          marital_status_other?: string | null
+          national_id?: string
+          phone?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      user_roles: {
+        Row: {
+          id: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Insert: {
+          id?: string
+          role: Database["public"]["Enums"]["app_role"]
+          user_id: string
+        }
+        Update: {
+          id?: string
+          role?: Database["public"]["Enums"]["app_role"]
+          user_id?: string
+        }
+        Relationships: []
+      }
     }
     Views: {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      has_role: {
+        Args: {
+          _role: Database["public"]["Enums"]["app_role"]
+          _user_id: string
+        }
+        Returns: boolean
+      }
     }
     Enums: {
-      [_ in never]: never
+      app_role: "admin" | "user"
+      application_status: "pending" | "approved" | "rejected"
+      gender: "male" | "female"
+      marital_status: "married" | "single" | "widowed" | "divorced" | "other"
+      relationship:
+        | "wife"
+        | "husband"
+        | "son"
+        | "daughter"
+        | "father"
+        | "mother"
+        | "brother"
+        | "sister"
+        | "other"
     }
     CompositeTypes: {
       [_ in never]: never
@@ -150,6 +365,22 @@ export type CompositeTypes<
 
 export const Constants = {
   public: {
-    Enums: {},
+    Enums: {
+      app_role: ["admin", "user"],
+      application_status: ["pending", "approved", "rejected"],
+      gender: ["male", "female"],
+      marital_status: ["married", "single", "widowed", "divorced", "other"],
+      relationship: [
+        "wife",
+        "husband",
+        "son",
+        "daughter",
+        "father",
+        "mother",
+        "brother",
+        "sister",
+        "other",
+      ],
+    },
   },
 } as const
