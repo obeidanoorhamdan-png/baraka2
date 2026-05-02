@@ -355,8 +355,26 @@ const MyApplication = () => {
                 index={i}
                 member={m}
                 userId={user!.id}
-                onChange={(nm) => setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)))}
-                onRemove={appStatus === "approved" ? undefined : () => setMembers((prev) => prev.filter((_, idx) => idx !== i))}
+                errors={memberErrors[i] || {}}
+                onFieldBlur={(field) => {
+                  const msg = validateMemberField(m, field);
+                  setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), [field]: msg } }));
+                }}
+                onChange={(nm) => {
+                  setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)));
+                  // re-validate fields that may now be fixed
+                  if (memberErrors[i]) {
+                    const next: Record<string, string> = {};
+                    Object.keys(memberErrors[i]).forEach((k) => {
+                      next[k] = validateMemberField(nm, k);
+                    });
+                    setMemberErrors((p) => ({ ...p, [i]: next }));
+                  }
+                }}
+                onRemove={appStatus === "approved" ? undefined : () => {
+                  setMembers((prev) => prev.filter((_, idx) => idx !== i));
+                  setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
+                }}
               />
             ))}
 
