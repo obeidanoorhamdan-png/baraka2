@@ -57,7 +57,7 @@ export const MemberCard = ({
   member: Member;
   userId: string;
   onChange: (m: Member) => void;
-  onRemove: () => void;
+  onRemove?: () => void;
 }) => {
   const { t } = useTranslation();
   const confirmAsk = useConfirm();
