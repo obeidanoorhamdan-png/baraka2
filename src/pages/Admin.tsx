@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
-import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet, Filter, Image as ImageIcon } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -11,12 +11,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { AidManager } from "@/components/AidManager";
+import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 
 type Row = any;
 
