@@ -248,30 +248,59 @@ const Auth = () => {
                   )}
                 </div>
               ) : (
-              <form onSubmit={handleSignup} className="space-y-4">
+              <form onSubmit={handleSignup} className="space-y-4" noValidate>
+                <p className="text-xs text-muted-foreground bg-accent-soft/40 p-2 rounded border border-accent/20">
+                  {t("auth_extra.after_signup_hint")}
+                </p>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
-                    <Input inputMode="numeric" maxLength={9} minLength={9} required value={su.national_id}
-                      placeholder="9 أرقام"
-                      onChange={(e) => setSu({ ...su, national_id: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
+                    <Input inputMode="numeric" maxLength={9} value={su.national_id}
+                      placeholder="9 أرقام" aria-invalid={!!errors.national_id}
+                      className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))}
+                      onChange={(e) => setField("national_id", e.target.value.replace(/\D/g, "").slice(0, 9))} />
+                    {errors.national_id && <p className="text-xs text-destructive mt-1">{errors.national_id}</p>}
                   </div>
                   <div>
                     <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
-                    <Input required value={su.full_name} placeholder="الاسم الأول الأب الجد العائلة"
-                      onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
+                    <Input value={su.full_name} placeholder="الاسم الأول الأب الجد العائلة"
+                      aria-invalid={!!errors.full_name}
+                      className={errors.full_name ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, full_name: validateField("full_name", su.full_name) }))}
+                      onChange={(e) => setField("full_name", e.target.value)} />
+                    {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name}</p>}
                   </div>
                   <div>
                     <Label>{t("auth.password")} <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
-                    <Input type="password" inputMode="numeric" maxLength={4} required
-                      placeholder="••••"
-                      value={su.password}
-                      onChange={(e) => setSu({ ...su, password: e.target.value.replace(/\D/g, "").slice(0, 4) })} />
+                    <Input type="password" inputMode="numeric" maxLength={4}
+                      placeholder="••••" value={su.password}
+                      aria-invalid={!!errors.password}
+                      className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, password: validateField("password", su.password) }))}
+                      onChange={(e) => setField("password", e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                    {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
                   </div>
                   <div>
-                    <Label>{t("form.birth_date")}</Label>
-                    <Input type="date" required value={su.birth_date} onChange={(e) => setSu({ ...su, birth_date: e.target.value })} />
-                    {su.birth_date && <div className="text-xs text-muted-foreground mt-1">{t("form.age")}: {age} {t("form.years")}</div>}
+                    <Label>{t("auth_extra.password_confirm")} <span className="text-destructive">*</span></Label>
+                    <Input type="password" inputMode="numeric" maxLength={4}
+                      placeholder="••••" value={su.password_confirm}
+                      aria-invalid={!!errors.password_confirm}
+                      className={errors.password_confirm ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, password_confirm: validateField("password_confirm", su.password_confirm) }))}
+                      onChange={(e) => setField("password_confirm", e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                    {errors.password_confirm && <p className="text-xs text-destructive mt-1">{errors.password_confirm}</p>}
+                  </div>
+                  <div>
+                    <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
+                    <Input type="date" value={su.birth_date}
+                      max={new Date().toISOString().split("T")[0]}
+                      aria-invalid={!!errors.birth_date}
+                      className={errors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, birth_date: validateField("birth_date", su.birth_date) }))}
+                      onChange={(e) => setField("birth_date", e.target.value)} />
+                    {errors.birth_date && <p className="text-xs text-destructive mt-1">{errors.birth_date}</p>}
+                    {su.birth_date && !errors.birth_date && <div className="text-xs text-muted-foreground mt-1">{t("form.age")}: {age} {t("form.years")}</div>}
                   </div>
                   <div>
                     <Label>{t("form.gender")}</Label>
@@ -285,13 +314,21 @@ const Auth = () => {
                   </div>
                   <div>
                     <Label>{t("form.phone")} <span className="text-destructive">*</span></Label>
-                    <Input inputMode="numeric" maxLength={10} required value={su.phone} placeholder="059xxxxxxx"
-                      onChange={(e) => setSu({ ...su, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+                    <Input inputMode="numeric" maxLength={10} value={su.phone} placeholder="059xxxxxxx"
+                      aria-invalid={!!errors.phone}
+                      className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, phone: validateField("phone", su.phone) }))}
+                      onChange={(e) => setField("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} />
+                    {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
                   </div>
                   <div>
                     <Label>{t("form.alt_phone")}</Label>
                     <Input inputMode="numeric" maxLength={10} value={su.alt_phone} placeholder="059xxxxxxx"
-                      onChange={(e) => setSu({ ...su, alt_phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
+                      aria-invalid={!!errors.alt_phone}
+                      className={errors.alt_phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                      onBlur={() => setErrors((p) => ({ ...p, alt_phone: validateField("alt_phone", su.alt_phone) }))}
+                      onChange={(e) => setField("alt_phone", e.target.value.replace(/\D/g, "").slice(0, 10))} />
+                    {errors.alt_phone && <p className="text-xs text-destructive mt-1">{errors.alt_phone}</p>}
                   </div>
                   <div className="md:col-span-2">
                     <Label>{t("form.marital_status")}</Label>
@@ -306,8 +343,13 @@ const Auth = () => {
                       </SelectContent>
                     </Select>
                     {su.marital_status === "other" && (
-                      <Input className="mt-2" placeholder={t("form.specify")} value={su.marital_status_other}
-                        onChange={(e) => setSu({ ...su, marital_status_other: e.target.value })} />
+                      <>
+                        <Input className={`mt-2 ${errors.marital_status_other ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                          placeholder={t("form.specify")} value={su.marital_status_other}
+                          onBlur={() => setErrors((p) => ({ ...p, marital_status_other: validateField("marital_status_other", su.marital_status_other) }))}
+                          onChange={(e) => setField("marital_status_other", e.target.value)} />
+                        {errors.marital_status_other && <p className="text-xs text-destructive mt-1">{errors.marital_status_other}</p>}
+                      </>
                     )}
                   </div>
                 </div>
