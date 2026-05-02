@@ -75,7 +75,7 @@ const Admin = () => {
   }, [rows, members, profiles]);
 
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (search.trim()) {
         const p = profiles[r.user_id];
@@ -87,6 +87,12 @@ const Admin = () => {
         );
       }
       return true;
+    });
+    // Sort alphabetically by head-of-family full name (Arabic-aware)
+    return [...list].sort((a, b) => {
+      const an = profiles[a.user_id]?.full_name || "";
+      const bn = profiles[b.user_id]?.full_name || "";
+      return an.localeCompare(bn, "ar", { sensitivity: "base" });
     });
   }, [rows, search, statusFilter, profiles]);
 
