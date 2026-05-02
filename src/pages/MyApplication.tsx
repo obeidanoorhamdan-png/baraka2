@@ -82,12 +82,28 @@ const MyApplication = () => {
     }
   }, [residence.family_size]);
 
-  const validateMembers = () => {
+  const validateMembers = async () => {
+    const seen = new Set<string>();
     for (let i = 0; i < members.length; i++) {
       const m = members[i];
       if (!m.full_name.trim() || !m.birth_date || !m.relationship) {
         toast.error(`${t("family.person")} #${i + 1}: ${t("form.required")}`);
         return false;
+      }
+      if (!isFullName(m.full_name)) {
+        toast.error(`${t("family.person")} #${i + 1}: ${t("form.invalid_full_name")}`);
+        return false;
+      }
+      if (m.national_id) {
+        if (!ID_RE.test(m.national_id)) {
+          toast.error(`${t("family.person")} #${i + 1}: ${t("form.invalid_id")}`);
+          return false;
+        }
+        if (seen.has(m.national_id)) {
+          toast.error(`${t("family.person")} #${i + 1}: ${t("toast.id_exists_with_data", { id: m.national_id })}`);
+          return false;
+        }
+        seen.add(m.national_id);
       }
       if (m.is_war_injured && !m.injury_report_url) {
         toast.error(`${t("family.person")} #${i + 1}: ${t("health.report_required")}`);
@@ -98,12 +114,26 @@ const MyApplication = () => {
       toast.error(t("form.required"));
       return false;
     }
+    // Check duplicates against the rest of the camp
+    const ids = members.map((m) => m.national_id).filter(Boolean) as string[];
+    for (const nid of ids) {
+      const { data } = await supabase.rpc("national_id_exists", { _nid: nid, _exclude_user: user!.id });
+      if (data === true) {
+        toast.error(t("toast.id_exists_with_data", { id: nid }));
+        return false;
+      }
+    }
     return true;
   };
 
   const submit = async () => {
     if (!user) return;
-    if (!validateMembers()) return;
+    // Block new submissions when registration is closed; existing application owners can still update
+    if (!appId && !settings.registration_open) {
+      toast.error(t("toast.registration_closed_now"));
+      return;
+    }
+    if (!(await validateMembers())) return;
     setBusy(true);
     try {
       let currentAppId = appId;
