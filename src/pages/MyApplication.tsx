@@ -330,7 +330,7 @@ const MyApplication = () => {
                 member={m}
                 userId={user!.id}
                 onChange={(nm) => setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)))}
-                onRemove={() => setMembers((prev) => prev.filter((_, idx) => idx !== i))}
+                onRemove={appStatus === "approved" ? undefined : () => setMembers((prev) => prev.filter((_, idx) => idx !== i))}
               />
             ))}
 
