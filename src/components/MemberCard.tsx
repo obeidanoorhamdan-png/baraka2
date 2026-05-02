@@ -171,18 +171,32 @@ export const MemberCard = ({
         <div>
           <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
           <Input value={member.full_name} placeholder="الاسم الأول الأب الجد العائلة"
+            aria-invalid={!!errors.full_name}
+            className={errCls("full_name")}
+            onBlur={() => onFieldBlur?.("full_name")}
             onChange={(e) => onChange({ ...member, full_name: e.target.value })} />
+          {errMsg("full_name")}
         </div>
         <div>
           <Label>{t("form.national_id")}</Label>
           <Input inputMode="numeric" maxLength={9} value={member.national_id}
             placeholder="9 أرقام (اختياري للأطفال)"
+            aria-invalid={!!errors.national_id}
+            className={errCls("national_id")}
+            onBlur={() => onFieldBlur?.("national_id")}
             onChange={(e) => onChange({ ...member, national_id: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
+          {errMsg("national_id")}
         </div>
         <div>
-          <Label>{t("form.birth_date")}</Label>
-          <Input type="date" value={member.birth_date} onChange={(e) => onChange({ ...member, birth_date: e.target.value })} />
-          {member.birth_date && <div className="text-xs text-muted-foreground mt-1">{t("form.age")}: {age} {t("form.years")}</div>}
+          <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
+          <Input type="date" value={member.birth_date}
+            max={new Date().toISOString().split("T")[0]}
+            aria-invalid={!!errors.birth_date}
+            className={errCls("birth_date")}
+            onBlur={() => onFieldBlur?.("birth_date")}
+            onChange={(e) => onChange({ ...member, birth_date: e.target.value })} />
+          {errMsg("birth_date")}
+          {member.birth_date && !errors.birth_date && <div className="text-xs text-muted-foreground mt-1">{t("form.age")}: {age} {t("form.years")}</div>}
         </div>
         <div>
           <Label>{t("form.gender")}</Label>
@@ -195,7 +209,7 @@ export const MemberCard = ({
           </Select>
         </div>
         <div className="md:col-span-2">
-          <Label>{t("family.relationship")}</Label>
+          <Label>{t("family.relationship")} <span className="text-destructive">*</span></Label>
           <Select value={member.relationship} onValueChange={(v) => onChange({ ...member, relationship: v as any })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
@@ -211,8 +225,12 @@ export const MemberCard = ({
             </SelectContent>
           </Select>
           {member.relationship === "other" && (
-            <Input className="mt-2" placeholder={t("form.specify")} value={member.relationship_other || ""}
-              onChange={(e) => onChange({ ...member, relationship_other: e.target.value })} />
+            <>
+              <Input className={`mt-2 ${errCls("relationship_other")}`} placeholder={t("form.specify")} value={member.relationship_other || ""}
+                onBlur={() => onFieldBlur?.("relationship_other")}
+                onChange={(e) => onChange({ ...member, relationship_other: e.target.value })} />
+              {errMsg("relationship_other")}
+            </>
           )}
         </div>
       </div>
