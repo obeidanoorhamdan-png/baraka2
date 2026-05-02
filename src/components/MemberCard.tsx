@@ -124,7 +124,9 @@ export const MemberCard = ({
     <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-primary">{t("family.person")} #{index + 1}</h4>
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:bg-destructive/10">
+        <Button type="button" variant="ghost" size="sm"
+          onClick={() => { if (confirm(t("confirm.remove_person"))) onRemove(); }}
+          className="text-destructive hover:bg-destructive/10">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
