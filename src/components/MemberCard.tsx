@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, Upload, FileImage, Replace, X } from "lucide-react";
+import { Trash2, Upload, FileImage, Replace, X, ShieldCheck } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -13,6 +13,7 @@ import { calculateAge } from "@/lib/age";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { prepareUpload, formatBytes } from "@/lib/imageUpload";
+import { useConfirm } from "@/components/ConfirmDialog";
 
 export type Member = {
   id?: string;
@@ -59,9 +60,11 @@ export const MemberCard = ({
   onRemove: () => void;
 }) => {
   const { t } = useTranslation();
+  const confirmAsk = useConfirm();
   const [uploading, setUploading] = useState(false);
   const [signedPreview, setSignedPreview] = useState<string>("");
   const [localPreview, setLocalPreview] = useState<string>("");
+  const [dragOver, setDragOver] = useState(false);
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
 
