@@ -161,16 +161,29 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup" className="mt-6">
+              {!settingsLoading && !settings.registration_open ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5 text-center space-y-2">
+                  <div className="font-bold text-destructive">{t("closed.title")}</div>
+                  <p className="text-sm text-muted-foreground">{t("closed.subtitle")}</p>
+                  {settings.closed_reason && (
+                    <div className="text-sm bg-background rounded p-3 text-start mt-2">
+                      <strong>{t("closed.reason_label")}:</strong> {settings.closed_reason}
+                    </div>
+                  )}
+                </div>
+              ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <Label>{t("form.national_id")}</Label>
-                    <Input inputMode="numeric" maxLength={9} required value={su.national_id}
-                      onChange={(e) => setSu({ ...su, national_id: e.target.value.replace(/\D/g, "") })} />
+                    <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
+                    <Input inputMode="numeric" maxLength={9} minLength={9} required value={su.national_id}
+                      placeholder="9 أرقام"
+                      onChange={(e) => setSu({ ...su, national_id: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
                   </div>
                   <div>
-                    <Label>{t("form.full_name")}</Label>
-                    <Input required value={su.full_name} onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
+                    <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
+                    <Input required value={su.full_name} placeholder="الاسم الأول الأب الجد العائلة"
+                      onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
                   </div>
                   <div>
                     <Label>{t("auth.email")}</Label>
@@ -196,14 +209,14 @@ const Auth = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label>{t("form.phone")}</Label>
-                    <Input inputMode="numeric" required value={su.phone}
-                      onChange={(e) => setSu({ ...su, phone: e.target.value.replace(/\D/g, "") })} />
+                    <Label>{t("form.phone")} <span className="text-destructive">*</span></Label>
+                    <Input inputMode="numeric" maxLength={10} required value={su.phone} placeholder="059xxxxxxx"
+                      onChange={(e) => setSu({ ...su, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                   </div>
                   <div>
                     <Label>{t("form.alt_phone")}</Label>
-                    <Input inputMode="numeric" value={su.alt_phone}
-                      onChange={(e) => setSu({ ...su, alt_phone: e.target.value.replace(/\D/g, "") })} />
+                    <Input inputMode="numeric" maxLength={10} value={su.alt_phone} placeholder="059xxxxxxx"
+                      onChange={(e) => setSu({ ...su, alt_phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                   </div>
                   <div className="md:col-span-2">
                     <Label>{t("form.marital_status")}</Label>
