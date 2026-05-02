@@ -113,6 +113,7 @@ export type Database = {
           is_pregnant: boolean
           is_war_injured: boolean
           national_id: string | null
+          pregnancy_report_url: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other: string | null
         }
@@ -130,6 +131,7 @@ export type Database = {
           is_pregnant?: boolean
           is_war_injured?: boolean
           national_id?: string | null
+          pregnancy_report_url?: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
         }
@@ -147,6 +149,7 @@ export type Database = {
           is_pregnant?: boolean
           is_war_injured?: boolean
           national_id?: string | null
+          pregnancy_report_url?: string | null
           relationship?: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
         }
