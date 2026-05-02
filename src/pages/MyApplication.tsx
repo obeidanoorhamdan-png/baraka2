@@ -14,9 +14,12 @@ import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ID_RE, isFullName } from "@/lib/validators";
+import { ID_RE, isFullName, PIN_RE } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { Card as UICard } from "@/components/ui/card";
+import { KeyRound } from "lucide-react";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -26,6 +29,7 @@ const MyApplication = () => {
   const isRtl = i18n.language === "ar";
   const Arrow = isRtl ? ArrowLeft : ArrowRight;
   const ArrowBack = isRtl ? ArrowRight : ArrowLeft;
+  const confirmAsk = useConfirm();
 
   const [step, setStep] = useState(1);
   const [appId, setAppId] = useState<string | null>(null);
@@ -138,7 +142,12 @@ const MyApplication = () => {
       return;
     }
     if (!(await validateMembers())) return;
-    if (!confirm(appId ? t("confirm.save_changes") : t("confirm.submit_app"))) return;
+    if (!(await confirmAsk({
+      title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
+      description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
+      confirmText: appId ? t("form.save") : t("form.submit"),
+      variant: "default",
+    }))) return;
     setBusy(true);
     try {
       let currentAppId = appId;
