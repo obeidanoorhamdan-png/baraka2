@@ -80,7 +80,8 @@ const MyApplication = () => {
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
-  }, [user, loading, navigate]);
+    else if (!loading && user && isAdmin) navigate("/admin", { replace: true });
+  }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
     if (!user) return;
