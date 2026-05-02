@@ -721,9 +721,14 @@ const Admin = () => {
                     <div className="mt-2 pt-2 border-t">
                       {p.is_war_injured && <div className="text-destructive font-semibold">{t("health.is_war_injured")}: {t("health.yes")}</div>}
                       {p.injury_report_url && (
-                        <Button size="sm" variant="outline" className="gap-1.5 mt-1" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
-                          <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
-                        </Button>
+                        <div className="flex flex-wrap gap-1.5 mt-1">
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
+                            <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
+                          </Button>
+                          <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(p.injury_report_url, "head_injury", p.id)}>
+                            <Trash2 className="h-3.5 w-3.5" /> {t("preview.delete_image")}
+                          </Button>
+                        </div>
                       )}
                       {p.chronic_diseases && <div><strong>{t("health.chronic")}:</strong> {p.chronic_diseases}</div>}
                       {p.health_notes && <div><strong>{t("health.notes")}:</strong> {p.health_notes}</div>}
