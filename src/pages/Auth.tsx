@@ -200,8 +200,11 @@ const Auth = () => {
                       onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
                   </div>
                   <div>
-                    <Label>{t("auth.password")} <span className="text-destructive">*</span></Label>
-                    <Input type="password" required value={su.password} onChange={(e) => setSu({ ...su, password: e.target.value })} />
+                    <Label>{t("auth.password")} <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
+                    <Input type="password" inputMode="numeric" maxLength={4} required
+                      placeholder="••••"
+                      value={su.password}
+                      onChange={(e) => setSu({ ...su, password: e.target.value.replace(/\D/g, "").slice(0, 4) })} />
                   </div>
                   <div>
                     <Label>{t("form.birth_date")}</Label>
