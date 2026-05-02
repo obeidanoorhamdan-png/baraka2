@@ -166,7 +166,7 @@ export type Database = {
           birth_date: string
           chronic_diseases: string | null
           created_at: string
-          email: string
+          email: string | null
           full_name: string
           gender: Database["public"]["Enums"]["gender"]
           health_notes: string | null
@@ -184,7 +184,7 @@ export type Database = {
           birth_date: string
           chronic_diseases?: string | null
           created_at?: string
-          email: string
+          email?: string | null
           full_name: string
           gender: Database["public"]["Enums"]["gender"]
           health_notes?: string | null
@@ -202,7 +202,7 @@ export type Database = {
           birth_date?: string
           chronic_diseases?: string | null
           created_at?: string
-          email?: string
+          email?: string | null
           full_name?: string
           gender?: Database["public"]["Enums"]["gender"]
           health_notes?: string | null
@@ -240,6 +240,15 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      find_user_id_by_nid: { Args: { _nid: string }; Returns: string }
+      get_security_questions: {
+        Args: { _nid: string }
+        Returns: {
+          kind: string
+          label: string
+          question_id: string
+        }[]
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -249,6 +258,18 @@ export type Database = {
       }
       national_id_exists: {
         Args: { _exclude_user?: string; _nid: string }
+        Returns: boolean
+      }
+      verify_security_answers: {
+        Args: {
+          _k1: string
+          _k2: string
+          _nid: string
+          _q1: string
+          _q2: string
+          _v1: string
+          _v2: string
+        }
         Returns: boolean
       }
     }
