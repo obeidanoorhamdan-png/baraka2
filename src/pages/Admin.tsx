@@ -470,80 +470,184 @@ const Admin = () => {
           <StatCard icon={Baby} label={t("admin.pregnant")} value={stats.pregnant} color="bg-accent/15 text-accent-foreground" />
         </div>
 
-        <Card className="p-4 shadow-card">
-          <div className="flex flex-wrap gap-3 items-end mb-4">
-            <div className="flex-1 min-w-[220px]">
-              <Label className="text-xs">{t("admin.search")}</Label>
-              <div className="relative">
-                <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-muted-foreground" />
-                <Input className="ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.search")} />
-              </div>
-            </div>
-            <div>
-              <Label className="text-xs">{t("admin.filter_status")}</Label>
-              <Select value={statusFilter} onValueChange={setStatusFilter}>
-                <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="all">{t("admin.all")}</SelectItem>
-                  <SelectItem value="pending">{t("status.pending")}</SelectItem>
-                  <SelectItem value="approved">{t("status.approved")}</SelectItem>
-                  <SelectItem value="rejected">{t("status.rejected")}</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-          </div>
+        <Tabs defaultValue="families" className="w-full">
+          <TabsList className="grid grid-cols-2 w-full md:w-96">
+            <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
+            <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
+          </TabsList>
 
-          <div className="overflow-x-auto">
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>{t("admin.head_of_family")}</TableHead>
-                  <TableHead>{t("form.national_id")}</TableHead>
-                  <TableHead>{t("form.phone")}</TableHead>
-                  <TableHead>{t("admin.family_size")}</TableHead>
-                  <TableHead>{t("admin.submitted_at")}</TableHead>
-                  <TableHead>{t("admin.filter_status")}</TableHead>
-                  <TableHead className="text-end"></TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filtered.length === 0 && (
-                  <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
-                )}
-                {filtered.map((r) => {
-                  const p = profiles[r.user_id] || {};
-                  return (
-                    <TableRow key={r.id}>
-                      <TableCell className="font-semibold">{p.full_name || "—"}</TableCell>
-                      <TableCell dir="ltr">{p.national_id}</TableCell>
-                      <TableCell dir="ltr">{p.phone}</TableCell>
-                      <TableCell>{r.family_size}</TableCell>
-                      <TableCell className="text-xs text-muted-foreground" dir="ltr">{new Date(r.submitted_at).toLocaleDateString()}</TableCell>
-                      <TableCell>
-                        <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                          r.status === "approved" ? "bg-success/15 text-success" :
-                          r.status === "rejected" ? "bg-destructive/15 text-destructive" :
-                          "bg-warning/20 text-warning-foreground"
-                        }`}>{t(`status.${r.status}`)}</span>
-                      </TableCell>
-                      <TableCell className="text-end">
-                        <div className="flex gap-1 justify-end">
-                          <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
-                          {r.status !== "approved" && (
-                            <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4" /></Button>
-                          )}
-                          {r.status !== "rejected" && (
-                            <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10"><XCircle className="h-4 w-4" /></Button>
-                          )}
-                        </div>
-                      </TableCell>
+          <TabsContent value="families" className="mt-4">
+            <Card className="p-4 shadow-card">
+              <div className="flex flex-wrap gap-3 items-end mb-4">
+                <div className="flex-1 min-w-[220px]">
+                  <Label className="text-xs">{t("admin.search")}</Label>
+                  <div className="relative">
+                    <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-muted-foreground" />
+                    <Input className="ps-9" value={search} onChange={(e) => setSearch(e.target.value)} placeholder={t("admin.search")} />
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">{t("admin.filter_status")}</Label>
+                  <Select value={statusFilter} onValueChange={setStatusFilter}>
+                    <SelectTrigger className="w-40"><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("admin.all")}</SelectItem>
+                      <SelectItem value="pending">{t("status.pending")}</SelectItem>
+                      <SelectItem value="approved">{t("status.approved")}</SelectItem>
+                      <SelectItem value="rejected">{t("status.rejected")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("admin.head_of_family")}</TableHead>
+                      <TableHead>{t("form.national_id")}</TableHead>
+                      <TableHead>{t("form.phone")}</TableHead>
+                      <TableHead>{t("admin.family_size")}</TableHead>
+                      <TableHead>{t("admin.submitted_at")}</TableHead>
+                      <TableHead>{t("admin.filter_status")}</TableHead>
+                      <TableHead className="text-end"></TableHead>
                     </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
-          </div>
-        </Card>
+                  </TableHeader>
+                  <TableBody>
+                    {filtered.length === 0 && (
+                      <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
+                    )}
+                    {filtered.map((r) => {
+                      const p = profiles[r.user_id] || {};
+                      return (
+                        <TableRow key={r.id}>
+                          <TableCell className="font-semibold">
+                            <button className="text-start hover:text-accent hover:underline" onClick={() => openDetails(r)}>{p.full_name || "—"}</button>
+                          </TableCell>
+                          <TableCell dir="ltr">{p.national_id}</TableCell>
+                          <TableCell dir="ltr">{p.phone}</TableCell>
+                          <TableCell>{r.family_size}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground" dir="ltr">{new Date(r.submitted_at).toLocaleDateString()}</TableCell>
+                          <TableCell>
+                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                              r.status === "approved" ? "bg-success/15 text-success" :
+                              r.status === "rejected" ? "bg-destructive/15 text-destructive" :
+                              "bg-warning/20 text-warning-foreground"
+                            }`}>{t(`status.${r.status}`)}</span>
+                          </TableCell>
+                          <TableCell className="text-end">
+                            <div className="flex gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
+                              {r.status !== "approved" && (
+                                <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4" /></Button>
+                              )}
+                              {r.status !== "rejected" && (
+                                <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10"><XCircle className="h-4 w-4" /></Button>
+                              )}
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="people" className="mt-4">
+            <Card className="p-4 shadow-card">
+              <div className="grid gap-3 md:grid-cols-4 mb-4">
+                <div className="md:col-span-2">
+                  <Label className="text-xs">{t("admin.search_person")}</Label>
+                  <Input value={pSearch} onChange={(e) => setPSearch(e.target.value)} placeholder={t("admin.search_person_placeholder")} />
+                </div>
+                <div>
+                  <Label className="text-xs">{t("admin.category")}</Label>
+                  <Select value={pCategory} onValueChange={setPCategory}>
+                    <SelectTrigger><SelectValue /></SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="all">{t("admin.all")}</SelectItem>
+                      <SelectItem value="injured">{t("admin.cat_injured")}</SelectItem>
+                      <SelectItem value="pregnant">{t("admin.cat_pregnant")}</SelectItem>
+                      <SelectItem value="breastfeeding">{t("admin.cat_breastfeeding")}</SelectItem>
+                      <SelectItem value="widowed">{t("admin.cat_widowed")}</SelectItem>
+                      <SelectItem value="divorced">{t("admin.cat_divorced")}</SelectItem>
+                      <SelectItem value="married">{t("admin.cat_married")}</SelectItem>
+                      <SelectItem value="single">{t("admin.cat_single")}</SelectItem>
+                      <SelectItem value="male">{t("admin.cat_male")}</SelectItem>
+                      <SelectItem value="female">{t("admin.cat_female")}</SelectItem>
+                      <SelectItem value="infants">{t("admin.cat_infants")}</SelectItem>
+                      <SelectItem value="children">{t("admin.cat_children")}</SelectItem>
+                      <SelectItem value="elderly">{t("admin.cat_elderly")}</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="grid grid-cols-2 gap-2">
+                  <div>
+                    <Label className="text-xs">{t("admin.age_min")}</Label>
+                    <Input type="number" min={0} max={120} value={pAgeMin} onChange={(e) => setPAgeMin(e.target.value)} placeholder="0" />
+                  </div>
+                  <div>
+                    <Label className="text-xs">{t("admin.age_max")}</Label>
+                    <Input type="number" min={0} max={120} value={pAgeMax} onChange={(e) => setPAgeMax(e.target.value)} placeholder="120" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="text-xs text-muted-foreground mb-2">{t("admin.results_count")}: <strong className="text-primary">{filteredPeople.length}</strong></div>
+
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>{t("admin.head_of_family")}</TableHead>
+                      <TableHead>{t("form.full_name")}</TableHead>
+                      <TableHead>{t("family.relationship")}</TableHead>
+                      <TableHead>{t("form.age")}</TableHead>
+                      <TableHead>{t("form.gender")}</TableHead>
+                      <TableHead>{t("form.national_id")}</TableHead>
+                      <TableHead>{t("admin.tags")}</TableHead>
+                      <TableHead className="text-end"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {filteredPeople.length === 0 && (
+                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
+                    )}
+                    {filteredPeople.map((p) => {
+                      const r = rows.find((x) => x.id === p.application_id);
+                      return (
+                        <TableRow key={`${p.kind}-${p.id}`}>
+                          <TableCell className="font-semibold">
+                            <button className="text-start hover:text-accent hover:underline" onClick={() => r && openDetails(r)}>{p.head_name || "—"}</button>
+                          </TableCell>
+                          <TableCell>{p.full_name}</TableCell>
+                          <TableCell className="text-xs">{p.relationship === "head" ? t("family.rel_head") : t(`family.rel_${p.relationship}`)}</TableCell>
+                          <TableCell>{p.age}</TableCell>
+                          <TableCell className="text-xs">{p.gender ? t(`form.${p.gender}`) : "—"}</TableCell>
+                          <TableCell dir="ltr" className="text-xs">{p.national_id || "—"}</TableCell>
+                          <TableCell>
+                            <div className="flex flex-wrap gap-1">
+                              {p.is_war_injured && <span className="px-1.5 py-0.5 rounded bg-destructive/15 text-destructive text-[10px] font-bold">{t("admin.cat_injured")}</span>}
+                              {p.is_pregnant && <span className="px-1.5 py-0.5 rounded bg-accent/20 text-accent-foreground text-[10px] font-bold">{t("admin.cat_pregnant")}</span>}
+                              {p.is_breastfeeding && <span className="px-1.5 py-0.5 rounded bg-accent/15 text-accent-foreground text-[10px] font-bold">{t("admin.cat_breastfeeding")}</span>}
+                              {p.marital_status === "widowed" && <span className="px-1.5 py-0.5 rounded bg-primary/15 text-primary text-[10px] font-bold">{t("admin.cat_widowed")}</span>}
+                              {p.marital_status === "divorced" && <span className="px-1.5 py-0.5 rounded bg-warning/20 text-warning-foreground text-[10px] font-bold">{t("admin.cat_divorced")}</span>}
+                            </div>
+                          </TableCell>
+                          <TableCell className="text-end">
+                            <Button size="sm" variant="ghost" onClick={() => r && openDetails(r)}><Eye className="h-4 w-4" /></Button>
+                          </TableCell>
+                        </TableRow>
+                      );
+                    })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+        </Tabs>
       </section>
 
       {/* Details dialog */}
