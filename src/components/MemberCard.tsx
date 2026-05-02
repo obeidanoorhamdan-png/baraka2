@@ -226,16 +226,26 @@ export const MemberCard = ({
                 }}
               />
               {!member.injury_report_url ? (
-                <>
+                <div
+                  onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+                  onDragLeave={() => setDragOver(false)}
+                  onDrop={handleDrop}
+                  className={`rounded-lg border-2 border-dashed p-3 text-center transition-colors ${
+                    dragOver ? "border-accent bg-accent-soft/50" : "border-accent/30 bg-background"
+                  }`}
+                >
                   <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
                     <label htmlFor={`upload-${index}`} className="cursor-pointer gap-2">
-                      <Upload className="h-4 w-4" />
+                      {uploading ? <span className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
                       {uploading ? t("health.uploading") : t("health.upload_report")}
                     </label>
                   </Button>
-                  <p className="text-xs text-muted-foreground">{t("health.upload_hint")}</p>
-                  <p className="text-xs text-destructive">{t("health.report_required")}</p>
-                </>
+                  <p className="text-xs text-muted-foreground mt-2">{t("health.upload_hint")}</p>
+                  <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-1">
+                    <ShieldCheck className="h-3 w-3 text-success" /> {t("health.upload_secure")}
+                  </p>
+                  <p className="text-xs text-destructive mt-1">{t("health.report_required")}</p>
+                </div>
               ) : (
                 <div className="flex items-start gap-3 p-2 rounded-md border border-success/30 bg-success/5">
                   {(localPreview || signedPreview) && !member.injury_report_url.endsWith(".pdf") ? (
