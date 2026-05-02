@@ -70,6 +70,21 @@ export const AidManager = ({ applicationId, currentUserId }: { applicationId: st
       : await supabase.from("aid_distributions").insert(payload);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
+
+    // Notify family on new aid (not on edit)
+    if (!editingId) {
+      const { data: app } = await supabase.from("applications").select("user_id").eq("id", applicationId).maybeSingle();
+      if (app?.user_id) {
+        await supabase.from("notifications").insert({
+          user_id: app.user_id,
+          title: t("notify.new_aid_title"),
+          body: t("notify.new_aid_body", { title: payload.title, date: payload.delivered_at }),
+          link: "/my-aid",
+          kind: "aid",
+        });
+      }
+    }
+
     toast.success(t("toast.saved"));
     setDraft(null); setEditingId(null);
     load();
