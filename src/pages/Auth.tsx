@@ -320,6 +320,7 @@ type SecQ = { question_id: string; kind: "national_id" | "birth_date"; label: st
 
 const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
   const { t } = useTranslation();
+  const confirmAsk = useConfirm();
   const [stage, setStage] = useState<"id" | "questions" | "reset">("id");
   const [nid, setNid] = useState("");
   const [busy, setBusy] = useState(false);
