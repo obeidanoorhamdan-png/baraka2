@@ -129,6 +129,99 @@ const Admin = () => {
     });
   }, [rows, search, statusFilter, profiles]);
 
+  // Unified people list (heads + family members) with their family context
+  type Person = {
+    kind: "head" | "member";
+    id: string;
+    application_id: string;
+    head_name: string;
+    full_name: string;
+    national_id?: string;
+    birth_date?: string;
+    age: number;
+    gender?: string;
+    relationship: string;
+    marital_status?: string;
+    is_war_injured?: boolean;
+    is_pregnant?: boolean;
+    is_breastfeeding?: boolean;
+    chronic_diseases?: string;
+    health_notes?: string;
+    injury_report_url?: string | null;
+    pregnancy_report_url?: string | null;
+    raw: any;
+  };
+
+  const allPeople: Person[] = useMemo(() => {
+    const list: Person[] = [];
+    rows.forEach((r) => {
+      const p = profiles[r.user_id] || {};
+      const headName = p.full_name || "";
+      list.push({
+        kind: "head", id: p.id || r.user_id, application_id: r.id,
+        head_name: headName, full_name: p.full_name || "",
+        national_id: p.national_id, birth_date: p.birth_date,
+        age: calculateAge(p.birth_date), gender: p.gender,
+        relationship: "head", marital_status: p.marital_status,
+        is_war_injured: p.is_war_injured, chronic_diseases: p.chronic_diseases,
+        health_notes: p.health_notes, injury_report_url: p.injury_report_url, raw: p,
+      });
+      (members[r.id] || []).forEach((m: any) => {
+        list.push({
+          kind: "member", id: m.id, application_id: r.id, head_name: headName,
+          full_name: m.full_name, national_id: m.national_id, birth_date: m.birth_date,
+          age: calculateAge(m.birth_date), gender: m.gender, relationship: m.relationship,
+          is_war_injured: m.is_war_injured, is_pregnant: m.is_pregnant,
+          is_breastfeeding: m.is_breastfeeding, chronic_diseases: m.chronic_diseases,
+          health_notes: m.health_notes, injury_report_url: m.injury_report_url,
+          pregnancy_report_url: m.pregnancy_report_url, raw: m,
+        });
+      });
+    });
+    return list;
+  }, [rows, members, profiles]);
+
+  const filteredPeople = useMemo(() => {
+    const min = pAgeMin === "" ? -Infinity : parseInt(pAgeMin);
+    const max = pAgeMax === "" ? Infinity : parseInt(pAgeMax);
+    const q = pSearch.trim().toLowerCase();
+    return allPeople.filter((p) => {
+      if (p.age < min || p.age > max) return false;
+      if (q && !(
+        p.full_name?.toLowerCase().includes(q) ||
+        p.national_id?.includes(q) ||
+        p.head_name?.toLowerCase().includes(q)
+      )) return false;
+      switch (pCategory) {
+        case "all": return true;
+        case "injured": return !!p.is_war_injured;
+        case "pregnant": return !!p.is_pregnant;
+        case "breastfeeding": return !!p.is_breastfeeding;
+        case "widowed": return p.marital_status === "widowed";
+        case "divorced": return p.marital_status === "divorced";
+        case "married": return p.marital_status === "married";
+        case "single": return p.marital_status === "single";
+        case "male": return p.gender === "male";
+        case "female": return p.gender === "female";
+        case "children": return p.age < 12;
+        case "infants": return p.age < 1;
+        case "elderly": return p.age >= 60;
+      }
+      return true;
+    }).sort((a, b) =>
+      (a.head_name || "").localeCompare(b.head_name || "", "ar", { sensitivity: "base" }) ||
+      a.full_name.localeCompare(b.full_name, "ar", { sensitivity: "base" })
+    );
+  }, [allPeople, pCategory, pAgeMin, pAgeMax, pSearch]);
+
+  const openImagePreview = async (path: string, title: string) => {
+    if (!path) return;
+    const { data } = await supabase.storage.from("medical-reports").createSignedUrl(path, 3600);
+    if (!data?.signedUrl) { toast.error(t("toast.error")); return; }
+    setPreviewUrl(data.signedUrl);
+    setPreviewTitle(title);
+  };
+
   const approve = async (r: Row) => {
     if (!(await confirmAsk({
       title: t("confirm.approve_title"),
