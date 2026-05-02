@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID } from "@/lib/validators";
+import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { KeyRound } from "lucide-react";
 
@@ -83,7 +83,7 @@ const Auth = () => {
     const schema = z.object({
       national_id: z.string().regex(ID_RE, t("form.invalid_id")),
       full_name: z.string().trim().max(120).refine(isFullName, t("form.invalid_full_name")),
-      password: z.string().min(6, t("form.password_min")).max(72),
+      password: z.string().regex(PIN_RE, t("form.invalid_pin")),
       phone: z.string().regex(PHONE_RE, t("form.invalid_phone")),
       alt_phone: z.string().regex(PHONE_RE, t("form.invalid_phone")).optional().or(z.literal("")),
       birth_date: z.string().min(1, t("form.required")),
