@@ -16,15 +16,16 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-
-const idRe = /^\d{9}$/;
-const phoneRe = /^\d{8,15}$/;
+import { ID_RE, PHONE_RE, isFullName } from "@/lib/validators";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 
 const Auth = () => {
   const { t } = useTranslation();
   const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
+  const { settings, loading: settingsLoading } = useAppSettings();
   const initial = params.get("mode") === "signup" ? "signup" : "signin";
   const [tab, setTab] = useState<"signin" | "signup">(initial);
 
@@ -69,13 +70,17 @@ const Auth = () => {
 
   const handleSignup = async (e: React.FormEvent) => {
     e.preventDefault();
+    if (!settings.registration_open) {
+      toast.error(t("toast.registration_closed_now"));
+      return;
+    }
     const schema = z.object({
-      national_id: z.string().regex(idRe, t("form.invalid_id")),
-      full_name: z.string().trim().min(3, t("form.required")).max(120),
+      national_id: z.string().regex(ID_RE, t("form.invalid_id")),
+      full_name: z.string().trim().max(120).refine(isFullName, t("form.invalid_full_name")),
       email: z.string().trim().email(t("form.invalid_email")).max(255),
       password: z.string().min(6, t("form.password_min")).max(72),
-      phone: z.string().regex(phoneRe, t("form.invalid_phone")),
-      alt_phone: z.string().regex(phoneRe).optional().or(z.literal("")),
+      phone: z.string().regex(PHONE_RE, t("form.invalid_phone")),
+      alt_phone: z.string().regex(PHONE_RE, t("form.invalid_phone")).optional().or(z.literal("")),
       birth_date: z.string().min(1, t("form.required")),
       marital_status_other: su.marital_status === "other" ? z.string().trim().min(1, t("form.required")) : z.string().optional(),
     });
@@ -85,6 +90,13 @@ const Auth = () => {
       return;
     }
     setSuBusy(true);
+    // Check national_id duplication across the whole camp
+    const { data: dup } = await supabase.rpc("national_id_exists", { _nid: su.national_id });
+    if (dup === true) {
+      setSuBusy(false);
+      toast.error(t("toast.id_exists_with_data", { id: su.national_id }));
+      return;
+    }
     const { error } = await supabase.auth.signUp({
       email: su.email,
       password: su.password,
@@ -107,7 +119,9 @@ const Auth = () => {
     });
     setSuBusy(false);
     if (error) {
-      if (error.message.toLowerCase().includes("already")) toast.error(t("toast.email_exists"));
+      const msg = error.message.toLowerCase();
+      if (msg.includes("already") || msg.includes("exists")) toast.error(t("toast.email_exists"));
+      else if (msg.includes("national_id") || msg.includes("profiles_national_id")) toast.error(t("toast.id_exists"));
       else toast.error(error.message);
       return;
     }
@@ -147,16 +161,29 @@ const Auth = () => {
             </TabsContent>
 
             <TabsContent value="signup" className="mt-6">
+              {!settingsLoading && !settings.registration_open ? (
+                <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5 text-center space-y-2">
+                  <div className="font-bold text-destructive">{t("closed.title")}</div>
+                  <p className="text-sm text-muted-foreground">{t("closed.subtitle")}</p>
+                  {settings.closed_reason && (
+                    <div className="text-sm bg-background rounded p-3 text-start mt-2">
+                      <strong>{t("closed.reason_label")}:</strong> {settings.closed_reason}
+                    </div>
+                  )}
+                </div>
+              ) : (
               <form onSubmit={handleSignup} className="space-y-4">
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
-                    <Label>{t("form.national_id")}</Label>
-                    <Input inputMode="numeric" maxLength={9} required value={su.national_id}
-                      onChange={(e) => setSu({ ...su, national_id: e.target.value.replace(/\D/g, "") })} />
+                    <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
+                    <Input inputMode="numeric" maxLength={9} minLength={9} required value={su.national_id}
+                      placeholder="9 أرقام"
+                      onChange={(e) => setSu({ ...su, national_id: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
                   </div>
                   <div>
-                    <Label>{t("form.full_name")}</Label>
-                    <Input required value={su.full_name} onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
+                    <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
+                    <Input required value={su.full_name} placeholder="الاسم الأول الأب الجد العائلة"
+                      onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
                   </div>
                   <div>
                     <Label>{t("auth.email")}</Label>
@@ -182,14 +209,14 @@ const Auth = () => {
                     </Select>
                   </div>
                   <div>
-                    <Label>{t("form.phone")}</Label>
-                    <Input inputMode="numeric" required value={su.phone}
-                      onChange={(e) => setSu({ ...su, phone: e.target.value.replace(/\D/g, "") })} />
+                    <Label>{t("form.phone")} <span className="text-destructive">*</span></Label>
+                    <Input inputMode="numeric" maxLength={10} required value={su.phone} placeholder="059xxxxxxx"
+                      onChange={(e) => setSu({ ...su, phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                   </div>
                   <div>
                     <Label>{t("form.alt_phone")}</Label>
-                    <Input inputMode="numeric" value={su.alt_phone}
-                      onChange={(e) => setSu({ ...su, alt_phone: e.target.value.replace(/\D/g, "") })} />
+                    <Input inputMode="numeric" maxLength={10} value={su.alt_phone} placeholder="059xxxxxxx"
+                      onChange={(e) => setSu({ ...su, alt_phone: e.target.value.replace(/\D/g, "").slice(0, 10) })} />
                   </div>
                   <div className="md:col-span-2">
                     <Label>{t("form.marital_status")}</Label>
@@ -247,6 +274,7 @@ const Auth = () => {
                   </button>
                 </p>
               </form>
+              )}
             </TabsContent>
           </Tabs>
 

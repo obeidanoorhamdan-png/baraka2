@@ -34,6 +34,26 @@ const Admin = () => {
   const [rejectReason, setRejectReason] = useState("");
   const [rejectTarget, setRejectTarget] = useState<Row | null>(null);
   const [reportUrls, setReportUrls] = useState<Record<string, string>>({});
+  const [regOpen, setRegOpen] = useState(true);
+  const [closedReason, setClosedReason] = useState("");
+
+  const loadSettings = async () => {
+    const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
+    if (data) { setRegOpen(data.registration_open); setClosedReason(data.closed_reason || ""); }
+  };
+  useEffect(() => { if (isAdmin) loadSettings(); }, [isAdmin]);
+
+  const saveSettings = async (open: boolean) => {
+    const { error } = await supabase.from("app_settings").update({
+      registration_open: open,
+      closed_reason: open ? null : closedReason,
+      updated_at: new Date().toISOString(),
+      updated_by: user!.id,
+    }).eq("id", 1);
+    if (error) { toast.error(error.message); return; }
+    setRegOpen(open);
+    toast.success(t("toast.settings_updated"));
+  };
 
   useEffect(() => {
     if (!loading && (!user || !isAdmin)) navigate("/");
@@ -75,7 +95,7 @@ const Admin = () => {
   }, [rows, members, profiles]);
 
   const filtered = useMemo(() => {
-    return rows.filter((r) => {
+    const list = rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
       if (search.trim()) {
         const p = profiles[r.user_id];
@@ -87,6 +107,12 @@ const Admin = () => {
         );
       }
       return true;
+    });
+    // Sort alphabetically by head-of-family full name (Arabic-aware)
+    return [...list].sort((a, b) => {
+      const an = profiles[a.user_id]?.full_name || "";
+      const bn = profiles[b.user_id]?.full_name || "";
+      return an.localeCompare(bn, "ar", { sensitivity: "base" });
     });
   }, [rows, search, statusFilter, profiles]);
 
@@ -223,6 +249,37 @@ const Admin = () => {
             </Button>
           </div>
         </div>
+
+        {/* Registration control */}
+        <Card className={`p-4 shadow-card border-2 ${regOpen ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <div className="font-bold text-primary">{t("admin.registration_control")}</div>
+              <div className={`text-sm font-semibold ${regOpen ? "text-success" : "text-destructive"}`}>
+                {regOpen ? t("admin.registration_open") : t("admin.registration_closed")}
+              </div>
+            </div>
+            {regOpen ? (
+              <Button onClick={() => saveSettings(false)} variant="destructive" size="sm">
+                {t("admin.close_registration")}
+              </Button>
+            ) : (
+              <Button onClick={() => saveSettings(true)} className="bg-success text-success-foreground hover:bg-success/90" size="sm">
+                {t("admin.open_registration")}
+              </Button>
+            )}
+          </div>
+          {!regOpen && (
+            <div className="mt-3">
+              <Label className="text-xs">{t("admin.closed_reason")}</Label>
+              <div className="flex gap-2 mt-1">
+                <Textarea rows={2} value={closedReason} onChange={(e) => setClosedReason(e.target.value)}
+                  placeholder={t("admin.closed_reason_placeholder")} />
+                <Button onClick={() => saveSettings(false)} variant="outline" size="sm">{t("form.save")}</Button>
+              </div>
+            </div>
+          )}
+        </Card>
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
