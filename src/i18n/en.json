@@ -78,6 +78,8 @@
     "invalid_phone": "Mobile must be 10 digits and start with 059 or 056",
     "invalid_full_name": "Please enter the full name (at least 4 words, letters only)",
     "password_min": "Password must be at least 6 characters",
+    "invalid_pin": "Password must be exactly 4 digits",
+    "pin_hint": "4 digits",
     "step1": "Head of Family",
     "step2": "Residence",
     "step3": "Family Members"
@@ -86,7 +88,10 @@
     "create_account": "Are you sure you want to create the account with this data?",
     "submit_app": "Are you sure you want to submit the application? All data will be saved.",
     "save_changes": "Are you sure you want to save the changes?",
-    "approve": "Are you sure you want to approve this application?"
+    "approve": "Are you sure you want to approve this application?",
+    "remove_person": "Are you sure you want to remove this person?",
+    "remove_file": "Are you sure you want to delete the uploaded file?",
+    "reset_password": "Are you sure you want to change the password?"
   },
   "health": {
     "title": "Health Information",
@@ -94,7 +99,11 @@
     "yes": "Yes",
     "no": "No",
     "upload_report": "Upload medical report",
-    "upload_hint": "Image or PDF — max 5 MB",
+    "upload_hint": "Image or PDF — images are auto-compressed",
+    "uploading": "Uploading...",
+    "report_uploaded": "Report uploaded",
+    "replace": "Replace",
+    "remove": "Remove",
     "report_required": "Medical report is required for war-injured",
     "chronic": "Chronic diseases (if any)",
     "is_pregnant": "Pregnant",
@@ -204,6 +213,7 @@
     "password_reset_success": "Password changed successfully — you can now sign in",
     "invalid_file_type": "Unsupported file type. Please upload an image or PDF.",
     "file_too_large": "File is too large (max 5 MB)",
-    "report_uploaded": "Medical report uploaded successfully"
+    "report_uploaded": "Medical report uploaded successfully",
+    "file_removed": "File removed"
   }
 }

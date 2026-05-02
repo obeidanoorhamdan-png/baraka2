@@ -15,7 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID } from "@/lib/validators";
+import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { KeyRound } from "lucide-react";
 
@@ -43,6 +43,7 @@ const Auth = () => {
   const handleSignin = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
+    if (!PIN_RE.test(siPassword)) { toast.error(t("form.invalid_pin")); return; }
     setSiBusy(true);
     const { error } = await supabase.auth.signInWithPassword({
       email: idToEmail(siNid),
@@ -83,7 +84,7 @@ const Auth = () => {
     const schema = z.object({
       national_id: z.string().regex(ID_RE, t("form.invalid_id")),
       full_name: z.string().trim().max(120).refine(isFullName, t("form.invalid_full_name")),
-      password: z.string().min(6, t("form.password_min")).max(72),
+      password: z.string().regex(PIN_RE, t("form.invalid_pin")),
       phone: z.string().regex(PHONE_RE, t("form.invalid_phone")),
       alt_phone: z.string().regex(PHONE_RE, t("form.invalid_phone")).optional().or(z.literal("")),
       birth_date: z.string().min(1, t("form.required")),
@@ -149,8 +150,11 @@ const Auth = () => {
                     onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
                 </div>
                 <div>
-                  <Label>{t("auth.password")}</Label>
-                  <Input type="password" required value={siPassword} onChange={(e) => setSiPassword(e.target.value)} />
+                  <Label>{t("auth.password")} <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
+                  <Input type="password" inputMode="numeric" maxLength={4} required
+                    placeholder="••••"
+                    value={siPassword}
+                    onChange={(e) => setSiPassword(e.target.value.replace(/\D/g, "").slice(0, 4))} />
                 </div>
                 <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground">
                   {t("auth.signin_btn")}
@@ -196,8 +200,11 @@ const Auth = () => {
                       onChange={(e) => setSu({ ...su, full_name: e.target.value })} />
                   </div>
                   <div>
-                    <Label>{t("auth.password")} <span className="text-destructive">*</span></Label>
-                    <Input type="password" required value={su.password} onChange={(e) => setSu({ ...su, password: e.target.value })} />
+                    <Label>{t("auth.password")} <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
+                    <Input type="password" inputMode="numeric" maxLength={4} required
+                      placeholder="••••"
+                      value={su.password}
+                      onChange={(e) => setSu({ ...su, password: e.target.value.replace(/\D/g, "").slice(0, 4) })} />
                   </div>
                   <div>
                     <Label>{t("form.birth_date")}</Label>
@@ -347,8 +354,9 @@ const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () =>
   };
 
   const performReset = async () => {
-    if (newPw.length < 6) { toast.error(t("form.password_min")); return; }
+    if (!PIN_RE.test(newPw)) { toast.error(t("form.invalid_pin")); return; }
     if (newPw !== newPw2) { toast.error(t("toast.password_mismatch")); return; }
+    if (!confirm(t("confirm.reset_password"))) return;
     setBusy(true);
     // Sign in with a temporary recovery using the verify RPC outcome:
     // we call an edge function or rely on supabase.auth.updateUser? updateUser requires session.
@@ -421,10 +429,12 @@ const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () =>
         {stage === "reset" && (
           <div className="space-y-3">
             <p className="text-sm text-success font-semibold">{t("forgot.verified")}</p>
-            <Label>{t("forgot.new_password")}</Label>
-            <Input type="password" value={newPw} onChange={(e) => setNewPw(e.target.value)} />
+            <Label>{t("forgot.new_password")} <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
+            <Input type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              value={newPw} onChange={(e) => setNewPw(e.target.value.replace(/\D/g, "").slice(0, 4))} />
             <Label>{t("forgot.new_password_confirm")}</Label>
-            <Input type="password" value={newPw2} onChange={(e) => setNewPw2(e.target.value)} />
+            <Input type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+              value={newPw2} onChange={(e) => setNewPw2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
             <DialogFooter>
               <Button onClick={performReset} disabled={busy} className="brand-gradient text-primary-foreground">
                 {t("forgot.save_password")}

@@ -1,6 +1,7 @@
 // Shared input validation
 export const ID_RE = /^\d{9}$/;
 export const PHONE_RE = /^(059|056)\d{7}$/;
+export const PIN_RE = /^\d{4}$/;
 
 // Full name = at least 4 non-empty parts (Arabic / Latin letters), each ≥ 2 chars,
 // and only letters / spaces / hyphens / apostrophes (no digits or symbols).

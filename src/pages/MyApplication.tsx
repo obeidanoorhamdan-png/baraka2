@@ -114,12 +114,16 @@ const MyApplication = () => {
       toast.error(t("form.required"));
       return false;
     }
-    // Check duplicates against the rest of the camp
-    const ids = members.map((m) => m.national_id).filter(Boolean) as string[];
-    for (const nid of ids) {
-      const { data } = await supabase.rpc("national_id_exists", { _nid: nid, _exclude_user: user!.id });
+    // Check duplicates against the rest of the camp (exclude this user, and exclude same member id when editing)
+    for (const m of members) {
+      if (!m.national_id) continue;
+      const { data } = await supabase.rpc("national_id_used_by_others", {
+        _nid: m.national_id,
+        _exclude_user: user!.id,
+        _exclude_member: m.id ?? null,
+      });
       if (data === true) {
-        toast.error(t("toast.id_exists_with_data", { id: nid }));
+        toast.error(t("toast.id_exists_with_data", { id: m.national_id }));
         return false;
       }
     }

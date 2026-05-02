@@ -21,8 +21,8 @@ Deno.serve(async (req) => {
     if (!body?.national_id || !/^\d{9}$/.test(body.national_id)) {
       return json({ error: "Invalid national ID" }, 400);
     }
-    if (!body?.new_password || body.new_password.length < 6) {
-      return json({ error: "Password too short" }, 400);
+    if (!body?.new_password || !/^\d{4}$/.test(body.new_password)) {
+      return json({ error: "PIN must be exactly 4 digits" }, 400);
     }
 
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;

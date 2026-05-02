@@ -1,6 +1,6 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Trash2, UserPlus, Upload, FileImage } from "lucide-react";
+import { Trash2, Upload, FileImage, Replace, X } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -12,6 +12,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { calculateAge } from "@/lib/age";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
+import { prepareUpload, formatBytes } from "@/lib/imageUpload";
 
 export type Member = {
   id?: string;
@@ -59,32 +60,73 @@ export const MemberCard = ({
 }) => {
   const { t } = useTranslation();
   const [uploading, setUploading] = useState(false);
+  const [signedPreview, setSignedPreview] = useState<string>("");
+  const [localPreview, setLocalPreview] = useState<string>("");
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
 
-  const handleUpload = async (file: File) => {
-    if (!file) return;
-    const okType = /^image\/(jpeg|jpg|png|webp|gif)$/i.test(file.type) || file.type === "application/pdf";
-    if (!okType) { toast.error(t("toast.invalid_file_type")); return; }
-    if (file.size > 5 * 1024 * 1024) { toast.error(t("toast.file_too_large")); return; }
+  useEffect(() => {
+    let active = true;
+    if (member.injury_report_url && !localPreview) {
+      supabase.storage
+        .from("medical-reports")
+        .createSignedUrl(member.injury_report_url, 3600)
+        .then(({ data }) => { if (active && data?.signedUrl) setSignedPreview(data.signedUrl); });
+    } else {
+      setSignedPreview("");
+    }
+    return () => { active = false; };
+  }, [member.injury_report_url, localPreview]);
+
+  const handleUpload = async (rawFile: File) => {
+    if (!rawFile) return;
     setUploading(true);
-    const ext = (file.name.split(".").pop() || "bin").toLowerCase();
-    const path = `${userId}/${Date.now()}-${index}.${ext}`;
-    const { error } = await supabase.storage.from("medical-reports").upload(path, file, {
-      upsert: true,
-      contentType: file.type,
-    });
-    setUploading(false);
-    if (error) { toast.error(error.message); return; }
-    onChange({ ...member, injury_report_url: path });
-    toast.success(t("toast.report_uploaded"));
+    try {
+      const prepared = await prepareUpload(rawFile);
+      const ext = prepared.file.type === "application/pdf" ? "pdf"
+        : (prepared.file.type === "image/heic" || prepared.file.type === "image/heif") ? "heic"
+        : "jpg";
+      const path = `${userId}/${Date.now()}-${index}.${ext}`;
+      const { error } = await supabase.storage.from("medical-reports").upload(path, prepared.file, {
+        upsert: true,
+        contentType: prepared.file.type,
+      });
+      if (error) throw error;
+      onChange({ ...member, injury_report_url: path });
+      setLocalPreview(prepared.preview);
+      const saved = prepared.originalSize - prepared.finalSize;
+      if (saved > 50 * 1024) {
+        toast.success(`${t("toast.report_uploaded")} (${formatBytes(prepared.originalSize)} → ${formatBytes(prepared.finalSize)})`);
+      } else {
+        toast.success(t("toast.report_uploaded"));
+      }
+    } catch (e: any) {
+      const code = e?.message;
+      if (code === "invalid_file_type") toast.error(t("toast.invalid_file_type"));
+      else if (code === "file_too_large") toast.error(t("toast.file_too_large"));
+      else toast.error(e?.message || t("toast.error"));
+    } finally {
+      setUploading(false);
+    }
+  };
+
+  const handleRemoveFile = async () => {
+    if (!member.injury_report_url) return;
+    if (!confirm(t("confirm.remove_file"))) return;
+    await supabase.storage.from("medical-reports").remove([member.injury_report_url]);
+    onChange({ ...member, injury_report_url: null });
+    setLocalPreview("");
+    setSignedPreview("");
+    toast.success(t("toast.file_removed"));
   };
 
   return (
     <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
       <div className="flex items-center justify-between mb-3">
         <h4 className="font-bold text-primary">{t("family.person")} #{index + 1}</h4>
-        <Button type="button" variant="ghost" size="sm" onClick={onRemove} className="text-destructive hover:bg-destructive/10">
+        <Button type="button" variant="ghost" size="sm"
+          onClick={() => { if (confirm(t("confirm.remove_person"))) onRemove(); }}
+          className="text-destructive hover:bg-destructive/10">
           <Trash2 className="h-4 w-4" />
         </Button>
       </div>
@@ -154,21 +196,56 @@ export const MemberCard = ({
                 accept="image/*,application/pdf"
                 id={`upload-${index}`}
                 className="hidden"
-                onChange={(e) => e.target.files?.[0] && handleUpload(e.target.files[0])}
+                onChange={(e) => {
+                  const f = e.target.files?.[0];
+                  if (f) handleUpload(f);
+                  e.target.value = "";
+                }}
               />
-              <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
-                <label htmlFor={`upload-${index}`} className="cursor-pointer gap-2">
-                  <Upload className="h-4 w-4" />
-                  {uploading ? "..." : t("health.upload_report")}
-                </label>
-              </Button>
-              {member.injury_report_url && (
-                <div className="flex items-center gap-1 text-xs text-success">
-                  <FileImage className="h-3.5 w-3.5" /> {member.injury_report_url.split("/").pop()}
+              {!member.injury_report_url ? (
+                <>
+                  <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+                    <label htmlFor={`upload-${index}`} className="cursor-pointer gap-2">
+                      <Upload className="h-4 w-4" />
+                      {uploading ? t("health.uploading") : t("health.upload_report")}
+                    </label>
+                  </Button>
+                  <p className="text-xs text-muted-foreground">{t("health.upload_hint")}</p>
+                  <p className="text-xs text-destructive">{t("health.report_required")}</p>
+                </>
+              ) : (
+                <div className="flex items-start gap-3 p-2 rounded-md border border-success/30 bg-success/5">
+                  {(localPreview || signedPreview) && !member.injury_report_url.endsWith(".pdf") ? (
+                    <a href={signedPreview || localPreview} target="_blank" rel="noreferrer" className="shrink-0">
+                      <img
+                        src={localPreview || signedPreview}
+                        alt={t("health.upload_report")}
+                        className="h-16 w-16 object-cover rounded-md ring-1 ring-success/30"
+                      />
+                    </a>
+                  ) : (
+                    <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center shrink-0">
+                      <FileImage className="h-6 w-6 text-muted-foreground" />
+                    </div>
+                  )}
+                  <div className="flex-1 min-w-0">
+                    <div className="text-xs font-semibold text-success">✓ {t("health.report_uploaded")}</div>
+                    <div className="text-[11px] text-muted-foreground truncate" dir="ltr">
+                      {member.injury_report_url.split("/").pop()}
+                    </div>
+                    <div className="flex gap-1 mt-1.5">
+                      <Button type="button" variant="outline" size="sm" disabled={uploading} asChild className="h-7 px-2 text-xs">
+                        <label htmlFor={`upload-${index}`} className="cursor-pointer gap-1">
+                          <Replace className="h-3 w-3" /> {t("health.replace")}
+                        </label>
+                      </Button>
+                      <Button type="button" variant="ghost" size="sm" onClick={handleRemoveFile}
+                        className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1">
+                        <X className="h-3 w-3" /> {t("health.remove")}
+                      </Button>
+                    </div>
+                  </div>
                 </div>
-              )}
-              {!member.injury_report_url && (
-                <p className="text-xs text-destructive">{t("health.report_required")}</p>
               )}
             </div>
           )}
