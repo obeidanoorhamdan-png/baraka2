@@ -134,6 +134,7 @@ const MyApplication = () => {
       return;
     }
     if (!(await validateMembers())) return;
+    if (!confirm(appId ? t("confirm.save_changes") : t("confirm.submit_app"))) return;
     setBusy(true);
     try {
       let currentAppId = appId;
