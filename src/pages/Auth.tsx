@@ -16,9 +16,9 @@ import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-
-const idRe = /^\d{9}$/;
-const phoneRe = /^\d{8,15}$/;
+import { ID_RE, PHONE_RE, isFullName } from "@/lib/validators";
+import { useAppSettings } from "@/hooks/useAppSettings";
+import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 
 const Auth = () => {
   const { t } = useTranslation();
