@@ -31,6 +31,7 @@ Deno.serve(async (req) => {
       .maybeSingle();
 
     if (existing?.id) {
+      await admin.auth.admin.updateUserById(existing.id, { password: pinToAuthPassword(ADMIN_PIN) });
       // Make sure it has admin role (idempotent)
       await admin.from("user_roles").upsert(
         { user_id: existing.id, role: "admin" },
