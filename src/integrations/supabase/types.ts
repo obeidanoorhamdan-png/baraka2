@@ -260,6 +260,10 @@ export type Database = {
         Args: { _exclude_user?: string; _nid: string }
         Returns: boolean
       }
+      national_id_used_by_others: {
+        Args: { _exclude_member?: string; _exclude_user?: string; _nid: string }
+        Returns: boolean
+      }
       verify_security_answers: {
         Args: {
           _k1: string
