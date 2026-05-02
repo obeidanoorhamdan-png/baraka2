@@ -20,6 +20,8 @@ import { calculateAge } from "@/lib/age";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
+import { BulkAidDistributor } from "@/components/BulkAidDistributor";
+import { PackageCheck, Trash2 } from "lucide-react";
 
 type Row = any;
 
