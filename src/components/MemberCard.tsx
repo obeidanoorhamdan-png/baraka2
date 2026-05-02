@@ -257,15 +257,43 @@ export const MemberCard = ({
             onChange={(e) => onChange({ ...member, chronic_diseases: e.target.value })} />
         </div>
         {showFemaleHealth && (
-          <div className="flex flex-wrap gap-4">
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={member.is_pregnant} onCheckedChange={(v) => onChange({ ...member, is_pregnant: !!v })} />
-              {t("health.is_pregnant")}
-            </label>
-            <label className="flex items-center gap-2 text-sm">
-              <Checkbox checked={member.is_breastfeeding} onCheckedChange={(v) => onChange({ ...member, is_breastfeeding: !!v })} />
-              {t("health.is_breastfeeding")}
-            </label>
+          <div className="space-y-2">
+            <div className="flex flex-wrap gap-4">
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={member.is_pregnant} onCheckedChange={(v) => onChange({ ...member, is_pregnant: !!v, pregnancy_report_url: v ? member.pregnancy_report_url : null })} />
+                {t("health.is_pregnant")}
+              </label>
+              <label className="flex items-center gap-2 text-sm">
+                <Checkbox checked={member.is_breastfeeding} onCheckedChange={(v) => onChange({ ...member, is_breastfeeding: !!v })} />
+                {t("health.is_breastfeeding")}
+              </label>
+            </div>
+            {member.is_pregnant && (
+              <div>
+                <Label className="text-xs">{t("health_extra.pregnancy_report")} <span className="text-destructive">*</span></Label>
+                <UploadBlock
+                  field="pregnancy_report_url" index={index}
+                  path={member.pregnancy_report_url || ""}
+                  uploading={uploading === "pregnancy_report_url"}
+                  dragOver={dragOver === "pregnancy_report_url"}
+                  localPreview={localPreviews.pregnancy_report_url}
+                  signedPreview={signedPreviews.pregnancy_report_url}
+                  onUpload={(f) => handleUpload(f, "pregnancy_report_url")}
+                  onRemove={() => handleRemoveFile("pregnancy_report_url")}
+                  setDragOver={(v) => setDragOver(v ? "pregnancy_report_url" : null)}
+                  onDrop={(e) => handleDrop(e, "pregnancy_report_url")}
+                  requiredText={t("health_extra.pregnancy_required")}
+                  uploadLabel={t("health_extra.pregnancy_report")}
+                  uploadingLabel={t("health.uploading")}
+                  hintLabel={t("health.upload_hint")}
+                  secureLabel={t("health.upload_secure")}
+                  uploadedLabel={t("health_extra.pregnancy_uploaded")}
+                  replaceLabel={t("health.replace")}
+                  removeLabel={t("health.remove")}
+                  error={errors.pregnancy_report_url}
+                />
+              </div>
+            )}
           </div>
         )}
         <div>
@@ -275,5 +303,80 @@ export const MemberCard = ({
         </div>
       </div>
     </Card>
+  );
+};
+
+// ----- Reusable upload block -----
+const UploadBlock = ({
+  field, index, path, uploading, dragOver, localPreview, signedPreview,
+  onUpload, onRemove, setDragOver, onDrop,
+  requiredText, uploadLabel, uploadingLabel, hintLabel, secureLabel, uploadedLabel, replaceLabel, removeLabel, error,
+}: {
+  field: string; index: number; path: string;
+  uploading: boolean; dragOver: boolean;
+  localPreview: string; signedPreview: string;
+  onUpload: (f: File) => void; onRemove: () => void;
+  setDragOver: (v: boolean) => void; onDrop: (e: React.DragEvent) => void;
+  requiredText: string; uploadLabel: string; uploadingLabel: string; hintLabel: string;
+  secureLabel: string; uploadedLabel: string; replaceLabel: string; removeLabel: string;
+  error?: string;
+}) => {
+  const inputId = `upload-${field}-${index}`;
+  return (
+    <div className="mt-2 space-y-2">
+      <input type="file" accept="image/*,application/pdf" id={inputId} className="hidden"
+        onChange={(e) => { const f = e.target.files?.[0]; if (f) onUpload(f); e.target.value = ""; }} />
+      {!path ? (
+        <div
+          onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+          onDragLeave={() => setDragOver(false)}
+          onDrop={onDrop}
+          className={`rounded-lg border-2 border-dashed p-3 text-center transition-colors ${
+            error ? "border-destructive bg-destructive/5" :
+            dragOver ? "border-accent bg-accent-soft/50" : "border-accent/30 bg-background"
+          }`}
+        >
+          <Button type="button" variant="outline" size="sm" disabled={uploading} asChild>
+            <label htmlFor={inputId} className="cursor-pointer gap-2">
+              {uploading ? <span className="h-4 w-4 rounded-full border-2 border-accent border-t-transparent animate-spin" /> : <Upload className="h-4 w-4" />}
+              {uploading ? uploadingLabel : uploadLabel}
+            </label>
+          </Button>
+          <p className="text-xs text-muted-foreground mt-2">{hintLabel}</p>
+          <p className="text-[11px] text-muted-foreground inline-flex items-center gap-1 mt-1">
+            <ShieldCheck className="h-3 w-3 text-success" /> {secureLabel}
+          </p>
+          <p className="text-xs text-destructive mt-1">{error || requiredText}</p>
+        </div>
+      ) : (
+        <div className="flex items-start gap-3 p-2 rounded-md border border-success/30 bg-success/5">
+          {(localPreview || signedPreview) && !path.endsWith(".pdf") ? (
+            <a href={signedPreview || localPreview} target="_blank" rel="noreferrer" className="shrink-0">
+              <img src={localPreview || signedPreview} alt={uploadLabel}
+                className="h-16 w-16 object-cover rounded-md ring-1 ring-success/30" />
+            </a>
+          ) : (
+            <div className="h-16 w-16 rounded-md bg-muted flex items-center justify-center shrink-0">
+              <FileImage className="h-6 w-6 text-muted-foreground" />
+            </div>
+          )}
+          <div className="flex-1 min-w-0">
+            <div className="text-xs font-semibold text-success">✓ {uploadedLabel}</div>
+            <div className="text-[11px] text-muted-foreground truncate" dir="ltr">{path.split("/").pop()}</div>
+            <div className="flex gap-1 mt-1.5">
+              <Button type="button" variant="outline" size="sm" disabled={uploading} asChild className="h-7 px-2 text-xs">
+                <label htmlFor={inputId} className="cursor-pointer gap-1">
+                  <Replace className="h-3 w-3" /> {replaceLabel}
+                </label>
+              </Button>
+              <Button type="button" variant="ghost" size="sm" onClick={onRemove}
+                className="h-7 px-2 text-xs text-destructive hover:bg-destructive/10 gap-1">
+                <X className="h-3 w-3" /> {removeLabel}
+              </Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </div>
   );
 };
