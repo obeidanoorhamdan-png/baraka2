@@ -165,7 +165,7 @@ const Admin = () => {
         SubmittedAt: r.submitted_at,
         FullName: p.full_name,
         NationalID: p.national_id,
-        Email: p.email,
+        Email: p.email || "",
         Phone: p.phone,
         AltPhone: p.alt_phone,
         BirthDate: p.birth_date,
