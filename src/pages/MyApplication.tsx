@@ -115,45 +115,43 @@ const MyApplication = () => {
 
   const validateMembers = async () => {
     const seen = new Set<string>();
+    const allErrors: Record<number, Record<string, string>> = {};
+    let firstErrorIdx = -1;
+    const fields = ["full_name","national_id","birth_date","relationship_other","injury_report_url","pregnancy_report_url"];
     for (let i = 0; i < members.length; i++) {
       const m = members[i];
-      if (!m.full_name.trim() || !m.birth_date || !m.relationship) {
-        toast.error(`${t("family.person")} #${i + 1}: ${t("form.required")}`);
-        return false;
+      const errs: Record<string, string> = {};
+      for (const f of fields) {
+        const msg = validateMemberField(m, f);
+        if (msg) errs[f] = msg;
       }
-      if (!isFullName(m.full_name)) {
-        toast.error(`${t("family.person")} #${i + 1}: ${t("form.invalid_full_name")}`);
-        return false;
+      if (m.national_id && !errs.national_id) {
+        if (seen.has(m.national_id)) errs.national_id = t("toast.id_exists_with_data", { id: m.national_id });
+        else seen.add(m.national_id);
       }
-      if (m.national_id) {
-        if (!ID_RE.test(m.national_id)) {
-          toast.error(`${t("family.person")} #${i + 1}: ${t("form.invalid_id")}`);
-          return false;
-        }
-        if (seen.has(m.national_id)) {
-          toast.error(`${t("family.person")} #${i + 1}: ${t("toast.id_exists_with_data", { id: m.national_id })}`);
-          return false;
-        }
-        seen.add(m.national_id);
+      if (Object.keys(errs).length) {
+        allErrors[i] = errs;
+        if (firstErrorIdx < 0) firstErrorIdx = i;
       }
-      if (m.is_war_injured && !m.injury_report_url) {
-        toast.error(`${t("family.person")} #${i + 1}: ${t("health.report_required")}`);
-        return false;
-      }
+    }
+    setMemberErrors(allErrors);
+    if (firstErrorIdx >= 0) {
+      toast.error(`${t("family.person")} #${firstErrorIdx + 1}: ${t("toast.fix_errors")}`);
+      return false;
     }
     if (residence.has_martyr && (!residence.martyr_name.trim() || !residence.martyr_relationship.trim())) {
       toast.error(t("form.required"));
       return false;
     }
-    // Check duplicates against the rest of the camp (exclude this user, and exclude same member id when editing)
-    for (const m of members) {
+    // Check duplicates against the rest of the camp
+    for (let i = 0; i < members.length; i++) {
+      const m = members[i];
       if (!m.national_id) continue;
       const { data } = await supabase.rpc("national_id_used_by_others", {
-        _nid: m.national_id,
-        _exclude_user: user!.id,
-        _exclude_member: m.id ?? null,
+        _nid: m.national_id, _exclude_user: user!.id, _exclude_member: m.id ?? null,
       });
       if (data === true) {
+        setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), national_id: t("field_errors.id_duplicate") } }));
         toast.error(t("toast.id_exists_with_data", { id: m.national_id }));
         return false;
       }
