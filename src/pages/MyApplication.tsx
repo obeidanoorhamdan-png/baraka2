@@ -414,8 +414,8 @@ const MyApplication = () => {
             )}
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => setStep(1)} className="gap-2">
-                <ArrowBack className="h-4 w-4" /> {t("form.prev")}
+              <Button variant="outline" onClick={() => { if (appId) { setEditMode(false); } else { setStep(1); } }} className="gap-2">
+                <ArrowBack className="h-4 w-4" /> {appId ? t("form.cancel") || t("form.prev") : t("form.prev")}
               </Button>
               <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
                 <Send className="h-4 w-4" /> {appId ? t("form.save") : t("form.submit")}
