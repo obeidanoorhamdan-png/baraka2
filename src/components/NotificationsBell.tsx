@@ -6,6 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+const formatArabicTime = (iso: string, lang: string): string => {
+  try {
+    const d = new Date(iso);
+    const diffMs = Date.now() - d.getTime();
+    const min = Math.floor(diffMs / 60000);
+    const isAr = lang === "ar";
+    if (min < 1) return isAr ? "الآن" : "now";
+    if (min < 60) return isAr ? `منذ ${min} دقيقة` : `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return isAr ? `منذ ${hr} ساعة` : `${hr}h ago`;
+    const day = Math.floor(hr / 24);
+    if (day < 7) return isAr ? `منذ ${day} يوم` : `${day}d ago`;
+    return d.toLocaleDateString(isAr ? "ar-EG" : "en-US");
+  } catch { return iso; }
+};
 
 type Notif = {
   id: string;
