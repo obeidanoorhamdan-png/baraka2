@@ -41,6 +41,28 @@ const MyApplication = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
   const [editMode, setEditMode] = useState(false);
+  const [snapshot, setSnapshot] = useState<string>("");
+
+  const currentSig = () => JSON.stringify({ residence, members });
+  const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
+
+  const guardDiscard = async (): Promise<boolean> => {
+    if (!isDirty) return true;
+    return await confirmAsk({
+      title: t("confirm.discard_changes_title"),
+      description: t("confirm.discard_changes"),
+      confirmText: t("confirm.discard_confirm"),
+      variant: "warning",
+    });
+  };
+
+  // Warn on tab/window close while dirty
+  useEffect(() => {
+    if (!isDirty) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [isDirty]);
 
   const [residence, setResidence] = useState({
     original_residence: "",
@@ -227,6 +249,7 @@ const MyApplication = () => {
       setAppStatus("pending");
       setRejection(null);
       setEditMode(false);
+      setSnapshot("");
       setStep(1);
       // Notify the family that data was updated/submitted
       await supabase.from("notifications").insert({
@@ -288,8 +311,8 @@ const MyApplication = () => {
           <ApplicationSummary
             residence={residence}
             members={members}
-            onEditResidence={() => { setEditMode(true); setStep(1); }}
-            onEditMembers={() => { setEditMode(true); setStep(2); }}
+            onEditResidence={() => { setSnapshot(currentSig()); setEditMode(true); setStep(1); }}
+            onEditMembers={() => { setSnapshot(currentSig()); setEditMode(true); setStep(2); }}
           />
         ) : (
         <>
@@ -414,8 +437,20 @@ const MyApplication = () => {
             )}
 
             <div className="flex justify-between gap-3 pt-2">
-              <Button variant="outline" onClick={() => { if (appId) { setEditMode(false); } else { setStep(1); } }} className="gap-2">
-                <ArrowBack className="h-4 w-4" /> {appId ? t("form.cancel") || t("form.prev") : t("form.prev")}
+              <Button variant="outline" onClick={async () => {
+                if (appId) {
+                  if (!(await guardDiscard())) return;
+                  // restore snapshot
+                  if (snapshot) {
+                    try { const s = JSON.parse(snapshot); setResidence(s.residence); setMembers(s.members); } catch {}
+                  }
+                  setEditMode(false);
+                  setSnapshot("");
+                } else {
+                  setStep(1);
+                }
+              }} className="gap-2">
+                <ArrowBack className="h-4 w-4" /> {appId ? t("form.cancel") : t("form.prev")}
               </Button>
               <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
                 <Send className="h-4 w-4" /> {appId ? t("form.save") : t("form.submit")}
