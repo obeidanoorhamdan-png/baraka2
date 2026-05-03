@@ -249,6 +249,7 @@ const MyApplication = () => {
       setAppStatus("pending");
       setRejection(null);
       setEditMode(false);
+      setSnapshot("");
       setStep(1);
       // Notify the family that data was updated/submitted
       await supabase.from("notifications").insert({
