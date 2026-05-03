@@ -98,6 +98,12 @@ const MyAid = () => {
         const { data } = await supabase.from("aid_distributions")
           .select("*").eq("id", detailId).eq("application_id", app.id).maybeSingle();
         setDetail(data);
+        // Mark any aid notifications pointing to this aid as read
+        await supabase.from("notifications")
+          .update({ read_at: new Date().toISOString() })
+          .eq("user_id", user.id)
+          .eq("link", `/my-aid/${detailId}`)
+          .is("read_at", null);
       } else {
         const { data } = await supabase.from("aid_distributions")
           .select("*").eq("application_id", app.id).order("delivered_at", { ascending: false });

@@ -63,7 +63,13 @@ export const NotificationsBell = () => {
             id: `notif-${n.id}`,
             action: n.link ? {
               label: t("notify.open"),
-              onClick: () => navigate(n.link),
+              onClick: async () => {
+                await supabase.from("notifications")
+                  .update({ read_at: new Date().toISOString() })
+                  .eq("id", n.id);
+                navigate(n.link);
+                load();
+              },
             } : undefined,
           });
           load();
