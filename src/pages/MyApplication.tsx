@@ -41,6 +41,28 @@ const MyApplication = () => {
   const [pageLoading, setPageLoading] = useState(true);
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
   const [editMode, setEditMode] = useState(false);
+  const [snapshot, setSnapshot] = useState<string>("");
+
+  const currentSig = () => JSON.stringify({ residence, members });
+  const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
+
+  const guardDiscard = async (): Promise<boolean> => {
+    if (!isDirty) return true;
+    return await confirmAsk({
+      title: t("confirm.discard_changes_title"),
+      description: t("confirm.discard_changes"),
+      confirmText: t("confirm.discard_confirm"),
+      variant: "warning",
+    });
+  };
+
+  // Warn on tab/window close while dirty
+  useEffect(() => {
+    if (!isDirty) return;
+    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
+    window.addEventListener("beforeunload", h);
+    return () => window.removeEventListener("beforeunload", h);
+  }, [isDirty]);
 
   const [residence, setResidence] = useState({
     original_residence: "",
