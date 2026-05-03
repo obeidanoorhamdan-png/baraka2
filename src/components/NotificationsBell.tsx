@@ -55,10 +55,22 @@ export const NotificationsBell = () => {
     const ch = supabase.channel(`notif-${user.id}`)
       .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => load(),
+        (payload) => {
+          const n: any = payload.new;
+          // Live toast — id prevents duplicates if event fires twice
+          toast.success(n.title, {
+            description: n.body || undefined,
+            id: `notif-${n.id}`,
+            action: n.link ? {
+              label: t("notify.open"),
+              onClick: () => navigate(n.link),
+            } : undefined,
+          });
+          load();
+        },
       ).subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
+  }, [user?.id, navigate, t]);
 
   const unread = items.filter((n) => !n.read_at).length;
 
