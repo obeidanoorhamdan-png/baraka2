@@ -138,8 +138,8 @@ export const NotificationsBell = () => {
                       {!n.read_at && <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />}
                     </div>
                     {n.body && <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.body}</div>}
-                    <div className="text-[10px] text-muted-foreground mt-1" dir="ltr">
-                      {new Date(n.created_at).toLocaleString()}
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      {formatArabicTime(n.created_at, i18n.language)}
                     </div>
                   </div>
                 </button>
