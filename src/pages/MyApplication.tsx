@@ -288,7 +288,8 @@ const MyApplication = () => {
           <ApplicationSummary
             residence={residence}
             members={members}
-            onEdit={() => { setEditMode(true); setStep(1); }}
+            onEditResidence={() => { setEditMode(true); setStep(1); }}
+            onEditMembers={() => { setEditMode(true); setStep(2); }}
           />
         ) : (
         <>
@@ -438,11 +439,13 @@ const MyApplication = () => {
 const ApplicationSummary = ({
   residence,
   members,
-  onEdit,
+  onEditResidence,
+  onEditMembers,
 }: {
   residence: any;
   members: Member[];
-  onEdit: () => void;
+  onEditResidence: () => void;
+  onEditMembers: () => void;
 }) => {
   const { t } = useTranslation();
   const Field = ({ label, value }: { label: string; value: any }) => (
@@ -461,7 +464,7 @@ const ApplicationSummary = ({
       <Card className="p-5 shadow-elegant">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
           <h2 className="text-xl font-bold text-primary">{t("form.step2")}</h2>
-          <Button onClick={onEdit} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+          <Button onClick={onEditResidence} className="gold-gradient text-accent-foreground shadow-gold gap-2">
             {t("my_app.edit")}
           </Button>
         </div>
@@ -481,7 +484,12 @@ const ApplicationSummary = ({
       </Card>
 
       <Card className="p-5 shadow-elegant">
-        <h2 className="text-xl font-bold text-primary mb-3">{t("admin.members")} ({members.length})</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <h2 className="text-xl font-bold text-primary">{t("admin.members")} ({members.length})</h2>
+          <Button onClick={onEditMembers} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+            {t("my_app.edit")}
+          </Button>
+        </div>
         <div className="space-y-3">
           {members.map((m, i) => (
             <Card key={i} className="p-4 bg-muted/30 border-accent/20">
@@ -521,7 +529,7 @@ const ApplicationSummary = ({
           ))}
         </div>
         <div className="flex justify-end mt-4">
-          <Button onClick={onEdit} variant="outline" className="gap-2">
+          <Button onClick={onEditMembers} variant="outline" className="gap-2">
             {t("my_app.edit")}
           </Button>
         </div>
