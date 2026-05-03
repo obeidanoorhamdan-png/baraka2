@@ -288,7 +288,8 @@ const MyApplication = () => {
           <ApplicationSummary
             residence={residence}
             members={members}
-            onEdit={() => { setEditMode(true); setStep(1); }}
+            onEditResidence={() => { setEditMode(true); setStep(1); }}
+            onEditMembers={() => { setEditMode(true); setStep(2); }}
           />
         ) : (
         <>
