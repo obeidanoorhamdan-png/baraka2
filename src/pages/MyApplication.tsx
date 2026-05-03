@@ -415,6 +415,8 @@ const MyApplication = () => {
         )}
         </>
         )}
+        </>
+        )}
 
         {appId && <AidPreview applicationId={appId} />}
         {user && <ChangePinCard userId={user.id} />}
