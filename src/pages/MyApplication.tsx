@@ -529,7 +529,7 @@ const ApplicationSummary = ({
           ))}
         </div>
         <div className="flex justify-end mt-4">
-          <Button onClick={onEdit} variant="outline" className="gap-2">
+          <Button onClick={onEditMembers} variant="outline" className="gap-2">
             {t("my_app.edit")}
           </Button>
         </div>
