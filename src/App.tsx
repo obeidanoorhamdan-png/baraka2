@@ -57,6 +57,7 @@ const App = () => {
                 <Route path="/auth" element={<Auth />} />
                 <Route path="/my-application" element={<MyApplication />} />
                 <Route path="/my-aid" element={<MyAid />} />
+                <Route path="/my-aid/:id" element={<MyAid />} />
                 <Route path="/admin" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>

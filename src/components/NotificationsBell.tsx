@@ -6,6 +6,23 @@ import { Button } from "@/components/ui/button";
 import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { toast } from "sonner";
+
+const formatArabicTime = (iso: string, lang: string): string => {
+  try {
+    const d = new Date(iso);
+    const diffMs = Date.now() - d.getTime();
+    const min = Math.floor(diffMs / 60000);
+    const isAr = lang === "ar";
+    if (min < 1) return isAr ? "الآن" : "now";
+    if (min < 60) return isAr ? `منذ ${min} دقيقة` : `${min}m ago`;
+    const hr = Math.floor(min / 60);
+    if (hr < 24) return isAr ? `منذ ${hr} ساعة` : `${hr}h ago`;
+    const day = Math.floor(hr / 24);
+    if (day < 7) return isAr ? `منذ ${day} يوم` : `${day}d ago`;
+    return d.toLocaleDateString(isAr ? "ar-EG" : "en-US");
+  } catch { return iso; }
+};
 
 type Notif = {
   id: string;
@@ -18,7 +35,7 @@ type Notif = {
 };
 
 export const NotificationsBell = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Notif[]>([]);
@@ -38,10 +55,22 @@ export const NotificationsBell = () => {
     const ch = supabase.channel(`notif-${user.id}`)
       .on("postgres_changes",
         { event: "INSERT", schema: "public", table: "notifications", filter: `user_id=eq.${user.id}` },
-        () => load(),
+        (payload) => {
+          const n: any = payload.new;
+          // Live toast — id prevents duplicates if event fires twice
+          toast.success(n.title, {
+            description: n.body || undefined,
+            id: `notif-${n.id}`,
+            action: n.link ? {
+              label: t("notify.open"),
+              onClick: () => navigate(n.link),
+            } : undefined,
+          });
+          load();
+        },
       ).subscribe();
     return () => { supabase.removeChannel(ch); };
-  }, [user?.id]);
+  }, [user?.id, navigate, t]);
 
   const unread = items.filter((n) => !n.read_at).length;
 
@@ -109,8 +138,8 @@ export const NotificationsBell = () => {
                       {!n.read_at && <span className="w-2 h-2 rounded-full bg-destructive shrink-0" />}
                     </div>
                     {n.body && <div className="text-xs text-muted-foreground line-clamp-2 mt-0.5">{n.body}</div>}
-                    <div className="text-[10px] text-muted-foreground mt-1" dir="ltr">
-                      {new Date(n.created_at).toLocaleString()}
+                    <div className="text-[10px] text-muted-foreground mt-1">
+                      {formatArabicTime(n.created_at, i18n.language)}
                     </div>
                   </div>
                 </button>

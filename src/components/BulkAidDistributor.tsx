@@ -83,21 +83,38 @@ export const BulkAidDistributor = ({
       notes: notes.trim() || null,
       created_by: currentUserId,
     }));
-    const { error } = await supabase.from("aid_distributions").insert(rows);
+    const { data: inserted, error } = await supabase
+      .from("aid_distributions").insert(rows).select("id, application_id");
     if (error) { setBusy(false); toast.error(error.message); return; }
 
-    // Send notifications to each family
-    const notifs = selectedFamilies.map((f) => ({
-      user_id: f.user_id,
-      title: t("notify.new_aid_title"),
-      body: t("notify.new_aid_body", { title: title.trim(), date }),
-      link: "/my-aid",
-      kind: "aid",
-    }));
+    // Map application_id -> aid id for deep links
+    const aidByApp = new Map<string, string>();
+    (inserted || []).forEach((r: any) => aidByApp.set(r.application_id, r.id));
+
+    // De-duplicate: skip families that already received an "aid" notif in last 5 min
+    const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+    const userIds = selectedFamilies.map((f) => f.user_id);
+    const { data: recent } = await supabase.from("notifications")
+      .select("user_id")
+      .in("user_id", userIds)
+      .eq("kind", "aid")
+      .eq("title", t("notify.new_aid_title"))
+      .gte("created_at", fiveMinAgo);
+    const recentSet = new Set((recent || []).map((r: any) => r.user_id));
+
+    const notifs = selectedFamilies
+      .filter((f) => !recentSet.has(f.user_id))
+      .map((f) => ({
+        user_id: f.user_id,
+        title: t("notify.new_aid_title"),
+        body: t("notify.new_aid_body", { title: title.trim(), date }),
+        link: `/my-aid/${aidByApp.get(f.application_id) || ""}`,
+        kind: "aid",
+      }));
     if (notifs.length) await supabase.from("notifications").insert(notifs);
 
     setBusy(false);
-    toast.success(t("aid_bulk.saved", { count: rows.length }));
+    toast.success(t("aid_bulk.saved", { count: rows.length }), { id: "bulk-aid-save" });
     setSelected(new Set()); setTitle(""); setContents(""); setNotes("");
     onSaved?.();
   };
