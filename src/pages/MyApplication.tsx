@@ -223,11 +223,20 @@ const MyApplication = () => {
         const { error: fmErr } = await supabase.from("family_members").insert(rows);
         if (fmErr) throw fmErr;
       }
+      const wasUpdate = !!appId;
       setAppStatus("pending");
       setRejection(null);
       setEditMode(false);
       setStep(1);
-      toast.success(t("toast.submitted"));
+      // Notify the family that data was updated/submitted
+      await supabase.from("notifications").insert({
+        user_id: user.id,
+        title: wasUpdate ? t("notify.app_updated_title") : t("notify.app_submitted_title"),
+        body: wasUpdate ? t("notify.app_updated_body") : t("notify.app_submitted_body"),
+        link: "/my-application",
+        kind: "info",
+      });
+      toast.success(wasUpdate ? t("toast.updated") : t("toast.submitted"));
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
