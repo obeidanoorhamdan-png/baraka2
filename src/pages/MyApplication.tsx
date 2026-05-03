@@ -452,7 +452,9 @@ const ApplicationSummary = ({
     </div>
   );
   const relLabel = (r: string) => {
-    try { return t(`relationship.${r}`); } catch { return r; }
+    const key = `family.rel_${r}`;
+    const v = t(key);
+    return v === key ? r : v;
   };
   return (
     <div className="space-y-4 animate-fade-in">
