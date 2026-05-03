@@ -225,6 +225,8 @@ const MyApplication = () => {
       }
       setAppStatus("pending");
       setRejection(null);
+      setEditMode(false);
+      setStep(1);
       toast.success(t("toast.submitted"));
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
