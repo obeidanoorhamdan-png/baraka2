@@ -40,6 +40,7 @@ const MyApplication = () => {
   const [busy, setBusy] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
+  const [editMode, setEditMode] = useState(false);
 
   const [residence, setResidence] = useState({
     original_residence: "",
