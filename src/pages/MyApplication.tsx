@@ -40,6 +40,7 @@ const MyApplication = () => {
   const [busy, setBusy] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
+  const [editMode, setEditMode] = useState(false);
 
   const [residence, setResidence] = useState({
     original_residence: "",
@@ -224,6 +225,8 @@ const MyApplication = () => {
       }
       setAppStatus("pending");
       setRejection(null);
+      setEditMode(false);
+      setStep(1);
       toast.success(t("toast.submitted"));
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
@@ -272,6 +275,14 @@ const MyApplication = () => {
           </Card>
         )}
 
+        {appId && !editMode ? (
+          <ApplicationSummary
+            residence={residence}
+            members={members}
+            onEdit={() => { setEditMode(true); setStep(1); }}
+          />
+        ) : (
+        <>
         {/* Stepper */}
         <div className="flex items-center justify-between mb-6 gap-2">
           {[1, 2].map((n) => (
@@ -404,6 +415,8 @@ const MyApplication = () => {
         )}
         </>
         )}
+        </>
+        )}
 
         {appId && <AidPreview applicationId={appId} />}
         {user && <ChangePinCard userId={user.id} />}
@@ -411,6 +424,101 @@ const MyApplication = () => {
     </Layout>
   );
 };
+
+// ----------------- Application Summary (read-only view) -----------------
+const ApplicationSummary = ({
+  residence,
+  members,
+  onEdit,
+}: {
+  residence: any;
+  members: Member[];
+  onEdit: () => void;
+}) => {
+  const { t } = useTranslation();
+  const Field = ({ label, value }: { label: string; value: any }) => (
+    <div className="space-y-1">
+      <div className="text-xs text-muted-foreground">{label}</div>
+      <div className="text-sm font-medium text-foreground">{value || "—"}</div>
+    </div>
+  );
+  const relLabel = (r: string) => {
+    try { return t(`relationship.${r}`); } catch { return r; }
+  };
+  return (
+    <div className="space-y-4 animate-fade-in">
+      <Card className="p-5 shadow-elegant">
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
+          <h2 className="text-xl font-bold text-primary">{t("form.step2")}</h2>
+          <Button onClick={onEdit} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+            {t("my_app.edit")}
+          </Button>
+        </div>
+        <div className="grid gap-4 md:grid-cols-2">
+          <Field label={t("residence.original_residence")} value={residence.original_residence} />
+          <Field label={t("residence.original_landmark")} value={residence.original_landmark} />
+          <Field label={t("residence.current_camp")} value={`${t("app.name")} (Baraka 2)`} />
+          <Field label={t("residence.current_landmark")} value={residence.current_landmark} />
+          <Field label={t("residence.family_size")} value={residence.family_size} />
+          {residence.has_martyr && (
+            <>
+              <Field label={t("family.martyr_name")} value={residence.martyr_name} />
+              <Field label={t("family.martyr_relationship")} value={residence.martyr_relationship} />
+            </>
+          )}
+        </div>
+      </Card>
+
+      <Card className="p-5 shadow-elegant">
+        <h2 className="text-xl font-bold text-primary mb-3">{t("admin.members")} ({members.length})</h2>
+        <div className="space-y-3">
+          {members.map((m, i) => (
+            <Card key={i} className="p-4 bg-muted/30 border-accent/20">
+              <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+                <div className="font-bold text-primary">#{i + 1} — {m.full_name}</div>
+                <div className="flex gap-1.5 flex-wrap">
+                  {m.is_war_injured && <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold">{t("health.injured")}</span>}
+                  {m.is_pregnant && <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground font-bold">{t("health_extra.pregnant")}</span>}
+                  {m.is_breastfeeding && <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent/20 text-accent-foreground font-bold">{t("health_extra.breastfeeding")}</span>}
+                </div>
+              </div>
+              <div className="grid gap-3 md:grid-cols-3 text-sm">
+                <Field label={t("form.national_id")} value={m.national_id} />
+                <Field label={t("form.birth_date")} value={m.birth_date} />
+                <Field label={t("form.gender")} value={t(`form.${m.gender}`)} />
+                <Field label={t("family.relationship")} value={m.relationship === "other" ? m.relationship_other : relLabel(m.relationship)} />
+                {m.chronic_diseases && <Field label={t("health.chronic")} value={m.chronic_diseases} />}
+                {m.health_notes && <Field label={t("health.notes")} value={m.health_notes} />}
+              </div>
+              {(m.injury_report_url || m.pregnancy_report_url) && (
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  {m.injury_report_url && (
+                    <a href={m.injury_report_url} target="_blank" rel="noreferrer"
+                      className="text-xs px-3 py-1 rounded-md bg-destructive/10 text-destructive hover:bg-destructive/20">
+                      {t("health.report")} (إصابة)
+                    </a>
+                  )}
+                  {m.pregnancy_report_url && (
+                    <a href={m.pregnancy_report_url} target="_blank" rel="noreferrer"
+                      className="text-xs px-3 py-1 rounded-md bg-accent/10 text-accent-foreground hover:bg-accent/20">
+                      {t("health_extra.pregnancy_report")}
+                    </a>
+                  )}
+                </div>
+              )}
+            </Card>
+          ))}
+        </div>
+        <div className="flex justify-end mt-4">
+          <Button onClick={onEdit} variant="outline" className="gap-2">
+            {t("my_app.edit")}
+          </Button>
+        </div>
+      </Card>
+    </div>
+  );
+};
+
 
 // ----------------- Change PIN card -----------------
 const ChangePinCard = ({ userId: _userId }: { userId: string }) => {
