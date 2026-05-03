@@ -275,6 +275,14 @@ const MyApplication = () => {
           </Card>
         )}
 
+        {appId && !editMode ? (
+          <ApplicationSummary
+            residence={residence}
+            members={members}
+            onEdit={() => { setEditMode(true); setStep(1); }}
+          />
+        ) : (
+        <>
         {/* Stepper */}
         <div className="flex items-center justify-between mb-6 gap-2">
           {[1, 2].map((n) => (
