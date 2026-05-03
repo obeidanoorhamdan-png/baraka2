@@ -65,27 +65,45 @@ export const AidManager = ({ applicationId, currentUserId }: { applicationId: st
       notes: draft.notes?.trim() || null,
       created_by: currentUserId,
     };
-    const { error } = editingId
-      ? await supabase.from("aid_distributions").update(payload).eq("id", editingId)
-      : await supabase.from("aid_distributions").insert(payload);
+    let savedId: string | null = null;
+    if (editingId) {
+      const { error } = await supabase.from("aid_distributions").update(payload).eq("id", editingId);
+      if (error) { setBusy(false); toast.error(error.message); return; }
+      savedId = editingId;
+    } else {
+      const { data, error } = await supabase.from("aid_distributions").insert(payload).select("id").single();
+      if (error) { setBusy(false); toast.error(error.message); return; }
+      savedId = data.id;
+    }
     setBusy(false);
-    if (error) { toast.error(error.message); return; }
 
-    // Notify family on new aid (not on edit)
-    if (!editingId) {
+    // Notify family on new aid only (not on edit). De-duplicate within last 5 minutes.
+    if (!editingId && savedId) {
       const { data: app } = await supabase.from("applications").select("user_id").eq("id", applicationId).maybeSingle();
       if (app?.user_id) {
-        await supabase.from("notifications").insert({
-          user_id: app.user_id,
-          title: t("notify.new_aid_title"),
-          body: t("notify.new_aid_body", { title: payload.title, date: payload.delivered_at }),
-          link: "/my-aid",
-          kind: "aid",
-        });
+        const fiveMinAgo = new Date(Date.now() - 5 * 60 * 1000).toISOString();
+        const { data: existing } = await supabase.from("notifications")
+          .select("id")
+          .eq("user_id", app.user_id)
+          .eq("kind", "aid")
+          .eq("title", t("notify.new_aid_title"))
+          .gte("created_at", fiveMinAgo)
+          .limit(1);
+        if (!existing || existing.length === 0) {
+          await supabase.from("notifications").insert({
+            user_id: app.user_id,
+            title: t("notify.new_aid_title"),
+            body: t("notify.new_aid_body", { title: payload.title, date: payload.delivered_at }),
+            link: `/my-aid/${savedId}`,
+            kind: "aid",
+          });
+        }
       }
     }
 
-    toast.success(t("toast.saved"));
+    toast.success(editingId ? t("toast.updated") : t("toast.saved"), {
+      id: `aid-${savedId}`,
+    });
     setDraft(null); setEditingId(null);
     load();
   };
