@@ -310,8 +310,8 @@ const MyApplication = () => {
           <ApplicationSummary
             residence={residence}
             members={members}
-            onEditResidence={() => { setEditMode(true); setStep(1); }}
-            onEditMembers={() => { setEditMode(true); setStep(2); }}
+            onEditResidence={() => { setSnapshot(currentSig()); setEditMode(true); setStep(1); }}
+            onEditMembers={() => { setSnapshot(currentSig()); setEditMode(true); setStep(2); }}
           />
         ) : (
         <>
