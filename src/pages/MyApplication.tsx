@@ -484,7 +484,12 @@ const ApplicationSummary = ({
       </Card>
 
       <Card className="p-5 shadow-elegant">
-        <h2 className="text-xl font-bold text-primary mb-3">{t("admin.members")} ({members.length})</h2>
+        <div className="flex items-center justify-between gap-3 flex-wrap mb-3">
+          <h2 className="text-xl font-bold text-primary">{t("admin.members")} ({members.length})</h2>
+          <Button onClick={onEditMembers} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+            {t("my_app.edit")}
+          </Button>
+        </div>
         <div className="space-y-3">
           {members.map((m, i) => (
             <Card key={i} className="p-4 bg-muted/30 border-accent/20">
