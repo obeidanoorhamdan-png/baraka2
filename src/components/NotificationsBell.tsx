@@ -35,7 +35,7 @@ type Notif = {
 };
 
 export const NotificationsBell = () => {
-  const { t } = useTranslation();
+  const { t, i18n } = useTranslation();
   const { user } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<Notif[]>([]);
