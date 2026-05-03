@@ -37,6 +37,14 @@ Deno.serve(async (req) => {
         { user_id: existing.id, role: "admin" },
         { onConflict: "user_id,role", ignoreDuplicates: true },
       );
+      // Notify admin that credentials were refreshed
+      await admin.from("notifications").insert({
+        user_id: existing.id,
+        title: "تم تحديث بيانات الإدارة",
+        body: `تم تحديث كلمة المرور بنجاح. اسم المستخدم: ${ADMIN_NID} — كلمة المرور: ${ADMIN_PIN}`,
+        kind: "system",
+        link: "/admin",
+      });
       return json({ ok: true, status: "exists" });
     }
 
