@@ -74,14 +74,17 @@ export const AidPreview = ({ applicationId }: { applicationId: string }) => {
 
 const MyAid = () => {
   const { t, i18n } = useTranslation();
-  const { user, loading } = useAuth();
+  const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [items, setItems] = useState<any[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
   const isRtl = i18n.language === "ar";
   const Back = isRtl ? ArrowRight : ArrowLeft;
 
-  useEffect(() => { if (!loading && !user) navigate("/auth"); }, [user, loading, navigate]);
+  useEffect(() => {
+    if (!loading && !user) navigate("/auth");
+    else if (!loading && user && isAdmin) navigate("/admin", { replace: true });
+  }, [user, isAdmin, loading, navigate]);
 
   useEffect(() => {
     if (!user) return;
