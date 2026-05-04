@@ -355,29 +355,30 @@ const MyApplication = () => {
                   onChange={(e) => setResidence({ ...residence, current_landmark: e.target.value })} />
               </div>
               <div className="md:col-span-2">
-                <Label>{t("residence.family_size")}</Label>
+                <Label>{t("residence.family_size")} <span className="text-muted-foreground text-xs">(شامل رب الأسرة)</span></Label>
                 <Input
                   type="text"
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={2}
-                  value={String(residence.family_size)}
-                  onFocus={(e) => e.currentTarget.select()}
+                  value={familySizeInput}
+                  onFocus={(e) => { e.currentTarget.select(); }}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                    if (digits === "") {
-                      setResidence({ ...residence, family_size: 1 });
-                      return;
-                    }
+                    setFamilySizeInput(digits);
+                    if (digits === "") return;
                     const n = Math.min(30, Math.max(1, parseInt(digits, 10)));
-                    setResidence({ ...residence, family_size: n });
+                    setResidence((r) => ({ ...r, family_size: n }));
                   }}
-                  onBlur={(e) => {
-                    const n = Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1));
-                    setResidence({ ...residence, family_size: n });
+                  onBlur={() => {
+                    const n = Math.min(30, Math.max(1, parseInt(familySizeInput, 10) || 1));
+                    setFamilySizeInput(String(n));
+                    setResidence((r) => ({ ...r, family_size: n }));
                   }}
                 />
-                <p className="text-xs text-muted-foreground mt-1">من 1 إلى 30 (يشمل رب الأسرة)</p>
+                <p className="text-xs text-muted-foreground mt-1">
+                  من 1 إلى 30 — سيتم إضافة {Math.max(0, residence.family_size - 1)} فرد بجانب رب الأسرة
+                </p>
               </div>
             </div>
             <div className="pt-2 border-t border-border">
