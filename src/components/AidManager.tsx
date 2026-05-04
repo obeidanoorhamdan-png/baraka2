@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { DatePickerField } from "@/components/DatePickerField";
 
 export type Aid = {
   id?: string;
