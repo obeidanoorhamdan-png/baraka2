@@ -382,18 +382,68 @@ const MyApplication = () => {
   const submit = async () => {
     if (!user) return;
     setSummaryOpen(false);
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("لا يمكن إرسال الطلب دون اتصال بالإنترنت", {
-        description: "تم حفظ بياناتك كمسودة على هذا الجهاز. سيتم الإرسال تلقائياً بعد عودة الإنترنت — أو اضغط إرسال يدوياً.",
-      });
-      return;
-    }
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
       description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
       confirmText: appId ? t("form.save") : t("form.submit"),
       variant: "default",
     }))) return;
+
+    // Offline path → queue a high-level app.submit / app.update op so the
+    // sync engine completes the submission as soon as we're back online.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const memberRows = members.map((m) => ({
+        full_name: m.full_name,
+        national_id: m.national_id || null,
+        birth_date: m.birth_date,
+        gender: m.gender,
+        relationship: m.relationship,
+        relationship_other: m.relationship_other || null,
+        is_war_injured: m.is_war_injured,
+        injury_report_url: m.injury_report_url || null,
+        chronic_diseases: m.chronic_diseases || null,
+        is_pregnant: m.is_pregnant,
+        is_breastfeeding: m.is_breastfeeding,
+        pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
+        health_notes: m.health_notes || null,
+      }));
+      const appPayload = {
+        user_id: user.id,
+        original_residence: residence.original_residence,
+        original_landmark: residence.original_landmark,
+        current_camp: "Baraka 2",
+        current_landmark: residence.current_landmark,
+        family_size: residence.family_size,
+        has_martyr: residence.has_martyr,
+        martyr_name: residence.has_martyr ? residence.martyr_name : null,
+        martyr_relationship: residence.has_martyr ? residence.martyr_relationship : null,
+        status: "pending" as const,
+        rejection_reason: null,
+      };
+      try {
+        if (appId) {
+          await enqueueOp({
+            kind: "app.update",
+            payload: { applicationId: appId, application: appPayload, members: memberRows, userId: user.id },
+            label: "تحديث الطلب",
+          });
+        } else {
+          await enqueueOp({
+            kind: "app.submit",
+            payload: { application: appPayload, members: memberRows },
+            label: "إرسال الطلب",
+          });
+        }
+        toast.success("تم وضع الطلب في قائمة الانتظار", {
+          description: "سيتم الإرسال تلقائياً فور عودة الإنترنت — أو اضغط إعادة المحاولة من سجل المزامنة.",
+        });
+        setHasPendingSubmit(true);
+      } catch (e: any) {
+        toast.error(friendlyError(e, "submit"));
+      }
+      return;
+    }
+
     setBusy(true);
     try {
       let currentAppId = appId;
