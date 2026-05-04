@@ -336,6 +336,10 @@
     "invalid_credentials": "رقم الهوية أو كلمة المرور غير صحيحة",
     "no_questions_available": "لا تتوفر أسئلة كافية لاستعادة كلمة المرور. يرجى مراجعة إدارة المخيم.",
     "wrong_answers": "الإجابات غير صحيحة",
+    "wrong_answer": "❌ الإجابة غير صحيحة",
+    "answer_verified": "✅ تم التحقق من الإجابة بنجاح",
+    "try_another_question": "يمكنك المحاولة مرة أخرى أو طلب سؤال آخر",
+    "new_question_loaded": "تم تحميل سؤال جديد",
     "password_mismatch": "كلمتا المرور غير متطابقتين",
     "password_reset_success": "تم تغيير كلمة المرور بنجاح، يمكنك الآن تسجيل الدخول",
     "invalid_file_type": "نوع الملف غير مدعوم. يرجى رفع صورة أو PDF.",
@@ -375,5 +379,42 @@
     "pregnancy_report": "إثبات الحمل (تقرير طبي)",
     "pregnancy_uploaded": "تم رفع إثبات الحمل",
     "pregnancy_required": "يجب إرفاق تقرير يثبت الحمل"
+  },
+  "contact": {
+    "page_kicker": "تواصل معنا",
+    "page_title": "تواصل مع إدارة المخيم",
+    "page_subtitle": "نحن هنا لمساعدتك. اختر الرقم المناسب لاستفسارك وسنرد عليك في أقرب وقت.",
+    "whatsapp_title": "تواصل واتساب",
+    "open_whatsapp": "فتح قائمة التواصل عبر واتساب",
+    "admin_label": "الإدارة",
+    "admin_title": "إدارة المخيم",
+    "admin_desc": "للطلبات الرسمية والمساعدات والمتابعة",
+    "support_label": "الاستفسارات والدعم",
+    "support_title": "الاستفسارات والدعم",
+    "support_desc": "للأسئلة والمشاكل وأي شيء يخص المخيم",
+    "prefill_admin": "السلام عليكم، أتواصل من تطبيق مخيم بركة 2 بخصوص:",
+    "prefill_support": "السلام عليكم، لدي استفسار يخص مخيم بركة 2:",
+    "quick_title": "تواصل سريع"
+  },
+  "dashboard": {
+    "nav": "الرئيسية",
+    "welcome": "أهلاً بك",
+    "no_app_title": "لم تقم بإرسال طلبك بعد",
+    "no_app_subtitle": "ابدأ بتعبئة بيانات السكن وأفراد الأسرة لإرسال طلبك للإدارة.",
+    "no_app_yet": "لا يوجد طلب لإنشاء التقرير منه",
+    "family_count": "عدد أفراد الأسرة",
+    "aids_received": "المساعدات المستلمة",
+    "action_app_title": "بيانات الطلب",
+    "action_app_view_subtitle": "اعرض أو عدّل بيانات سكنك وأفراد عائلتك",
+    "action_app_new_subtitle": "ابدأ تعبئة طلب جديد للتسجيل في المخيم",
+    "action_aid_title": "المساعدات المستلمة",
+    "action_pdf_title": "تقرير PDF للطلب",
+    "action_pdf_subtitle": "تنزيل ملف PDF يحتوي على بيانات طلبك للأرشفة",
+    "action_pdf_cta": "تنزيل التقرير",
+    "action_contact_title": "تواصل مع الإدارة",
+    "action_contact_subtitle": "أرقام واتساب للاستفسار والمتابعة",
+    "action_contact_cta": "فتح صفحة التواصل",
+    "pdf_done": "تم إنشاء تقرير PDF بنجاح"
   }
 }
+
