@@ -416,46 +416,113 @@ const MyApplication = () => {
           </Card>
         )}
 
-        {step === 2 && (
+        {step === 2 && (() => {
+          const totalMembers = Math.max(0, residence.family_size - 1);
+          const filledMembers = members.length;
+          return (
           <div className="space-y-4">
             <Card className="p-5 shadow-elegant">
-              <h2 className="text-xl font-bold text-primary mb-1">{t("form.step3")}</h2>
-              <p className="text-sm text-muted-foreground">{t("family.title")}</p>
+              <div className="flex items-center gap-3 flex-wrap justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-primary mb-1 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-accent" /> {t("form.step3")}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{t("family.title")}</p>
+                </div>
+                {familySizeInput && (
+                  <div className="text-end">
+                    <div className="text-xs text-muted-foreground">{t("residence.family_size")}</div>
+                    <div className="text-lg font-bold text-primary">
+                      {filledMembers} / {totalMembers}
+                      {filledMembers === totalMembers && totalMembers > 0 && (
+                        <CheckCircle2 className="inline h-5 w-5 text-success ms-1" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </Card>
 
-            {members.map((m, i) => (
-              <MemberCard
-                key={i}
-                index={i}
-                member={m}
-                userId={user!.id}
-                errors={memberErrors[i] || {}}
-                onFieldBlur={(field) => {
-                  const msg = validateMemberField(m, field);
-                  setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), [field]: msg } }));
-                }}
-                onChange={(nm) => {
-                  setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)));
-                  // re-validate fields that may now be fixed
-                  if (memberErrors[i]) {
-                    const next: Record<string, string> = {};
-                    Object.keys(memberErrors[i]).forEach((k) => {
-                      next[k] = validateMemberField(nm, k);
-                    });
-                    setMemberErrors((p) => ({ ...p, [i]: next }));
-                  }
-                }}
-                onRemove={appStatus === "approved" ? undefined : () => {
-                  setMembers((prev) => prev.filter((_, idx) => idx !== i));
-                  setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
-                }}
-              />
-            ))}
+            {members.map((m, i) => {
+              const errs = memberErrors[i] || {};
+              const hasErrors = Object.values(errs).some(Boolean);
+              const isCollapsed = !!collapsedMembers[i] && !hasErrors;
+              return (
+                <div key={i} className="relative">
+                  {isCollapsed ? (
+                    <Card className="p-4 shadow-card border-success/30 bg-success/5 animate-fade-in">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-full bg-success/15 p-2">
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("family.person")} {i + 1} / {totalMembers}
+                            </div>
+                            <div className="font-bold text-primary">
+                              {m.full_name || <span className="text-muted-foreground italic">—</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <Button type="button" size="sm" variant="outline"
+                          onClick={() => setCollapsedMembers((p) => ({ ...p, [i]: false }))}
+                          className="gap-2">
+                          {t("form.edit_member")}
+                        </Button>
+                      </div>
+                    </Card>
+                  ) : (
+                    <MemberCard
+                      index={i}
+                      total={totalMembers}
+                      member={m}
+                      userId={user!.id}
+                      errors={errs}
+                      onFieldBlur={(field) => {
+                        const msg = validateMemberField(m, field);
+                        setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), [field]: msg } }));
+                      }}
+                      onChange={(nm) => {
+                        setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)));
+                        if (memberErrors[i]) {
+                          const next: Record<string, string> = {};
+                          Object.keys(memberErrors[i]).forEach((k) => {
+                            next[k] = validateMemberField(nm, k);
+                          });
+                          setMemberErrors((p) => ({ ...p, [i]: next }));
+                        }
+                      }}
+                      onRemove={appStatus === "approved" ? undefined : () => {
+                        setMembers((prev) => prev.filter((_, idx) => idx !== i));
+                        setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
+                        setCollapsedMembers((p) => { const c = { ...p }; delete c[i]; return c; });
+                      }}
+                      onSave={() => {
+                        // Validate this member only
+                        const fields = ["full_name","national_id","birth_date","relationship_other","injury_report_url","pregnancy_report_url"];
+                        const errsLocal: Record<string, string> = {};
+                        for (const f of fields) {
+                          const msg = validateMemberField(m, f);
+                          if (msg) errsLocal[f] = msg;
+                        }
+                        if (Object.keys(errsLocal).length) {
+                          setMemberErrors((p) => ({ ...p, [i]: errsLocal }));
+                          toast.error(t("toast.fix_errors"));
+                          return;
+                        }
+                        setMemberErrors((p) => ({ ...p, [i]: {} }));
+                        setCollapsedMembers((p) => ({ ...p, [i]: true }));
+                        toast.success(t("form.member_saved"));
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
             {appStatus !== "approved" && (() => {
-              const maxMembers = Math.max(0, residence.family_size - 1);
-              const remaining = maxMembers - members.length;
-              const reachedMax = remaining <= 0;
+              const reachedMax = filledMembers >= totalMembers;
               return (
                 <div className="space-y-2">
                   <Button
@@ -463,18 +530,18 @@ const MyApplication = () => {
                     variant="outline"
                     disabled={reachedMax || !familySizeInput}
                     onClick={() => {
-                      if (members.length >= maxMembers) {
-                        toast.error(`لا يمكن إضافة أكثر من ${maxMembers} فرد. عدّل عدد أفراد الأسرة من الخطوة السابقة.`);
+                      if (filledMembers >= totalMembers) {
+                        toast.error(`اكتمل العدد المطلوب (${totalMembers} فرد). عدّل عدد أفراد الأسرة من الخطوة السابقة لإضافة المزيد.`);
                         return;
                       }
                       setMembers([...members, emptyMember()]);
                     }}
-                    className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft disabled:opacity-50"
+                    className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="h-4 w-4" /> {t("family.add")}
-                    {familySizeInput && !reachedMax && (
+                    {familySizeInput && (
                       <span className="text-xs text-muted-foreground">
-                        ({members.length} / {maxMembers})
+                        ({filledMembers} / {totalMembers})
                       </span>
                     )}
                   </Button>
@@ -482,7 +549,10 @@ const MyApplication = () => {
                     <p className="text-xs text-center text-muted-foreground">حدّد عدد أفراد الأسرة في الخطوة السابقة أولاً</p>
                   )}
                   {reachedMax && familySizeInput && (
-                    <p className="text-xs text-center text-success">✓ اكتمل العدد المطلوب ({maxMembers} فرد)</p>
+                    <Card className="p-3 text-center bg-success/5 border-success/30 text-success font-semibold text-sm flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-5 w-5" />
+                      اكتمل العدد المطلوب ({totalMembers} فرد) — لا يمكن إضافة المزيد
+                    </Card>
                   )}
                 </div>
               );
@@ -497,7 +567,6 @@ const MyApplication = () => {
               <Button variant="outline" onClick={async () => {
                 if (appId) {
                   if (!(await guardDiscard())) return;
-                  // restore snapshot
                   if (snapshot) {
                     try { const s = JSON.parse(snapshot); setResidence(s.residence); setMembers(s.members); } catch {}
                   }
@@ -509,12 +578,13 @@ const MyApplication = () => {
               }} className="gap-2">
                 <ArrowBack className="h-4 w-4" /> {appId ? t("form.cancel") : t("form.prev")}
               </Button>
-              <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
-                <Send className="h-4 w-4" /> {appId ? t("form.save") : t("form.submit")}
+              <Button onClick={openReview} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+                <Eye className="h-4 w-4" /> {t("form.review_summary")}
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
         </>
         )}
         </>
