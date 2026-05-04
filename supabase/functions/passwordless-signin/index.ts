@@ -14,7 +14,7 @@ const corsHeaders = {
 interface SigninBody {
   national_id: string;
   answer: {
-    kind: "national_id" | "birth_date" | "admin_pin";
+    kind: "national_id" | "birth_date" | "admin_pin" | "self_birth_date";
     question_id?: string;
     value: string;
   };
@@ -70,6 +70,16 @@ Deno.serve(async (req) => {
         if (data && (data as any).applications?.user_id === uid && String((data as any).birth_date) === v) {
           verified = true;
         }
+      } else if (body.answer.kind === "self_birth_date") {
+        // Fallback question: head-of-family own birth_date from profiles.
+        // question_id must match the user's own profile id for safety.
+        if (body.answer.question_id !== uid) return fail("بيانات السؤال غير صحيحة", "invalid_qid");
+        const { data } = await admin
+          .from("profiles")
+          .select("id, birth_date")
+          .eq("id", uid as string)
+          .maybeSingle();
+        if (data && String((data as any).birth_date) === v) verified = true;
       }
     }
 
