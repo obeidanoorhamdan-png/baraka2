@@ -94,10 +94,10 @@ const MyApplication = () => {
         if (m.relationship === "other" && !m.relationship_other?.trim()) return t("field_errors.rel_other_required");
         return "";
       case "injury_report_url":
-        if (m.is_war_injured && !m.injury_report_url) return t("health.report_required");
+        // Optional — never block save (user may upload later)
         return "";
       case "pregnancy_report_url":
-        if (m.is_pregnant && !m.pregnancy_report_url) return t("health_extra.pregnancy_required");
+        // Optional — never block save (user may upload later)
         return "";
     }
     return "";
