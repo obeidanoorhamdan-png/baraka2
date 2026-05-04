@@ -334,6 +334,14 @@ export const MemberCard = ({
             onChange={(e) => onChange({ ...member, health_notes: e.target.value })} />
         </div>
       </div>
+      {onSave && (
+        <div className="mt-4 pt-3 border-t border-border flex justify-end">
+          <Button type="button" onClick={onSave}
+            className="gold-gradient text-accent-foreground shadow-gold gap-2">
+            <ShieldCheck className="h-4 w-4" /> {t("form.save_member")}
+          </Button>
+        </div>
+      )}
     </Card>
   );
 };
