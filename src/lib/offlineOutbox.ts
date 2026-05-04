@@ -187,6 +187,43 @@ export async function clearHistory() {
   notifyOutboxChanged();
 }
 
+/* ---------------- bulk maintenance ---------------- */
+
+/**
+ * Wipe everything in the offline DB (queue + cache + history) and any
+ * `baraka2:*` localStorage keys. Use from the "Clear local data"
+ * maintenance button. Caller is responsible for confirming with the user.
+ */
+export async function purgeAllLocal() {
+  const db = await getDB();
+  await Promise.all([db.clear("ops"), db.clear("cache"), db.clear("history")]);
+  try {
+    const toRemove: string[] = [];
+    for (let i = 0; i < localStorage.length; i++) {
+      const k = localStorage.key(i);
+      if (k && k.startsWith("baraka2:")) toRemove.push(k);
+    }
+    toRemove.forEach((k) => localStorage.removeItem(k));
+  } catch {
+    /* ignore */
+  }
+  notifyOutboxChanged();
+}
+
+/** Best-effort byte size of all local stores. */
+export async function estimateLocalUsage(): Promise<{ ops: number; cache: number; history: number; total: number }> {
+  const db = await getDB();
+  const [ops, cache, history] = await Promise.all([
+    db.getAll("ops"),
+    db.getAll("cache"),
+    db.getAll("history"),
+  ]);
+  const sz = (x: any[]) =>
+    x.reduce((acc, v) => acc + new Blob([JSON.stringify({ ...v, file: undefined })]).size + (v.file?.size || 0), 0);
+  const a = sz(ops), b = sz(cache), c = sz(history);
+  return { ops: a, cache: b, history: c, total: a + b + c };
+}
+
 /* ---------------- pub/sub for UI updates ---------------- */
 
 const listeners = new Set<() => void>();
