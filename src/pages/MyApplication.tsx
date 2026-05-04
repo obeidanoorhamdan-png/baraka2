@@ -1180,7 +1180,7 @@ const MyApplication = () => {
                       </div>
                       <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-8">
                         {m.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{m.national_id}</strong></div>}
-                        <div>{t("form.birth_date")}: <strong className="text-foreground">{m.birth_date || "—"}</strong></div>
+                        <div>{t("form.birth_date")}: <strong className="text-foreground">{formatBirthDate(m.birth_date)}</strong></div>
                         <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${m.gender}`)}</strong></div>
                       </div>
                     </div>
