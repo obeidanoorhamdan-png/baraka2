@@ -413,55 +413,102 @@ const MyApplication = () => {
           />
         ) : (
         <>
-        {/* Stepper — labeled and clearly numbered */}
-        <Card className="p-4 mb-6 shadow-card">
-          <div className="grid grid-cols-2 gap-3">
-            {[
-              { n: 1, label: t("form.step2"), hint: "السكن وعدد الأسرة" },
-              { n: 2, label: t("form.step3"), hint: "إضافة بيانات الأفراد" },
-            ].map(({ n, label, hint }) => {
-              const active = step === n;
-              const done = step > n;
-              return (
-                <button
-                  key={n}
+        {/* Stepper — labeled, with progress bar and manual save. */}
+        {(() => {
+          const expectedMembers = Math.max(0, residence.family_size - 1);
+          const residenceFilled =
+            !!residence.original_residence && !!residence.original_landmark && !!residence.current_landmark;
+          const residencePct = residenceFilled ? 50 : 0;
+          const memberPct = expectedMembers === 0 ? 50 : Math.min(50, Math.round((members.length / expectedMembers) * 50));
+          const totalPct = residencePct + memberPct;
+          const saveDraftNow = () => {
+            if (!user) return;
+            setSavingDraft(true);
+            try {
+              const payload = { residence, members, savedAt: Date.now() };
+              localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
+              setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
+              toast.success(t("form.draft_saved_now"));
+            } catch {
+              toast.error(t("toast.error"));
+            } finally {
+              setTimeout(() => setSavingDraft(false), 300);
+            }
+          };
+          return (
+            <Card className="p-4 mb-6 shadow-card">
+              {/* Progress header */}
+              <div className="flex items-center justify-between mb-3 gap-2 flex-wrap">
+                <div className="text-sm font-bold text-primary">
+                  {t("form.progress_label")} <span className="text-accent">{totalPct}%</span>
+                </div>
+                <Button
                   type="button"
-                  onClick={() => setStep(n)}
-                  className={`text-start rounded-xl border-2 p-3 transition-all ${
-                    active
-                      ? "border-accent bg-accent-soft/60 shadow-md"
-                      : done
-                      ? "border-success/40 bg-success/5"
-                      : "border-border bg-muted/30"
-                  }`}
+                  size="sm"
+                  variant="outline"
+                  onClick={saveDraftNow}
+                  disabled={savingDraft}
+                  className="gap-1.5 h-8 border-accent/40 text-accent hover:bg-accent-soft"
                 >
-                  <div className="flex items-center gap-2">
-                    <span
-                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
+                  <CheckCircle2 className="h-3.5 w-3.5" />
+                  {savingDraft ? "..." : t("form.save_draft")}
+                </Button>
+              </div>
+              <div className="h-2 w-full rounded-full bg-muted overflow-hidden mb-4">
+                <div
+                  className="h-full bg-gradient-to-r from-accent to-success transition-all"
+                  style={{ width: `${totalPct}%` }}
+                />
+              </div>
+              <div className="grid grid-cols-2 gap-3">
+                {[
+                  { n: 1, label: t("form.step2"), hint: "السكن وعدد الأسرة", filled: residenceFilled },
+                  { n: 2, label: t("form.step3"), hint: `${members.length} / ${expectedMembers} فرد`, filled: expectedMembers > 0 && members.length === expectedMembers },
+                ].map(({ n, label, hint, filled }) => {
+                  const active = step === n;
+                  const done = filled && !active;
+                  return (
+                    <button
+                      key={n}
+                      type="button"
+                      onClick={() => setStep(n)}
+                      className={`text-start rounded-xl border-2 p-3 transition-all ${
                         active
-                          ? "bg-accent text-accent-foreground"
+                          ? "border-accent bg-accent-soft/60 shadow-md"
                           : done
-                          ? "bg-success text-white"
-                          : "bg-muted text-muted-foreground"
+                          ? "border-success/40 bg-success/5"
+                          : "border-border bg-muted/30"
                       }`}
                     >
-                      {done ? <CheckCircle2 className="h-4 w-4" /> : n}
-                    </span>
-                    <div className="font-bold text-primary text-sm">
-                      {t("form.step")} {n}: {label}
-                    </div>
-                  </div>
-                  <div className="text-[11px] text-muted-foreground mt-1 ms-9">{hint}</div>
-                </button>
-              );
-            })}
-          </div>
-          {lastDraftSavedAt && step === 2 && (
-            <div className="mt-3 text-[11px] text-success inline-flex items-center gap-1.5">
-              <CheckCircle2 className="h-3.5 w-3.5" /> {t("form.draft_saved_at", { time: lastDraftSavedAt })}
-            </div>
-          )}
-        </Card>
+                      <div className="flex items-center gap-2">
+                        <span
+                          className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
+                            active
+                              ? "bg-accent text-accent-foreground"
+                              : done
+                              ? "bg-success text-white"
+                              : "bg-muted text-muted-foreground"
+                          }`}
+                        >
+                          {done ? <CheckCircle2 className="h-4 w-4" /> : n}
+                        </span>
+                        <div className="font-bold text-primary text-sm">
+                          {t("form.step")} {n}: {label}
+                        </div>
+                      </div>
+                      <div className="text-[11px] text-muted-foreground mt-1 ms-9">{hint}</div>
+                    </button>
+                  );
+                })}
+              </div>
+              {lastDraftSavedAt && (
+                <div className="mt-3 text-[11px] text-success inline-flex items-center gap-1.5">
+                  <CheckCircle2 className="h-3.5 w-3.5" /> {t("form.draft_saved_at", { time: lastDraftSavedAt })}
+                </div>
+              )}
+            </Card>
+          );
+        })()}
 
         {step === 1 && (
           <Card className="p-5 md:p-6 shadow-elegant space-y-4">
