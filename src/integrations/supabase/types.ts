@@ -175,6 +175,7 @@ export type Database = {
           id: string
           injury_report_url: string | null
           is_breastfeeding: boolean
+          is_head: boolean
           is_pregnant: boolean
           is_war_injured: boolean
           national_id: string | null
@@ -193,6 +194,7 @@ export type Database = {
           id?: string
           injury_report_url?: string | null
           is_breastfeeding?: boolean
+          is_head?: boolean
           is_pregnant?: boolean
           is_war_injured?: boolean
           national_id?: string | null
@@ -211,6 +213,7 @@ export type Database = {
           id?: string
           injury_report_url?: string | null
           is_breastfeeding?: boolean
+          is_head?: boolean
           is_pregnant?: boolean
           is_war_injured?: boolean
           national_id?: string | null
