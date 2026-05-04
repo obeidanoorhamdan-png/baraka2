@@ -133,16 +133,11 @@ const MyApplication = () => {
     })();
   }, [user]);
 
-  // Sync member count with family_size (size includes head, so members = size - 1)
+  // Trim members if user reduces family size below current members count.
+  // Do NOT auto-add members — user adds them manually with the "Add member" button.
   useEffect(() => {
     const expected = Math.max(0, residence.family_size - 1);
-    setMembers((prev) => {
-      if (prev.length === expected) return prev;
-      if (prev.length < expected) {
-        return [...prev, ...Array.from({ length: expected - prev.length }, emptyMember)];
-      }
-      return prev.slice(0, expected);
-    });
+    setMembers((prev) => (prev.length > expected ? prev.slice(0, expected) : prev));
   }, [residence.family_size]);
 
   const validateMembers = async () => {
