@@ -13,6 +13,8 @@ import Auth from "./pages/Auth";
 import MyApplication from "./pages/MyApplication";
 import MyAid from "./pages/MyAid";
 import Admin from "./pages/Admin";
+import Dashboard from "./pages/Dashboard";
+import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -55,6 +57,8 @@ const App = () => {
               <Routes>
                 <Route path="/" element={<Landing />} />
                 <Route path="/auth" element={<Auth />} />
+                <Route path="/dashboard" element={<Dashboard />} />
+                <Route path="/contact" element={<Contact />} />
                 <Route path="/my-application" element={<MyApplication />} />
                 <Route path="/my-aid" element={<MyAid />} />
                 <Route path="/my-aid/:id" element={<MyAid />} />
