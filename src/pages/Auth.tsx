@@ -61,7 +61,7 @@ const Auth = () => {
   // Question state (existing user)
   const [question, setQuestion] = useState<{
     question_id: string;
-    kind: "national_id" | "birth_date";
+    kind: "national_id" | "birth_date" | "self_birth_date";
     label: string;
   } | null>(null);
   const [answer, setAnswer] = useState("");
@@ -86,7 +86,7 @@ const Auth = () => {
     const q = (data as any[])[0];
     return {
       question_id: q.question_id,
-      kind: q.kind as "national_id" | "birth_date",
+      kind: q.kind as "national_id" | "birth_date" | "self_birth_date",
       label: q.label,
     };
   };
