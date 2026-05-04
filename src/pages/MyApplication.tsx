@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { formatBirthDate } from "@/lib/formatDate";
 import { toast } from "sonner";
 import { ID_RE, isFullName } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
@@ -1179,7 +1180,7 @@ const MyApplication = () => {
                       </div>
                       <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-8">
                         {m.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{m.national_id}</strong></div>}
-                        <div>{t("form.birth_date")}: <strong className="text-foreground">{m.birth_date || "—"}</strong></div>
+                        <div>{t("form.birth_date")}: <strong className="text-foreground">{formatBirthDate(m.birth_date)}</strong></div>
                         <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${m.gender}`)}</strong></div>
                       </div>
                     </div>
@@ -1364,7 +1365,7 @@ const ApplicationSummary = ({
               </div>
               <div className="grid gap-3 md:grid-cols-3 text-sm">
                 <Field label={t("form.national_id")} value={m.national_id} />
-                <Field label={t("form.birth_date")} value={m.birth_date} />
+                <Field label={t("form.birth_date")} value={formatBirthDate(m.birth_date)} />
                 <Field label={t("form.gender")} value={t(`form.${m.gender}`)} />
                 <Field label={t("family.relationship")} value={m.relationship === "other" ? m.relationship_other : relLabel(m.relationship)} />
                 {m.chronic_diseases && <Field label={t("health.chronic")} value={m.chronic_diseases} />}

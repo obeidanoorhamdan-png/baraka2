@@ -17,6 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
+import { formatBirthDate } from "@/lib/formatDate";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
@@ -722,7 +723,7 @@ const Admin = () => {
                     <div><strong>{t("form.national_id")}:</strong> <span dir="ltr">{p.national_id}</span></div>
                     <div><strong>{t("form.phone")}:</strong> <span dir="ltr">{p.phone}</span></div>
                     {p.alt_phone && <div><strong>{t("form.alt_phone")}:</strong> <span dir="ltr">{p.alt_phone}</span></div>}
-                    <div><strong>{t("form.birth_date")}:</strong> {p.birth_date} ({calculateAge(p.birth_date)} {t("form.years")})</div>
+                    <div><strong>{t("form.birth_date")}:</strong> {formatBirthDate(p.birth_date)} ({calculateAge(p.birth_date)} {t("form.years")})</div>
                     <div><strong>{t("form.gender")}:</strong> {t(`form.${p.gender}`)}</div>
                     <div><strong>{t("form.marital_status")}:</strong> {t(`form.${p.marital_status}`)} {p.marital_status_other && `(${p.marital_status_other})`}</div>
                   </div>
@@ -768,7 +769,7 @@ const Admin = () => {
                         <div className="font-semibold">{m.full_name} <span className="text-xs text-muted-foreground">— {t(`family.rel_${m.relationship}`)} {m.relationship_other && `(${m.relationship_other})`}</span></div>
                         <div className="text-xs text-muted-foreground">
                           {m.national_id && <span dir="ltr">ID: {m.national_id} • </span>}
-                          {m.birth_date} ({calculateAge(m.birth_date)} {t("form.years")}) • {t(`form.${m.gender}`)}
+                          {formatBirthDate(m.birth_date)} ({calculateAge(m.birth_date)} {t("form.years")}) • {t(`form.${m.gender}`)}
                         </div>
                         {(m.is_war_injured || m.chronic_diseases || m.is_pregnant || m.is_breastfeeding || m.health_notes) && (
                           <div className="text-xs mt-1 space-y-1">
