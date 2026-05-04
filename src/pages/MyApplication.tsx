@@ -598,6 +598,23 @@ const MyApplication = () => {
         const { error: fmErr } = await supabase.from("family_members").insert(rows);
         if (fmErr) throw fmErr;
       }
+      // Persist head-of-family edits to the profiles table.
+      try {
+        const { error: pErr } = await supabase.from("profiles").update({
+          full_name: head.full_name,
+          national_id: head.national_id,
+          birth_date: head.birth_date,
+          gender: head.gender,
+          is_war_injured: head.is_war_injured,
+          injury_report_url: head.injury_report_url || null,
+          chronic_diseases: head.chronic_diseases || null,
+          health_notes: head.health_notes || null,
+        }).eq("id", user.id);
+        if (pErr) throw pErr;
+      } catch (e) {
+        console.error("[profile update]", e);
+        toast.error("تعذّر حفظ بيانات رب الأسرة");
+      }
       const wasUpdate = !!appId;
       setAppStatus("pending");
       setRejection(null);
