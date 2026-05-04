@@ -390,6 +390,20 @@ const MyApplication = () => {
     const allErrors: Record<number, Record<string, string>> = {};
     let firstErrorIdx = -1;
     const fields = ["full_name","national_id","birth_date","relationship_other","injury_report_url","pregnancy_report_url"];
+
+    // Validate head of family first
+    const headErrs: Record<string, string> = {};
+    for (const f of ["full_name","national_id","birth_date","injury_report_url"]) {
+      const msg = validateMemberField(head, f);
+      if (msg) headErrs[f] = msg;
+    }
+    if (head.national_id) seen.add(head.national_id);
+    setHeadErrors(headErrs);
+    if (Object.keys(headErrs).length) {
+      toast.error(`رب الأسرة: ${t("toast.fix_errors")}`);
+      return false;
+    }
+
     for (let i = 0; i < members.length; i++) {
       const m = members[i];
       const errs: Record<string, string> = {};
