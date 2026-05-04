@@ -25,6 +25,8 @@ interface DatePickerFieldProps {
   invalid?: boolean;
   disabled?: boolean;
   id?: string;
+  /** Auto-open the calendar when mounted (great for security questions) */
+  autoOpen?: boolean;
 }
 
 const toIso = (d: Date) => {
