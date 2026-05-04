@@ -62,6 +62,7 @@ export const MemberCard = ({
   onSave,
   errors = {},
   onFieldBlur,
+  lockedFields = [],
 }: {
   index: number;
   total?: number;
@@ -72,7 +73,9 @@ export const MemberCard = ({
   onSave?: () => void;
   errors?: Record<string, string>;
   onFieldBlur?: (field: string) => void;
+  lockedFields?: string[];
 }) => {
+  const isLocked = (f: string) => lockedFields.includes(f);
   const { t } = useTranslation();
   const confirmAsk = useConfirm();
   const [uploading, setUploading] = useState<FieldKey | null>(null);
