@@ -350,8 +350,28 @@ const MyApplication = () => {
               </div>
               <div className="md:col-span-2">
                 <Label>{t("residence.family_size")}</Label>
-                <Input type="number" min={1} max={30} value={residence.family_size}
-                  onChange={(e) => setResidence({ ...residence, family_size: Math.max(1, parseInt(e.target.value) || 1) })} />
+                <Input
+                  type="text"
+                  inputMode="numeric"
+                  pattern="[0-9]*"
+                  maxLength={2}
+                  value={String(residence.family_size)}
+                  onFocus={(e) => e.currentTarget.select()}
+                  onChange={(e) => {
+                    const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
+                    if (digits === "") {
+                      setResidence({ ...residence, family_size: 1 });
+                      return;
+                    }
+                    const n = Math.min(30, Math.max(1, parseInt(digits, 10)));
+                    setResidence({ ...residence, family_size: n });
+                  }}
+                  onBlur={(e) => {
+                    const n = Math.min(30, Math.max(1, parseInt(e.target.value, 10) || 1));
+                    setResidence({ ...residence, family_size: n });
+                  }}
+                />
+                <p className="text-xs text-muted-foreground mt-1">من 1 إلى 30 (يشمل رب الأسرة)</p>
               </div>
             </div>
             <div className="pt-2 border-t border-border">
