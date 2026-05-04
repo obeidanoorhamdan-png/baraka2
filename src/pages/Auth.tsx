@@ -37,7 +37,7 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(isAdmin ? "/admin" : "/my-application", { replace: true });
+      navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
     }
   }, [user, isAdmin, loading, navigate]);
 
