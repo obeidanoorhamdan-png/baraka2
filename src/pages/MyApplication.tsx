@@ -99,8 +99,9 @@ const MyApplication = () => {
 
   const [members, setMembers] = useState<Member[]>([]);
 
-  // Head of family — editable in the same UI as members, but persisted
-  // back to the `profiles` table (not `family_members`).
+  // Head of family — editable in the same UI as members. Persisted as a
+  // `family_members` row with `is_head=true`, AND mirrored back to the
+  // `profiles` table to keep the user account in sync.
   const [head, setHead] = useState<Member>({
     full_name: "",
     national_id: "",
@@ -115,8 +116,12 @@ const MyApplication = () => {
     is_breastfeeding: false,
     pregnancy_report_url: null,
     health_notes: "",
+    is_head: true,
   });
   const [headErrors, setHeadErrors] = useState<Record<string, string>>({});
+  // Fields locked on the head card — they're tied to the user's account and
+  // managed via the profile/auth flow, not editable in the family editor.
+  const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
 
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
@@ -248,8 +253,13 @@ const MyApplication = () => {
           setFamilySizeInput(String(app.family_size));
         setServerUpdatedAt(app.updated_at || null);
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
-        const memberRows = (fm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any));
+        const allRows = (fm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any));
+        const headRow = allRows.find((m: any) => m.is_head);
+        const memberRows = allRows.filter((m: any) => !m.is_head);
         if (memberRows.length) setMembers(memberRows);
+        if (headRow) {
+          setHead({ ...headRow, is_head: true });
+        }
         // Persist to cache for next offline launch.
         await cacheSet(cacheKey, { app, members: memberRows });
       } else {
@@ -469,7 +479,7 @@ const MyApplication = () => {
     // Offline path → queue a high-level app.submit / app.update op so the
     // sync engine completes the submission as soon as we're back online.
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      const memberRows = members.map((m) => ({
+      const buildRow = (m: Member, isHead: boolean) => ({
         full_name: m.full_name,
         national_id: m.national_id || null,
         birth_date: m.birth_date,
@@ -483,7 +493,9 @@ const MyApplication = () => {
         is_breastfeeding: m.is_breastfeeding,
         pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
         health_notes: m.health_notes || null,
-      }));
+        is_head: isHead,
+      });
+      const memberRows = [buildRow(head, true), ...members.map((m) => buildRow(m, false))];
       const appPayload = {
         user_id: user.id,
         original_residence: residence.original_residence,
@@ -578,26 +590,27 @@ const MyApplication = () => {
         currentAppId = data.id;
         setAppId(data.id);
       }
-      if (members.length) {
-        const rows = members.map((m) => ({
-          application_id: currentAppId!,
-          full_name: m.full_name,
-          national_id: m.national_id || null,
-          birth_date: m.birth_date,
-          gender: m.gender,
-          relationship: m.relationship,
-          relationship_other: m.relationship_other || null,
-          is_war_injured: m.is_war_injured,
-          injury_report_url: m.injury_report_url || null,
-          chronic_diseases: m.chronic_diseases || null,
-          is_pregnant: m.is_pregnant,
-          is_breastfeeding: m.is_breastfeeding,
-          pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
-          health_notes: m.health_notes || null,
-        }));
-        const { error: fmErr } = await supabase.from("family_members").insert(rows);
-        if (fmErr) throw fmErr;
-      }
+      // Build the rows to insert: head of family first, then the rest.
+      const toRow = (m: Member, isHead: boolean) => ({
+        application_id: currentAppId!,
+        full_name: m.full_name,
+        national_id: m.national_id || null,
+        birth_date: m.birth_date,
+        gender: m.gender,
+        relationship: m.relationship,
+        relationship_other: m.relationship_other || null,
+        is_war_injured: m.is_war_injured,
+        injury_report_url: m.injury_report_url || null,
+        chronic_diseases: m.chronic_diseases || null,
+        is_pregnant: m.is_pregnant,
+        is_breastfeeding: m.is_breastfeeding,
+        pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
+        health_notes: m.health_notes || null,
+        is_head: isHead,
+      });
+      const allRows = [toRow(head, true), ...members.map((m) => toRow(m, false))];
+      const { error: fmErr } = await supabase.from("family_members").insert(allRows);
+      if (fmErr) throw fmErr;
       // Persist head-of-family edits to the profiles table.
       try {
         const { error: pErr } = await supabase.from("profiles").update({
@@ -797,6 +810,7 @@ const MyApplication = () => {
           <ErrorBoundary label="ApplicationSummary">
             <ApplicationSummary
               residence={residence}
+              head={head}
               members={members}
               onEditResidence={() => { setSnapshot(currentSig()); setEditMode(true); setStep(1); }}
               onEditMembers={() => { setSnapshot(currentSig()); setEditMode(true); setStep(2); }}
@@ -1057,6 +1071,7 @@ const MyApplication = () => {
                 member={head}
                 userId={user!.id}
                 errors={headErrors}
+                lockedFields={HEAD_LOCKED_FIELDS}
                 onFieldBlur={(field) => {
                   const msg = validateMemberField(head, field);
                   setHeadErrors((p) => ({ ...p, [field]: msg }));
@@ -1267,11 +1282,23 @@ const MyApplication = () => {
                 <Users className="h-4 w-4 text-accent" />
                 {t("form.step3")} ({members.length} / {Math.max(0, residence.family_size - 1)})
               </h3>
-              {members.length === 0 ? (
-                <p className="text-sm text-muted-foreground">لا يوجد أفراد إضافيون</p>
-              ) : (
-                <div className="space-y-2">
-                  {members.map((m, i) => (
+              <div className="space-y-2">
+                {/* Head of family at the top — always shown */}
+                <div className="p-3 rounded-md bg-accent-soft/40 border border-accent/40 text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="rounded-full bg-accent text-accent-foreground px-2 py-0.5 text-[10px] font-bold">رب الأسرة</span>
+                    <strong className="text-primary">{head.full_name || "—"}</strong>
+                  </div>
+                  <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-2">
+                    {head.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{head.national_id}</strong></div>}
+                    <div>{t("form.birth_date")}: <strong className="text-foreground">{formatBirthDate(head.birth_date)}</strong></div>
+                    <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${head.gender}`)}</strong></div>
+                  </div>
+                </div>
+                {members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا يوجد أفراد إضافيون</p>
+                ) : (
+                  members.map((m, i) => (
                     <div key={i} className="p-3 rounded-md bg-background border border-border text-sm">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="rounded-full bg-accent/15 text-accent w-6 h-6 inline-flex items-center justify-center text-xs font-bold">{i + 1}</span>
@@ -1283,9 +1310,9 @@ const MyApplication = () => {
                         <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${m.gender}`)}</strong></div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </Card>
           </div>
 
@@ -1374,11 +1401,13 @@ const MyApplication = () => {
 // ----------------- Application Summary (read-only view) -----------------
 const ApplicationSummary = ({
   residence,
+  head,
   members,
   onEditResidence,
   onEditMembers,
 }: {
   residence: any;
+  head: Member;
   members: Member[];
   onEditResidence: () => void;
   onEditMembers: () => void;
@@ -1452,6 +1481,25 @@ const ApplicationSummary = ({
           </Button>
         </div>
         <div className="space-y-3">
+          {/* Head of family — always rendered first, with a distinct badge. */}
+          <Card className="p-4 bg-accent-soft/40 border-accent/40">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="font-bold text-primary flex items-center gap-2">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-bold">رب الأسرة</span>
+                {head.full_name || "—"}
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {head.is_war_injured && <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold">{t("health.injured")}</span>}
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3 text-sm">
+              <Field label={t("form.national_id")} value={head.national_id} />
+              <Field label={t("form.birth_date")} value={formatBirthDate(head.birth_date)} />
+              <Field label={t("form.gender")} value={t(`form.${head.gender}`)} />
+              {head.chronic_diseases && <Field label={t("health.chronic")} value={head.chronic_diseases} />}
+              {head.health_notes && <Field label={t("health.notes")} value={head.health_notes} />}
+            </div>
+          </Card>
           {members.map((m, i) => (
             <Card key={i} className="p-4 bg-muted/30 border-accent/20">
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
