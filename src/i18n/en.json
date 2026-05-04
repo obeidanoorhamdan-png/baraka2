@@ -55,6 +55,17 @@
     "new_password_confirm": "Confirm new password",
     "save_password": "Save password"
   },
+  "forgot_data": {
+    "btn": "Forgot my data?",
+    "title": "Delete my account and re-register",
+    "warning": "All your data (account, application, family members) will be permanently deleted and you can register again. This cannot be undone.",
+    "hint": "Hint of registered number",
+    "invalid_phone": "Invalid phone number",
+    "confirm_title": "Confirm deletion of all data",
+    "confirm_desc": "Your account and all data will be permanently deleted. Are you sure?",
+    "confirm_btn": "Yes, delete and re-register",
+    "deleted": "Your data has been deleted. You can register again now."
+  },
   "form": {
     "national_id": "National ID",
     "full_name": "Full Name (4 parts)",
