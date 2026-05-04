@@ -10,6 +10,7 @@ import { Checkbox } from "@/components/ui/checkbox";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { DatePickerField } from "@/components/DatePickerField";
 
 type FamilyOpt = {
   application_id: string;
@@ -135,7 +136,7 @@ export const BulkAidDistributor = ({
           </div>
           <div>
             <Label className="text-xs">{t("aid.delivered_at")} <span className="text-destructive">*</span></Label>
-            <Input type="date" value={date} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} />
+            <DatePickerField value={date} disableFuture onChange={setDate} />
           </div>
           <div>
             <Label className="text-xs">{t("aid.contents")}</Label>

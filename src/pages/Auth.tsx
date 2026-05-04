@@ -16,6 +16,7 @@ import { calculateAge } from "@/lib/age";
 import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE } from "@/lib/validators";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { DatePickerField } from "@/components/DatePickerField";
 import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus } from "lucide-react";
 
 // A deterministic, server-generated initial password for new users.
@@ -441,20 +442,22 @@ const Auth = () => {
                         ? t("forgot.q_self_birth", { name: question?.label })
                         : t("forgot.q_birth", { name: question?.label })}
                     </Label>
-                    <Input
-                      autoFocus
-                      type={question?.kind === "national_id" ? "text" : "date"}
-                      inputMode={question?.kind === "national_id" ? "numeric" : undefined}
-                      maxLength={question?.kind === "national_id" ? 9 : undefined}
-                      value={answer}
-                      onChange={(e) => {
-                        const v =
-                          question?.kind === "national_id"
-                            ? e.target.value.replace(/\D/g, "").slice(0, 9)
-                            : e.target.value;
-                        setAnswer(v);
-                      }}
-                    />
+                    {question?.kind === "national_id" ? (
+                      <Input
+                        autoFocus
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={9}
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                      />
+                    ) : (
+                      <DatePickerField
+                        value={answer}
+                        disableFuture
+                        onChange={setAnswer}
+                      />
+                    )}
                   </div>
                   <button
                     type="button"
@@ -554,16 +557,14 @@ const Auth = () => {
                     </div>
                     <div>
                       <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
-                      <Input
-                        type="date"
+                      <DatePickerField
                         value={su.birth_date}
-                        max={new Date().toISOString().split("T")[0]}
-                        aria-invalid={!!errors.birth_date}
-                        className={errors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
+                        disableFuture
+                        invalid={!!errors.birth_date}
                         onBlur={() =>
                           setErrors((p) => ({ ...p, birth_date: validateField("birth_date", su.birth_date) }))
                         }
-                        onChange={(e) => setField("birth_date", e.target.value)}
+                        onChange={(v) => setField("birth_date", v)}
                       />
                       {errors.birth_date && <p className="text-xs text-destructive mt-1">{errors.birth_date}</p>}
                       {su.birth_date && !errors.birth_date && (

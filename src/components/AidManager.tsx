@@ -9,6 +9,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { DatePickerField } from "@/components/DatePickerField";
 
 export type Aid = {
   id?: string;
@@ -150,8 +151,11 @@ export const AidManager = ({ applicationId, currentUserId }: { applicationId: st
             </div>
             <div>
               <Label className="text-xs">{t("aid.delivered_at")} <span className="text-destructive">*</span></Label>
-              <Input type="date" value={draft.delivered_at} max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setDraft({ ...draft, delivered_at: e.target.value })} />
+              <DatePickerField
+                value={draft.delivered_at}
+                disableFuture
+                onChange={(v) => setDraft({ ...draft, delivered_at: v })}
+              />
             </div>
           </div>
           <div>
