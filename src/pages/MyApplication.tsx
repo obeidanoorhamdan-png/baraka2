@@ -130,9 +130,44 @@ const MyApplication = () => {
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
         if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
       }
+      // No saved application yet — try to restore an in-progress draft from
+      // local storage so the user does not lose what they had typed.
+      if (!app) {
+        try {
+          const raw = localStorage.getItem(`baraka2:draft:${user.id}`);
+          if (raw) {
+            const d = JSON.parse(raw);
+            if (d?.residence) {
+              setResidence(d.residence);
+              setFamilySizeInput(String(d.residence.family_size || 1));
+            }
+            if (Array.isArray(d?.members)) setMembers(d.members);
+            if (d?.savedAt) {
+              setLastDraftSavedAt(new Date(d.savedAt).toLocaleTimeString("ar"));
+              toast.info(t("form.draft_restored"));
+            }
+          }
+        } catch {}
+      }
       setPageLoading(false);
     })();
   }, [user]);
+
+  // Auto-save draft to localStorage while the user is filling members or
+  // residence (only before submission). This makes the flow feel safe even
+  // if the device reloads. Debounced 600 ms.
+  useEffect(() => {
+    if (!user || pageLoading) return;
+    if (appId && !editMode) return; // already submitted view
+    const handle = setTimeout(() => {
+      try {
+        const payload = { residence, members, savedAt: Date.now() };
+        localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
+        setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
+      } catch {}
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [residence, members, user, pageLoading, appId, editMode]);
 
   // Trim members if user reduces family size below current members count.
   // Do NOT auto-add members — user adds them manually with the "Add member" button.
