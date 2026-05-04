@@ -113,7 +113,15 @@
     "step3": "أفراد الأسرة",
     "step": "الخطوة",
     "draft_saved_at": "تم الحفظ التلقائي للمسودة في {{time}}",
-    "draft_restored": "تم استعادة المسودة المحفوظة سابقاً"
+    "draft_saved_now": "تم حفظ المسودة بنجاح",
+    "draft_restored": "تم استعادة المسودة المحفوظة سابقاً",
+    "draft_discarded": "تم حذف المسودة المحفوظة",
+    "save_draft": "حفظ المسودة",
+    "progress_label": "نسبة اكتمال الطلب",
+    "resume_draft_title": "لديك مسودة غير مكتملة",
+    "resume_draft_desc": "آخر حفظ: {{time}} — هل تريد استئناف ما أدخلته سابقاً؟",
+    "resume_draft_btn": "استئناف المسودة",
+    "discard_draft_btn": "تجاهل وبدء من جديد"
   },
   "common": {
     "confirm": "تأكيد",
