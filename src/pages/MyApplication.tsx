@@ -346,13 +346,15 @@ const MyApplication = () => {
       });
       toast.success(wasUpdate ? t("toast.updated") : t("toast.submitted"));
       try { localStorage.removeItem(`baraka2:draft:${user.id}`); } catch {}
+      try { await (supabase as any).from("application_drafts").delete().eq("user_id", user.id); } catch {}
       setLastDraftSavedAt("");
+      setLastSavedSig(JSON.stringify({ residence, members }));
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
         toast.error(t("toast.id_exists"));
       } else {
-        toast.error(e?.message || t("toast.error"));
+        toast.error(friendlyError(e, "submit"));
       }
     }
     setBusy(false);
