@@ -6,6 +6,8 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider } from "@/hooks/useAuth";
 import { ConfirmProvider } from "@/components/ConfirmDialog";
+import { OfflineStatusBar } from "@/components/OfflineStatusBar";
+import { startSyncEngine } from "@/lib/syncEngine";
 import { useEffect } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import Landing from "./pages/Landing";
@@ -25,12 +27,15 @@ const App = () => {
     // Idempotently bootstrap the admin account on first load. Silent — never
     // expose admin credentials to end users in any visible toast or UI.
     supabase.functions.invoke("seed-admin").catch(() => {});
+    // Start draining any queued offline mutations.
+    startSyncEngine();
   }, []);
   return (
     <QueryClientProvider client={queryClient}>
       <TooltipProvider>
         <Toaster />
         <Sonner position="top-center" />
+        <OfflineStatusBar />
         <BrowserRouter>
           <AuthProvider>
             <ConfirmProvider>

@@ -22,6 +22,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { enqueueOp } from "@/lib/offlineOutbox";
+import { drainOutbox } from "@/lib/syncEngine";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -196,8 +198,21 @@ const MyApplication = () => {
       try {
         localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
       } catch {}
-      // Server copy — silent on failure (auto-save shouldn't nag the user;
-      // manual save will surface a toast on its own).
+      // Server copy — when offline we queue an upsert and let the sync
+      // engine flush it once the network returns.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        try {
+          await enqueueOp({
+            kind: "supabase.upsert",
+            table: "application_drafts",
+            payload: { user_id: user.id, payload: { residence, members } },
+            label: "حفظ مسودة الطلب",
+          });
+          setLastSavedSig(sig);
+          setLastDraftSavedAt(new Date().toLocaleTimeString("ar") + " (سيُرفع لاحقاً)");
+        } catch {}
+        return;
+      }
       try {
         await (supabase as any)
           .from("application_drafts")
@@ -205,7 +220,17 @@ const MyApplication = () => {
         setLastSavedSig(sig);
         setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
       } catch {
-        // Silent — local copy still preserves the draft.
+        // Network died mid-request → queue it.
+        try {
+          await enqueueOp({
+            kind: "supabase.upsert",
+            table: "application_drafts",
+            payload: { user_id: user.id, payload: { residence, members } },
+            label: "حفظ مسودة الطلب",
+          });
+          setLastSavedSig(sig);
+          setLastDraftSavedAt(new Date().toLocaleTimeString("ar") + " (سيُرفع لاحقاً)");
+        } catch {}
       }
     }, 1200);
     return () => clearTimeout(handle);
@@ -278,6 +303,12 @@ const MyApplication = () => {
   const submit = async () => {
     if (!user) return;
     setSummaryOpen(false);
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("لا يمكن إرسال الطلب دون اتصال بالإنترنت", {
+        description: "تم حفظ بياناتك كمسودة على هذا الجهاز. سيتم الإرسال تلقائياً بعد عودة الإنترنت — أو اضغط إرسال يدوياً.",
+      });
+      return;
+    }
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
       description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
@@ -477,6 +508,25 @@ const MyApplication = () => {
               const payload = { residence, members, savedAt: Date.now() };
               localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
             } catch {}
+            const offline = typeof navigator !== "undefined" && !navigator.onLine;
+            if (offline) {
+              try {
+                await enqueueOp({
+                  kind: "supabase.upsert",
+                  table: "application_drafts",
+                  payload: { user_id: user.id, payload: { residence, members } },
+                  label: "حفظ مسودة الطلب",
+                });
+                setLastSavedSig(sig);
+                setLastDraftSavedAt(new Date().toLocaleTimeString("ar") + " (سيُرفع عند عودة الإنترنت)");
+                toast.success("تم الحفظ محلياً — سيتم رفعه عند عودة الإنترنت");
+              } catch (e: any) {
+                toast.error(friendlyError(e, "save_draft"));
+              } finally {
+                setTimeout(() => setSavingDraft(false), 300);
+              }
+              return;
+            }
             try {
               const { error } = await (supabase as any)
                 .from("application_drafts")
@@ -485,6 +535,7 @@ const MyApplication = () => {
               setLastSavedSig(sig);
               setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
               toast.success(t("form.draft_saved_now"));
+              drainOutbox();
             } catch (e: any) {
               toast.error(friendlyError(e, "save_draft"), {
                 description: "تم حفظ نسخة محلية على هذا الجهاز.",
