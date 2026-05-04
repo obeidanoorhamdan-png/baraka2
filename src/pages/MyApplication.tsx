@@ -1365,7 +1365,7 @@ const ApplicationSummary = ({
               </div>
               <div className="grid gap-3 md:grid-cols-3 text-sm">
                 <Field label={t("form.national_id")} value={m.national_id} />
-                <Field label={t("form.birth_date")} value={m.birth_date} />
+                <Field label={t("form.birth_date")} value={formatBirthDate(m.birth_date)} />
                 <Field label={t("form.gender")} value={t(`form.${m.gender}`)} />
                 <Field label={t("family.relationship")} value={m.relationship === "other" ? m.relationship_other : relLabel(m.relationship)} />
                 {m.chronic_diseases && <Field label={t("health.chronic")} value={m.chronic_diseases} />}
