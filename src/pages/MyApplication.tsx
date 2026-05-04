@@ -1068,6 +1068,7 @@ const MyApplication = () => {
                 member={head}
                 userId={user!.id}
                 errors={headErrors}
+                lockedFields={HEAD_LOCKED_FIELDS}
                 onFieldBlur={(field) => {
                   const msg = validateMemberField(head, field);
                   setHeadErrors((p) => ({ ...p, [field]: msg }));
