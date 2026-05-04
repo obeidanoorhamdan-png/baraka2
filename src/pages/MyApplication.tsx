@@ -397,6 +397,37 @@ const MyApplication = () => {
     setBusy(true);
     try {
       let currentAppId = appId;
+      // Conflict detection — if this is an UPDATE and the server's
+      // updated_at advanced past the snapshot we loaded, somebody (likely
+      // the admin or another device) edited our application in the
+      // meantime. Surface a dialog so the user chooses to overwrite or
+      // reload.
+      if (currentAppId && serverUpdatedAt) {
+        const { data: latest } = await supabase
+          .from("applications")
+          .select("updated_at, original_residence, original_landmark, current_landmark, family_size, has_martyr, martyr_name, martyr_relationship")
+          .eq("id", currentAppId)
+          .maybeSingle();
+        if (latest && latest.updated_at && latest.updated_at !== serverUpdatedAt) {
+          const { data: latestFm } = await supabase
+            .from("family_members").select("*").eq("application_id", currentAppId);
+          setConflictData({
+            residence: {
+              original_residence: latest.original_residence,
+              original_landmark: latest.original_landmark,
+              current_landmark: latest.current_landmark,
+              family_size: latest.family_size,
+              has_martyr: latest.has_martyr,
+              martyr_name: latest.martyr_name || "",
+              martyr_relationship: latest.martyr_relationship || "",
+            },
+            members: (latestFm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)),
+            updatedAt: new Date(latest.updated_at).toLocaleString("ar"),
+          });
+          setBusy(false);
+          return;
+        }
+      }
       const appPayload = {
         user_id: user.id,
         original_residence: residence.original_residence,
