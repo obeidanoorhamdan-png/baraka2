@@ -22,6 +22,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
+import { enqueueOp } from "@/lib/offlineOutbox";
+import { drainOutbox } from "@/lib/syncEngine";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -196,8 +198,21 @@ const MyApplication = () => {
       try {
         localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
       } catch {}
-      // Server copy — silent on failure (auto-save shouldn't nag the user;
-      // manual save will surface a toast on its own).
+      // Server copy — when offline we queue an upsert and let the sync
+      // engine flush it once the network returns.
+      if (typeof navigator !== "undefined" && !navigator.onLine) {
+        try {
+          await enqueueOp({
+            kind: "supabase.upsert",
+            table: "application_drafts",
+            payload: { user_id: user.id, payload: { residence, members } },
+            label: "حفظ مسودة الطلب",
+          });
+          setLastSavedSig(sig);
+          setLastDraftSavedAt(new Date().toLocaleTimeString("ar") + " (سيُرفع لاحقاً)");
+        } catch {}
+        return;
+      }
       try {
         await (supabase as any)
           .from("application_drafts")
@@ -205,7 +220,17 @@ const MyApplication = () => {
         setLastSavedSig(sig);
         setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
       } catch {
-        // Silent — local copy still preserves the draft.
+        // Network died mid-request → queue it.
+        try {
+          await enqueueOp({
+            kind: "supabase.upsert",
+            table: "application_drafts",
+            payload: { user_id: user.id, payload: { residence, members } },
+            label: "حفظ مسودة الطلب",
+          });
+          setLastSavedSig(sig);
+          setLastDraftSavedAt(new Date().toLocaleTimeString("ar") + " (سيُرفع لاحقاً)");
+        } catch {}
       }
     }, 1200);
     return () => clearTimeout(handle);
