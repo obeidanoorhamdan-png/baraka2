@@ -1387,11 +1387,13 @@ const MyApplication = () => {
 // ----------------- Application Summary (read-only view) -----------------
 const ApplicationSummary = ({
   residence,
+  head,
   members,
   onEditResidence,
   onEditMembers,
 }: {
   residence: any;
+  head: Member;
   members: Member[];
   onEditResidence: () => void;
   onEditMembers: () => void;
