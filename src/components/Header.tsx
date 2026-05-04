@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { Languages, LogOut, ShieldCheck, Home as HomeIcon } from "lucide-react";
+import { LogOut, ShieldCheck, Home as HomeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -8,13 +8,9 @@ import logo from "@/assets/baraka-logo.jpg";
 import { NotificationsBell } from "@/components/NotificationsBell";
 
 export const Header = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
-
-  const toggleLang = () => {
-    i18n.changeLanguage(i18n.language === "ar" ? "en" : "ar");
-  };
 
   const handleLogout = async () => {
     await supabase.auth.signOut();
@@ -32,10 +28,6 @@ export const Header = () => {
           </div>
         </Link>
         <div className="flex items-center gap-2">
-          <Button variant="ghost" size="sm" onClick={toggleLang} className="gap-1.5">
-            <Languages className="h-4 w-4" />
-            <span className="hidden sm:inline">{t("app.switch_lang")}</span>
-          </Button>
           {user ? (
             <>
               <NotificationsBell />
