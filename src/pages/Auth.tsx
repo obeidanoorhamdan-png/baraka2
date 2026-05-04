@@ -452,11 +452,18 @@ const Auth = () => {
                         onChange={(e) => setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9))}
                       />
                     ) : (
-                      <DatePickerField
-                        value={answer}
-                        disableFuture
-                        onChange={setAnswer}
-                      />
+                      <>
+                        <DatePickerField
+                          value={answer}
+                          disableFuture
+                          minYear={1900}
+                          onChange={setAnswer}
+                          placeholder="اضغط لاختيار تاريخ الميلاد من التقويم"
+                        />
+                        <p className="text-[11px] text-muted-foreground mt-1">
+                          اختر التاريخ من التقويم — اختر السنة ثم الشهر ثم اليوم.
+                        </p>
+                      </>
                     )}
                   </div>
                   <button
