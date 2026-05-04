@@ -211,6 +211,26 @@ const MyApplication = () => {
         return;
       }
 
+      // Load head-of-family profile data so it can be edited inline.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, national_id, birth_date, gender, is_war_injured, injury_report_url, chronic_diseases, health_notes")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profile) {
+        setHead((h) => ({
+          ...h,
+          full_name: profile.full_name || "",
+          national_id: profile.national_id || "",
+          birth_date: profile.birth_date || "",
+          gender: (profile.gender as any) || "male",
+          is_war_injured: !!profile.is_war_injured,
+          injury_report_url: profile.injury_report_url || null,
+          chronic_diseases: profile.chronic_diseases || "",
+          health_notes: profile.health_notes || "",
+        }));
+      }
+
       const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
       if (app) {
         setAppId(app.id);
