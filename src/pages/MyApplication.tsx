@@ -592,6 +592,74 @@ const MyApplication = () => {
 
         {appId && <AidPreview applicationId={appId} />}
       </section>
+
+      {/* ============== Review Summary Dialog ============== */}
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-primary flex items-center gap-2">
+              <Eye className="h-6 w-6 text-accent" /> {t("form.summary_title")}
+            </DialogTitle>
+            <DialogDescription>{t("form.summary_intro")}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <Card className="p-4 bg-muted/30 border-accent/20">
+              <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
+                <Lock className="h-4 w-4 text-accent" /> {t("form.step2")}
+              </h3>
+              <div className="grid gap-3 md:grid-cols-2 text-sm">
+                <div><span className="text-muted-foreground">{t("residence.original_residence")}:</span> <strong>{residence.original_residence || "—"}</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.original_landmark")}:</span> <strong>{residence.original_landmark || "—"}</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.current_camp")}:</span> <strong>{t("app.name")} (Baraka 2)</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.current_landmark")}:</span> <strong>{residence.current_landmark || "—"}</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.family_size")}:</span> <strong>{residence.family_size}</strong></div>
+                {residence.has_martyr && (
+                  <>
+                    <div><span className="text-muted-foreground">{t("family.martyr_name")}:</span> <strong>{residence.martyr_name}</strong></div>
+                    <div><span className="text-muted-foreground">{t("family.martyr_relationship")}:</span> <strong>{residence.martyr_relationship}</strong></div>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-muted/30 border-accent/20">
+              <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4 text-accent" />
+                {t("form.step3")} ({members.length} / {Math.max(0, residence.family_size - 1)})
+              </h3>
+              {members.length === 0 ? (
+                <p className="text-sm text-muted-foreground">لا يوجد أفراد إضافيون</p>
+              ) : (
+                <div className="space-y-2">
+                  {members.map((m, i) => (
+                    <div key={i} className="p-3 rounded-md bg-background border border-border text-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="rounded-full bg-accent/15 text-accent w-6 h-6 inline-flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                        <strong className="text-primary">{m.full_name || "—"}</strong>
+                      </div>
+                      <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-8">
+                        {m.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{m.national_id}</strong></div>}
+                        <div>{t("form.birth_date")}: <strong className="text-foreground">{m.birth_date || "—"}</strong></div>
+                        <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${m.gender}`)}</strong></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSummaryOpen(false)}>
+              <ArrowBack className="h-4 w-4 me-1" /> {t("form.back_to_edit")}
+            </Button>
+            <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+              <Send className="h-4 w-4" /> {busy ? "..." : t("form.confirm_send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
