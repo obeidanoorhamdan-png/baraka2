@@ -99,6 +99,25 @@ const MyApplication = () => {
 
   const [members, setMembers] = useState<Member[]>([]);
 
+  // Head of family — editable in the same UI as members, but persisted
+  // back to the `profiles` table (not `family_members`).
+  const [head, setHead] = useState<Member>({
+    full_name: "",
+    national_id: "",
+    birth_date: "",
+    gender: "male",
+    relationship: "other",
+    relationship_other: "رب الأسرة",
+    is_war_injured: false,
+    injury_report_url: null,
+    chronic_diseases: "",
+    is_pregnant: false,
+    is_breastfeeding: false,
+    pregnancy_report_url: null,
+    health_notes: "",
+  });
+  const [headErrors, setHeadErrors] = useState<Record<string, string>>({});
+
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
       case "full_name":
@@ -190,6 +209,26 @@ const MyApplication = () => {
         }
         setPageLoading(false);
         return;
+      }
+
+      // Load head-of-family profile data so it can be edited inline.
+      const { data: profile } = await supabase
+        .from("profiles")
+        .select("full_name, national_id, birth_date, gender, is_war_injured, injury_report_url, chronic_diseases, health_notes")
+        .eq("id", user.id)
+        .maybeSingle();
+      if (profile) {
+        setHead((h) => ({
+          ...h,
+          full_name: profile.full_name || "",
+          national_id: profile.national_id || "",
+          birth_date: profile.birth_date || "",
+          gender: (profile.gender as any) || "male",
+          is_war_injured: !!profile.is_war_injured,
+          injury_report_url: profile.injury_report_url || null,
+          chronic_diseases: profile.chronic_diseases || "",
+          health_notes: profile.health_notes || "",
+        }));
       }
 
       const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
@@ -351,6 +390,20 @@ const MyApplication = () => {
     const allErrors: Record<number, Record<string, string>> = {};
     let firstErrorIdx = -1;
     const fields = ["full_name","national_id","birth_date","relationship_other","injury_report_url","pregnancy_report_url"];
+
+    // Validate head of family first
+    const headErrs: Record<string, string> = {};
+    for (const f of ["full_name","national_id","birth_date","injury_report_url"]) {
+      const msg = validateMemberField(head, f);
+      if (msg) headErrs[f] = msg;
+    }
+    if (head.national_id) seen.add(head.national_id);
+    setHeadErrors(headErrs);
+    if (Object.keys(headErrs).length) {
+      toast.error(`رب الأسرة: ${t("toast.fix_errors")}`);
+      return false;
+    }
+
     for (let i = 0; i < members.length; i++) {
       const m = members[i];
       const errs: Record<string, string> = {};
@@ -544,6 +597,23 @@ const MyApplication = () => {
         }));
         const { error: fmErr } = await supabase.from("family_members").insert(rows);
         if (fmErr) throw fmErr;
+      }
+      // Persist head-of-family edits to the profiles table.
+      try {
+        const { error: pErr } = await supabase.from("profiles").update({
+          full_name: head.full_name,
+          national_id: head.national_id,
+          birth_date: head.birth_date,
+          gender: head.gender,
+          is_war_injured: head.is_war_injured,
+          injury_report_url: head.injury_report_url || null,
+          chronic_diseases: head.chronic_diseases || null,
+          health_notes: head.health_notes || null,
+        }).eq("id", user.id);
+        if (pErr) throw pErr;
+      } catch (e) {
+        console.error("[profile update]", e);
+        toast.error("تعذّر حفظ بيانات رب الأسرة");
       }
       const wasUpdate = !!appId;
       setAppStatus("pending");
@@ -975,6 +1045,32 @@ const MyApplication = () => {
                 )}
               </div>
             </Card>
+
+            {/* Head of family — editable inline; saved to `profiles` on submit */}
+            <div className="relative">
+              <div className="absolute -top-2 start-4 z-10 px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-[11px] font-bold shadow">
+                رب الأسرة
+              </div>
+              <MemberCard
+                index={0}
+                total={1}
+                member={head}
+                userId={user!.id}
+                errors={headErrors}
+                onFieldBlur={(field) => {
+                  const msg = validateMemberField(head, field);
+                  setHeadErrors((p) => ({ ...p, [field]: msg }));
+                }}
+                onChange={(nm) => {
+                  setHead(nm);
+                  if (Object.keys(headErrors).length) {
+                    const next: Record<string, string> = {};
+                    Object.keys(headErrors).forEach((k) => { next[k] = validateMemberField(nm, k); });
+                    setHeadErrors(next);
+                  }
+                }}
+              />
+            </div>
 
             {members.map((m, i) => {
               const errs = memberErrors[i] || {};
