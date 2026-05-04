@@ -124,7 +124,8 @@ const MyApplication = () => {
           has_martyr: app.has_martyr,
           martyr_name: app.martyr_name || "",
           martyr_relationship: app.martyr_relationship || "",
-        });
+          });
+          setFamilySizeInput(String(app.family_size));
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
         if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
       }
