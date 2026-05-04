@@ -406,10 +406,12 @@ const MyApplication = () => {
                     type="button"
                     size="sm"
                     variant="outline"
-                    onClick={() => {
+                    onClick={async () => {
                       try { if (user) localStorage.removeItem(`baraka2:draft:${user.id}`); } catch {}
+                      try { if (user) await (supabase as any).from("application_drafts").delete().eq("user_id", user.id); } catch {}
                       setPendingDraft(null);
                       setLastDraftSavedAt("");
+                      setLastSavedSig(JSON.stringify({ residence, members: [] }));
                       toast.info(t("form.draft_discarded"));
                     }}
                   >
