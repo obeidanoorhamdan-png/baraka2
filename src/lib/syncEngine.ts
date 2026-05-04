@@ -14,6 +14,7 @@ import {
   updateOp,
   onOutboxChange,
   countOps,
+  logHistory,
   type OutboxOp,
 } from "./offlineOutbox";
 
@@ -101,20 +102,36 @@ export async function drainOutbox() {
       try {
         await executeOp(op);
         await deleteOp(op.id!);
+        await logHistory({
+          status: "success",
+          label: op.label || op.kind,
+          detail: `${op.kind}${op.table ? ` → ${op.table}` : ""}`,
+        });
       } catch (e: any) {
+        const errMsg = e?.message || String(e);
         // Increment attempts and stop the queue. Keeping the failing op at
         // the head ensures FIFO ordering and prevents silent data loss.
         await updateOp({
           ...op,
           attempts: (op.attempts || 0) + 1,
-          lastError: e?.message || String(e),
+          lastError: errMsg,
         });
         // After 5 failed attempts, treat the op as permanently broken so
         // the rest of the queue can keep flowing.
         if ((op.attempts || 0) + 1 >= 5) {
           await deleteOp(op.id!);
+          await logHistory({
+            status: "discarded",
+            label: op.label || op.kind,
+            detail: `تم تجاهل العملية بعد 5 محاولات فاشلة: ${errMsg}`,
+          });
           continue;
         }
+        await logHistory({
+          status: "error",
+          label: op.label || op.kind,
+          detail: errMsg,
+        });
         break; // stop draining; will retry on next trigger
       }
     }

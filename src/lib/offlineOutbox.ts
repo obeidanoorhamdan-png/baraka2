@@ -49,17 +49,30 @@ interface OutboxSchema extends DBSchema {
     key: string;
     value: { key: string; value: any; updatedAt: number };
   };
+  history: {
+    key: number;
+    value: SyncHistoryEntry;
+    indexes: { byTime: number };
+  };
+}
+
+export interface SyncHistoryEntry {
+  id?: number;
+  time: number;
+  status: "success" | "error" | "discarded";
+  label: string;
+  detail?: string;
 }
 
 const DB_NAME = "baraka2-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbp: Promise<IDBPDatabase<OutboxSchema>> | null = null;
 
 function getDB() {
   if (!dbp) {
     dbp = openDB<OutboxSchema>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains("ops")) {
           const store = db.createObjectStore("ops", {
             keyPath: "id",
@@ -69,6 +82,10 @@ function getDB() {
         }
         if (!db.objectStoreNames.contains("cache")) {
           db.createObjectStore("cache", { keyPath: "key" });
+        }
+        if (!db.objectStoreNames.contains("history")) {
+          const h = db.createObjectStore("history", { keyPath: "id", autoIncrement: true });
+          h.createIndex("byTime", "time");
         }
       },
     });
@@ -131,6 +148,37 @@ export async function cacheGet<T = any>(key: string): Promise<T | null> {
 export async function cacheDelete(key: string) {
   const db = await getDB();
   await db.delete("cache", key);
+}
+
+/* ---------------- sync history (audit log) ---------------- */
+
+export async function logHistory(entry: Omit<SyncHistoryEntry, "id" | "time"> & { time?: number }) {
+  const db = await getDB();
+  await db.add("history", {
+    time: entry.time ?? Date.now(),
+    status: entry.status,
+    label: entry.label,
+    detail: entry.detail,
+  });
+  // Trim to last 100 entries
+  const all = await db.getAllFromIndex("history", "byTime");
+  if (all.length > 100) {
+    const toDelete = all.slice(0, all.length - 100);
+    for (const e of toDelete) if (e.id) await db.delete("history", e.id);
+  }
+  notifyOutboxChanged();
+}
+
+export async function listHistory(): Promise<SyncHistoryEntry[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("history", "byTime");
+  return all.reverse(); // newest first
+}
+
+export async function clearHistory() {
+  const db = await getDB();
+  await db.clear("history");
+  notifyOutboxChanged();
 }
 
 /* ---------------- pub/sub for UI updates ---------------- */

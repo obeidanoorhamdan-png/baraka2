@@ -22,7 +22,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import { enqueueOp } from "@/lib/offlineOutbox";
+import { enqueueOp, cacheGet, cacheSet, logHistory } from "@/lib/offlineOutbox";
 import { drainOutbox } from "@/lib/syncEngine";
 
 const MyApplication = () => {
@@ -53,6 +53,11 @@ const MyApplication = () => {
   // Signature of the last successfully saved draft (server or local). Used
   // to decide whether the form has unsaved changes (`draftDirty`).
   const [lastSavedSig, setLastSavedSig] = useState<string>("");
+  // Server-side timestamp of the application row at load time. Used to
+  // detect concurrent edits (someone else modified the row while we were
+  // working offline).
+  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  const [conflictData, setConflictData] = useState<{ residence: any; members: Member[]; updatedAt: string } | null>(null);
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
@@ -123,6 +128,65 @@ const MyApplication = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
+      const cacheKey = `app:${user.id}`;
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+
+      // Hydrate immediately from cache so the form is usable even before
+      // (or without) a network round-trip.
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached?.app) {
+        setAppId(cached.app.id);
+        setAppStatus(cached.app.status);
+        setRejection(cached.app.rejection_reason);
+        setResidence({
+          original_residence: cached.app.original_residence,
+          original_landmark: cached.app.original_landmark,
+          current_landmark: cached.app.current_landmark,
+          family_size: cached.app.family_size,
+          has_martyr: cached.app.has_martyr,
+          martyr_name: cached.app.martyr_name || "",
+          martyr_relationship: cached.app.martyr_relationship || "",
+        });
+        setFamilySizeInput(String(cached.app.family_size));
+        if (Array.isArray(cached.members)) setMembers(cached.members);
+        setServerUpdatedAt(cached.app.updated_at || null);
+        setLastSavedSig(JSON.stringify({
+          residence: {
+            original_residence: cached.app.original_residence,
+            original_landmark: cached.app.original_landmark,
+            current_landmark: cached.app.current_landmark,
+            family_size: cached.app.family_size,
+            has_martyr: cached.app.has_martyr,
+            martyr_name: cached.app.martyr_name || "",
+            martyr_relationship: cached.app.martyr_relationship || "",
+          },
+          members: cached.members || [],
+        }));
+      }
+
+      if (offline) {
+        // Cache is now the source of truth until we're back online.
+        if (!cached) {
+          // No app and no cache → offer the in-progress local draft.
+          let localDraft: any = null;
+          try {
+            const raw = localStorage.getItem(`baraka2:draft:${user.id}`);
+            if (raw) localDraft = JSON.parse(raw);
+          } catch {}
+          if (localDraft && (localDraft.residence?.original_residence || localDraft.members?.length)) {
+            setPendingDraft({
+              residence: localDraft.residence,
+              members: Array.isArray(localDraft.members) ? localDraft.members : [],
+              savedAt: localDraft.savedAt ? new Date(localDraft.savedAt).toLocaleString("ar") : "",
+            });
+          } else {
+            setLastSavedSig(JSON.stringify({ residence, members: [] }));
+          }
+        }
+        setPageLoading(false);
+        return;
+      }
+
       const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
       if (app) {
         setAppId(app.id);
@@ -138,8 +202,15 @@ const MyApplication = () => {
           martyr_relationship: app.martyr_relationship || "",
           });
           setFamilySizeInput(String(app.family_size));
+        setServerUpdatedAt(app.updated_at || null);
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
-        if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
+        const memberRows = (fm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any));
+        if (memberRows.length) setMembers(memberRows);
+        // Persist to cache for next offline launch.
+        await cacheSet(cacheKey, { app, members: memberRows });
+      } else {
+        // Clear stale cache if the app was deleted server-side.
+        await cacheSet(cacheKey, null);
       }
       // No saved application yet — check for an in-progress draft and offer
       // to resume it (do not auto-overwrite the empty form). Server draft
@@ -178,7 +249,15 @@ const MyApplication = () => {
           setLastSavedSig(JSON.stringify({ residence, members: [] }));
         }
       } else {
-        setLastSavedSig(JSON.stringify({ residence, members }));
+        setLastSavedSig(JSON.stringify({ residence: {
+          original_residence: app.original_residence,
+          original_landmark: app.original_landmark,
+          current_landmark: app.current_landmark,
+          family_size: app.family_size,
+          has_martyr: app.has_martyr,
+          martyr_name: app.martyr_name || "",
+          martyr_relationship: app.martyr_relationship || "",
+        }, members }));
       }
       setPageLoading(false);
     })();
@@ -318,6 +397,37 @@ const MyApplication = () => {
     setBusy(true);
     try {
       let currentAppId = appId;
+      // Conflict detection — if this is an UPDATE and the server's
+      // updated_at advanced past the snapshot we loaded, somebody (likely
+      // the admin or another device) edited our application in the
+      // meantime. Surface a dialog so the user chooses to overwrite or
+      // reload.
+      if (currentAppId && serverUpdatedAt) {
+        const { data: latest } = await supabase
+          .from("applications")
+          .select("updated_at, original_residence, original_landmark, current_landmark, family_size, has_martyr, martyr_name, martyr_relationship")
+          .eq("id", currentAppId)
+          .maybeSingle();
+        if (latest && latest.updated_at && latest.updated_at !== serverUpdatedAt) {
+          const { data: latestFm } = await supabase
+            .from("family_members").select("*").eq("application_id", currentAppId);
+          setConflictData({
+            residence: {
+              original_residence: latest.original_residence,
+              original_landmark: latest.original_landmark,
+              current_landmark: latest.current_landmark,
+              family_size: latest.family_size,
+              has_martyr: latest.has_martyr,
+              martyr_name: latest.martyr_name || "",
+              martyr_relationship: latest.martyr_relationship || "",
+            },
+            members: (latestFm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)),
+            updatedAt: new Date(latest.updated_at).toLocaleString("ar"),
+          });
+          setBusy(false);
+          return;
+        }
+      }
       const appPayload = {
         user_id: user.id,
         original_residence: residence.original_residence,
@@ -380,6 +490,21 @@ const MyApplication = () => {
       try { await (supabase as any).from("application_drafts").delete().eq("user_id", user.id); } catch {}
       setLastDraftSavedAt("");
       setLastSavedSig(JSON.stringify({ residence, members }));
+      // Refresh cache + server timestamp so future conflict checks compare
+      // against the new state.
+      try {
+        const { data: refreshed } = await supabase
+          .from("applications").select("*").eq("id", currentAppId!).maybeSingle();
+        if (refreshed) {
+          setServerUpdatedAt(refreshed.updated_at || null);
+          await cacheSet(`app:${user.id}`, { app: refreshed, members });
+        }
+      } catch {}
+      await logHistory({
+        status: "success",
+        label: wasUpdate ? "تحديث الطلب" : "إرسال الطلب",
+        detail: `تم بنجاح في ${new Date().toLocaleString("ar")}`,
+      });
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
@@ -387,6 +512,7 @@ const MyApplication = () => {
       } else {
         toast.error(friendlyError(e, "submit"));
       }
+      await logHistory({ status: "error", label: "إرسال/تحديث الطلب", detail: e?.message || String(e) });
     }
     setBusy(false);
   };
@@ -945,6 +1071,74 @@ const MyApplication = () => {
             </Button>
             <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
               <Send className="h-4 w-4" /> {busy ? "..." : t("form.confirm_send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ============== Conflict resolution Dialog ============== */}
+      <Dialog open={!!conflictData} onOpenChange={(v) => !v && setConflictData(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-warning-foreground flex items-center gap-2">
+              ⚠️ تعارض في التعديلات
+            </DialogTitle>
+            <DialogDescription>
+              تم تعديل بياناتك من جهاز آخر أو من قِبل الإدارة بتاريخ <strong>{conflictData?.updatedAt}</strong>،
+              بعد تحميلك للصفحة. اختر كيف تريد المتابعة:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Card className="p-3 border-accent/30 bg-accent-soft/20">
+              <div className="font-bold text-primary mb-1">الاحتفاظ بتعديلاتك (الكتابة فوق)</div>
+              <p className="text-xs text-muted-foreground">
+                سيتم استبدال البيانات على الخادم بنسختك الحالية. التعديلات الأخرى ستضيع.
+              </p>
+            </Card>
+            <Card className="p-3 border-success/30 bg-success/5">
+              <div className="font-bold text-primary mb-1">إعادة تحميل النسخة الأحدث</div>
+              <p className="text-xs text-muted-foreground">
+                سيتم تجاهل تعديلاتك الحالية وعرض النسخة المحدّثة من الخادم.
+              </p>
+            </Card>
+          </div>
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (conflictData) {
+                  setResidence(conflictData.residence);
+                  setFamilySizeInput(String(conflictData.residence.family_size || 1));
+                  setMembers(conflictData.members);
+                  setServerUpdatedAt(new Date().toISOString());
+                  setLastSavedSig(JSON.stringify({ residence: conflictData.residence, members: conflictData.members }));
+                  setEditMode(false);
+                  toast.info("تم تحميل النسخة الأحدث");
+                }
+                setConflictData(null);
+              }}
+            >
+              تحميل النسخة الأحدث
+            </Button>
+            <Button
+              className="brand-gradient text-primary-foreground"
+              onClick={async () => {
+                // User chose to overwrite — bump our snapshot to the
+                // latest so the next submit() bypasses the check.
+                if (conflictData) {
+                  // Read the latest updated_at from server quickly.
+                  try {
+                    const { data } = await supabase
+                      .from("applications").select("updated_at").eq("id", appId!).maybeSingle();
+                    if (data?.updated_at) setServerUpdatedAt(data.updated_at);
+                  } catch {}
+                }
+                setConflictData(null);
+                // Re-trigger submit
+                setTimeout(() => submit(), 100);
+              }}
+            >
+              الاحتفاظ بتعديلاتي
             </Button>
           </DialogFooter>
         </DialogContent>
