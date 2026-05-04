@@ -65,13 +65,15 @@ const MyApplication = () => {
     });
   };
 
-  // Warn on tab/window close while dirty
-  useEffect(() => {
-    if (!isDirty) return;
-    const h = (e: BeforeUnloadEvent) => { e.preventDefault(); e.returnValue = ""; };
-    window.addEventListener("beforeunload", h);
-    return () => window.removeEventListener("beforeunload", h);
-  }, [isDirty]);
+  // Unsaved-changes detection: dirty if either an existing-app edit has
+  // diverged from its snapshot, OR the in-progress draft (no app yet) has
+  // diverged from the last persisted draft signature.
+  const draftDirty =
+    !appId && !pageLoading && !!user && !pendingDraft && currentSig() !== lastSavedSig && currentSig() !== JSON.stringify({ residence: emptyResidence, members: [] });
+  const anyUnsaved = isDirty || draftDirty;
+
+  // Combined guard: warn on tab close + intercept SPA navigation.
+  useUnsavedChangesGuard(anyUnsaved, confirmAsk as any);
 
   const [residence, setResidence] = useState({
     original_residence: "",
