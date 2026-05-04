@@ -99,6 +99,25 @@ const MyApplication = () => {
 
   const [members, setMembers] = useState<Member[]>([]);
 
+  // Head of family — editable in the same UI as members, but persisted
+  // back to the `profiles` table (not `family_members`).
+  const [head, setHead] = useState<Member>({
+    full_name: "",
+    national_id: "",
+    birth_date: "",
+    gender: "male",
+    relationship: "other",
+    relationship_other: "رب الأسرة",
+    is_war_injured: false,
+    injury_report_url: null,
+    chronic_diseases: "",
+    is_pregnant: false,
+    is_breastfeeding: false,
+    pregnancy_report_url: null,
+    health_notes: "",
+  });
+  const [headErrors, setHeadErrors] = useState<Record<string, string>>({});
+
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
       case "full_name":
