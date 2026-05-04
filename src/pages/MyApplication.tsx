@@ -679,6 +679,48 @@ const MyApplication = () => {
           </Card>
         )}
 
+        {/* Retry banner — appears whenever a submit/update op is queued. */}
+        {hasPendingSubmit && (
+          <Card className="p-4 mb-6 border-warning/40 bg-gradient-to-br from-warning/15 via-background to-background animate-fade-in">
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className="rounded-full bg-warning/20 p-2 shrink-0">
+                <Send className="h-5 w-5 text-warning-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-primary">طلبك بانتظار الإرسال</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pendingSubmitSyncing
+                    ? `جاري الإرسال... ${pendingSubmitProgress}%`
+                    : typeof navigator !== "undefined" && !navigator.onLine
+                    ? "ستتم المحاولة تلقائياً فور عودة الإنترنت."
+                    : "اضغط إعادة المحاولة للإرسال الآن."}
+                </p>
+                {pendingSubmitSyncing && (
+                  <div className="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-accent to-success transition-all"
+                      style={{ width: `${pendingSubmitProgress}%` }}
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => drainOutbox()}
+                    disabled={pendingSubmitSyncing || (typeof navigator !== "undefined" && !navigator.onLine)}
+                    className="brand-gradient text-primary-foreground gap-1.5"
+                  >
+                    <Send className="h-4 w-4" />
+                    {pendingSubmitSyncing ? "جاري الإرسال..." : "إعادة المحاولة الآن"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
+
         {appId && !editMode ? (
           <ApplicationSummary
             residence={residence}
