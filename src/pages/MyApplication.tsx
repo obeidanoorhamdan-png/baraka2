@@ -1132,6 +1132,16 @@ const MyApplication = () => {
             <DialogDescription>{t("form.summary_intro")}</DialogDescription>
           </DialogHeader>
 
+          {typeof navigator !== "undefined" && !navigator.onLine && (
+            <Card className="p-3 border-warning/40 bg-warning/10 text-sm text-warning-foreground flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                <strong>أنت خارج الاتصال حالياً.</strong> عند تأكيد الإرسال سيتم وضع الطلب في طابور الانتظار،
+                وسيُرسل تلقائياً فور عودة الإنترنت.
+              </div>
+            </Card>
+          )}
+
           <div className="space-y-4 py-2">
             <Card className="p-4 bg-muted/30 border-accent/20">
               <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
