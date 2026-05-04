@@ -253,8 +253,13 @@ const MyApplication = () => {
           setFamilySizeInput(String(app.family_size));
         setServerUpdatedAt(app.updated_at || null);
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
-        const memberRows = (fm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any));
+        const allRows = (fm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any));
+        const headRow = allRows.find((m: any) => m.is_head);
+        const memberRows = allRows.filter((m: any) => !m.is_head);
         if (memberRows.length) setMembers(memberRows);
+        if (headRow) {
+          setHead({ ...headRow, is_head: true });
+        }
         // Persist to cache for next offline launch.
         await cacheSet(cacheKey, { app, members: memberRows });
       } else {
