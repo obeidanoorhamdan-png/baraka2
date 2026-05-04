@@ -54,7 +54,7 @@ export const AidPreview = ({ applicationId }: { applicationId: string }) => {
               <CalendarDays className="h-3 w-3" /> {t("aid.last_received")}
             </div>
             <div className="font-bold text-primary mt-1">{latest.title}</div>
-            <div className="text-xs text-muted-foreground" dir="ltr">{latest.delivered_at}</div>
+            <div className="text-xs text-muted-foreground">{formatBirthDate(latest.delivered_at)}</div>
             {latest.contents && <div className="text-sm mt-1 whitespace-pre-wrap line-clamp-3">{latest.contents}</div>}
           </div>
           {count > 1 && (
