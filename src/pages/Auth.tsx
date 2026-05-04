@@ -16,6 +16,7 @@ import { calculateAge } from "@/lib/age";
 import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE } from "@/lib/validators";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
+import { DatePickerField } from "@/components/DatePickerField";
 import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus } from "lucide-react";
 
 // A deterministic, server-generated initial password for new users.
