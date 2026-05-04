@@ -311,6 +311,9 @@ const Auth = () => {
       return;
     }
     toast.success(t("toast.signup_success"));
+    // Take the new head-of-family directly to the application form so they
+    // can enter family size, residence, and each member's data immediately.
+    setTimeout(() => navigate("/my-application", { replace: true }), 200);
   };
 
   // ============================================================
