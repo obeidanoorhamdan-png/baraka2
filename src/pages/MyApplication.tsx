@@ -331,6 +331,55 @@ const MyApplication = () => {
         <>
         <h1 className="text-2xl md:text-3xl text-primary mb-2">{t("my_app.title")}</h1>
 
+        {/* Resume draft banner — shown when an in-progress draft exists. */}
+        {pendingDraft && !appId && (
+          <Card className="p-4 mb-4 border-accent/40 bg-gradient-to-br from-accent-soft/40 via-background to-background animate-fade-in">
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className="rounded-full bg-accent/15 p-2 shrink-0">
+                <CheckCircle2 className="h-5 w-5 text-accent" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-primary">{t("form.resume_draft_title")}</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {t("form.resume_draft_desc", { time: pendingDraft.savedAt || "—" })}
+                </p>
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => {
+                      const d = pendingDraft!;
+                      if (d.residence) {
+                        setResidence(d.residence);
+                        setFamilySizeInput(String(d.residence.family_size || 1));
+                      }
+                      setMembers(d.members);
+                      setPendingDraft(null);
+                      toast.success(t("form.draft_restored"));
+                    }}
+                    className="brand-gradient text-primary-foreground gap-1.5"
+                  >
+                    <CheckCircle2 className="h-4 w-4" /> {t("form.resume_draft_btn")}
+                  </Button>
+                  <Button
+                    type="button"
+                    size="sm"
+                    variant="outline"
+                    onClick={() => {
+                      try { if (user) localStorage.removeItem(`baraka2:draft:${user.id}`); } catch {}
+                      setPendingDraft(null);
+                      setLastDraftSavedAt("");
+                      toast.info(t("form.draft_discarded"));
+                    }}
+                  >
+                    {t("form.discard_draft_btn")}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
         {appId && !settings.registration_open && !settingsLoading && (
           <Card className="p-4 mb-4 border-warning/40 bg-warning/10">
             <div className="font-bold text-warning-foreground">{t("my_app.update_only_title")}</div>
