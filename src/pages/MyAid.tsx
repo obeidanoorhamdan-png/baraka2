@@ -137,7 +137,7 @@ const MyAid = () => {
                   <h1 className="text-xl md:text-2xl font-bold text-primary">{detail.title}</h1>
                   <div className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                     <CalendarDays className="h-3 w-3" />
-                    <span dir="ltr">{detail.delivered_at}</span>
+                    <span>{formatBirthDate(detail.delivered_at)}</span>
                   </div>
                 </div>
               </div>
