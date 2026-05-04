@@ -60,6 +60,7 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          admin_pin: string
           closed_reason: string | null
           id: number
           registration_open: boolean
@@ -67,6 +68,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          admin_pin?: string
           closed_reason?: string | null
           id?: number
           registration_open?: boolean
@@ -74,6 +76,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          admin_pin?: string
           closed_reason?: string | null
           id?: number
           registration_open?: boolean
