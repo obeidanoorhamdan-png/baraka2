@@ -467,16 +467,28 @@ const MyApplication = () => {
           const residencePct = residenceFilled ? 50 : 0;
           const memberPct = expectedMembers === 0 ? 50 : Math.min(50, Math.round((members.length / expectedMembers) * 50));
           const totalPct = residencePct + memberPct;
-          const saveDraftNow = () => {
+          const saveDraftNow = async () => {
             if (!user) return;
             setSavingDraft(true);
+            const sig = JSON.stringify({ residence, members });
+            // Always write the local copy first so the user is protected
+            // even if the network request below fails.
             try {
               const payload = { residence, members, savedAt: Date.now() };
               localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
+            } catch {}
+            try {
+              const { error } = await (supabase as any)
+                .from("application_drafts")
+                .upsert({ user_id: user.id, payload: { residence, members } });
+              if (error) throw error;
+              setLastSavedSig(sig);
               setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
               toast.success(t("form.draft_saved_now"));
-            } catch {
-              toast.error(t("toast.error"));
+            } catch (e: any) {
+              toast.error(friendlyError(e, "save_draft"), {
+                description: "تم حفظ نسخة محلية على هذا الجهاز.",
+              });
             } finally {
               setTimeout(() => setSavingDraft(false), 300);
             }
