@@ -99,8 +99,9 @@ const MyApplication = () => {
 
   const [members, setMembers] = useState<Member[]>([]);
 
-  // Head of family — editable in the same UI as members, but persisted
-  // back to the `profiles` table (not `family_members`).
+  // Head of family — editable in the same UI as members. Persisted as a
+  // `family_members` row with `is_head=true`, AND mirrored back to the
+  // `profiles` table to keep the user account in sync.
   const [head, setHead] = useState<Member>({
     full_name: "",
     national_id: "",
@@ -115,8 +116,12 @@ const MyApplication = () => {
     is_breastfeeding: false,
     pregnancy_report_url: null,
     health_notes: "",
+    is_head: true,
   });
   const [headErrors, setHeadErrors] = useState<Record<string, string>>({});
+  // Fields locked on the head card — they're tied to the user's account and
+  // managed via the profile/auth flow, not editable in the family editor.
+  const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
 
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
