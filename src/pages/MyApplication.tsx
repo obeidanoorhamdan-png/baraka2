@@ -1075,6 +1075,74 @@ const MyApplication = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      {/* ============== Conflict resolution Dialog ============== */}
+      <Dialog open={!!conflictData} onOpenChange={(v) => !v && setConflictData(null)}>
+        <DialogContent className="max-w-lg">
+          <DialogHeader>
+            <DialogTitle className="text-xl text-warning-foreground flex items-center gap-2">
+              ⚠️ تعارض في التعديلات
+            </DialogTitle>
+            <DialogDescription>
+              تم تعديل بياناتك من جهاز آخر أو من قِبل الإدارة بتاريخ <strong>{conflictData?.updatedAt}</strong>،
+              بعد تحميلك للصفحة. اختر كيف تريد المتابعة:
+            </DialogDescription>
+          </DialogHeader>
+          <div className="space-y-3 py-2">
+            <Card className="p-3 border-accent/30 bg-accent-soft/20">
+              <div className="font-bold text-primary mb-1">الاحتفاظ بتعديلاتك (الكتابة فوق)</div>
+              <p className="text-xs text-muted-foreground">
+                سيتم استبدال البيانات على الخادم بنسختك الحالية. التعديلات الأخرى ستضيع.
+              </p>
+            </Card>
+            <Card className="p-3 border-success/30 bg-success/5">
+              <div className="font-bold text-primary mb-1">إعادة تحميل النسخة الأحدث</div>
+              <p className="text-xs text-muted-foreground">
+                سيتم تجاهل تعديلاتك الحالية وعرض النسخة المحدّثة من الخادم.
+              </p>
+            </Card>
+          </div>
+          <DialogFooter className="gap-2 flex-wrap">
+            <Button
+              variant="outline"
+              onClick={() => {
+                if (conflictData) {
+                  setResidence(conflictData.residence);
+                  setFamilySizeInput(String(conflictData.residence.family_size || 1));
+                  setMembers(conflictData.members);
+                  setServerUpdatedAt(new Date().toISOString());
+                  setLastSavedSig(JSON.stringify({ residence: conflictData.residence, members: conflictData.members }));
+                  setEditMode(false);
+                  toast.info("تم تحميل النسخة الأحدث");
+                }
+                setConflictData(null);
+              }}
+            >
+              تحميل النسخة الأحدث
+            </Button>
+            <Button
+              className="brand-gradient text-primary-foreground"
+              onClick={async () => {
+                // User chose to overwrite — bump our snapshot to the
+                // latest so the next submit() bypasses the check.
+                if (conflictData) {
+                  // Read the latest updated_at from server quickly.
+                  try {
+                    const { data } = await supabase
+                      .from("applications").select("updated_at").eq("id", appId!).maybeSingle();
+                    if (data?.updated_at) setServerUpdatedAt(data.updated_at);
+                  } catch {}
+                }
+                setConflictData(null);
+                // Re-trigger submit
+                setTimeout(() => submit(), 100);
+              }}
+            >
+              الاحتفاظ بتعديلاتي
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
