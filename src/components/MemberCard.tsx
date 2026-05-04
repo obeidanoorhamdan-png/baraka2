@@ -153,9 +153,19 @@ export const MemberCard = ({
   const errMsg = (k: string) => errors[k] ? <p className="text-xs text-destructive mt-1">{errors[k]}</p> : null;
 
   return (
-    <Card className="p-4 md:p-5 shadow-card border-accent/20 animate-fade-in">
-      <div className="flex items-center justify-between mb-3">
-        <h4 className="font-bold text-primary">{t("family.person")} #{index + 1}</h4>
+    <Card className="p-4 md:p-5 shadow-elegant border-accent/30 animate-fade-in">
+      <div className="flex items-center justify-between mb-3 gap-3 flex-wrap">
+        <div className="flex items-center gap-3">
+          <div className="rounded-full bg-accent/15 text-accent w-9 h-9 flex items-center justify-center font-bold">
+            {index + 1}
+          </div>
+          <div>
+            <h4 className="font-bold text-primary">
+              {t("family.person")} {index + 1}{total ? ` / ${total}` : ""}
+            </h4>
+            {member.full_name && <div className="text-xs text-muted-foreground">{member.full_name}</div>}
+          </div>
+        </div>
         {onRemove && (
           <Button type="button" variant="ghost" size="sm"
             onClick={async () => {
