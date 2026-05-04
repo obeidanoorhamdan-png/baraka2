@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBirthDate, formatDateShort } from "@/lib/formatDate";
 
 export const AidPreview = ({ applicationId }: { applicationId: string }) => {
   const { t, i18n } = useTranslation();
@@ -53,7 +54,7 @@ export const AidPreview = ({ applicationId }: { applicationId: string }) => {
               <CalendarDays className="h-3 w-3" /> {t("aid.last_received")}
             </div>
             <div className="font-bold text-primary mt-1">{latest.title}</div>
-            <div className="text-xs text-muted-foreground" dir="ltr">{latest.delivered_at}</div>
+            <div className="text-xs text-muted-foreground">{formatBirthDate(latest.delivered_at)}</div>
             {latest.contents && <div className="text-sm mt-1 whitespace-pre-wrap line-clamp-3">{latest.contents}</div>}
           </div>
           {count > 1 && (
@@ -136,7 +137,7 @@ const MyAid = () => {
                   <h1 className="text-xl md:text-2xl font-bold text-primary">{detail.title}</h1>
                   <div className="text-xs text-muted-foreground inline-flex items-center gap-1 mt-0.5">
                     <CalendarDays className="h-3 w-3" />
-                    <span dir="ltr">{detail.delivered_at}</span>
+                    <span>{formatBirthDate(detail.delivered_at)}</span>
                   </div>
                 </div>
               </div>
@@ -198,7 +199,7 @@ const MyAid = () => {
                   <Card className="p-4 shadow-card hover:shadow-elegant hover:border-accent/40 transition-all cursor-pointer">
                     <div className="flex flex-wrap items-center justify-between gap-2 mb-1">
                       <div className="font-bold text-primary">{a.title}</div>
-                      <div className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground" dir="ltr">{a.delivered_at}</div>
+                      <div className="text-xs px-2 py-0.5 rounded-full bg-muted text-muted-foreground">{formatDateShort(a.delivered_at)}</div>
                     </div>
                     {a.contents && <div className="text-sm whitespace-pre-wrap line-clamp-2">{a.contents}</div>}
                     {a.notes && <div className="text-xs text-muted-foreground mt-2 pt-2 border-t">{t("aid.notes")}: {a.notes}</div>}
