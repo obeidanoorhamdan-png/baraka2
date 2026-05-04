@@ -557,16 +557,14 @@ const Auth = () => {
                     </div>
                     <div>
                       <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
-                      <Input
-                        type="date"
+                      <DatePickerField
                         value={su.birth_date}
-                        max={new Date().toISOString().split("T")[0]}
-                        aria-invalid={!!errors.birth_date}
-                        className={errors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
+                        disableFuture
+                        invalid={!!errors.birth_date}
                         onBlur={() =>
                           setErrors((p) => ({ ...p, birth_date: validateField("birth_date", su.birth_date) }))
                         }
-                        onChange={(e) => setField("birth_date", e.target.value)}
+                        onChange={(v) => setField("birth_date", v)}
                       />
                       {errors.birth_date && <p className="text-xs text-destructive mt-1">{errors.birth_date}</p>}
                       {su.birth_date && !errors.birth_date && (
