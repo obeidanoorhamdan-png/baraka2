@@ -324,6 +324,14 @@ export type Database = {
     }
     Functions: {
       find_user_id_by_nid: { Args: { _nid: string }; Returns: string }
+      get_random_security_question: {
+        Args: { _exclude_id?: string; _nid: string }
+        Returns: {
+          kind: string
+          label: string
+          question_id: string
+        }[]
+      }
       get_security_questions: {
         Args: { _nid: string }
         Returns: {
