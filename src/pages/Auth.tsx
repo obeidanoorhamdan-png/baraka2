@@ -35,7 +35,21 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+      if (isAdmin) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+      // If the head of family has not yet submitted family data, route
+      // them to the application form so they can complete the missing info
+      // (family size + members). Otherwise show the dashboard.
+      (async () => {
+        const { data: app } = await supabase
+          .from("applications")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        navigate(app ? "/dashboard" : "/my-application", { replace: true });
+      })();
     }
   }, [user, isAdmin, loading, navigate]);
 
@@ -311,6 +325,9 @@ const Auth = () => {
       return;
     }
     toast.success(t("toast.signup_success"));
+    // Take the new head-of-family directly to the application form so they
+    // can enter family size, residence, and each member's data immediately.
+    setTimeout(() => navigate("/my-application", { replace: true }), 200);
   };
 
   // ============================================================
