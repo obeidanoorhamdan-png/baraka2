@@ -4,6 +4,7 @@ import { LogOut, ShieldCheck, Home as HomeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { useConfirm } from "@/components/ConfirmDialog";
 import logo from "@/assets/baraka-logo.jpg";
 import { NotificationsBell } from "@/components/NotificationsBell";
 
@@ -11,8 +12,17 @@ export const Header = () => {
   const { t } = useTranslation();
   const { user, isAdmin } = useAuth();
   const navigate = useNavigate();
+  const confirmAsk = useConfirm();
 
   const handleLogout = async () => {
+    const ok = await confirmAsk({
+      title: t("auth.logout_confirm_title"),
+      description: t("auth.logout_confirm_desc"),
+      confirmText: t("auth.logout"),
+      cancelText: t("form.cancel"),
+      variant: "danger",
+    });
+    if (!ok) return;
     await supabase.auth.signOut();
     navigate("/");
   };
