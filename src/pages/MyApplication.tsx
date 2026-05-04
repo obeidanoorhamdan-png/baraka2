@@ -130,21 +130,22 @@ const MyApplication = () => {
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
         if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
       }
-      // No saved application yet — try to restore an in-progress draft from
-      // local storage so the user does not lose what they had typed.
+      // No saved application yet — check for an in-progress draft and offer
+      // to resume it (do not auto-overwrite the empty form).
       if (!app) {
         try {
           const raw = localStorage.getItem(`baraka2:draft:${user.id}`);
           if (raw) {
             const d = JSON.parse(raw);
-            if (d?.residence) {
-              setResidence(d.residence);
-              setFamilySizeInput(String(d.residence.family_size || 1));
-            }
-            if (Array.isArray(d?.members)) setMembers(d.members);
-            if (d?.savedAt) {
-              setLastDraftSavedAt(new Date(d.savedAt).toLocaleTimeString("ar"));
-              toast.info(t("form.draft_restored"));
+            const hasContent =
+              (d?.residence?.original_residence || d?.residence?.original_landmark || d?.residence?.current_landmark) ||
+              (Array.isArray(d?.members) && d.members.length > 0);
+            if (hasContent) {
+              setPendingDraft({
+                residence: d.residence,
+                members: Array.isArray(d.members) ? d.members : [],
+                savedAt: d.savedAt ? new Date(d.savedAt).toLocaleString("ar") : "",
+              });
             }
           }
         } catch {}
