@@ -67,7 +67,47 @@ const Auth = () => {
   } | null>(null);
   const [answer, setAnswer] = useState("");
   const [adminPin, setAdminPin] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState("");
+  const [forgotHint, setForgotHint] = useState<string>("");
+  const [forgotBusy, setForgotBusy] = useState(false);
   const isAdminFlow = nid === ADMIN_NID;
+
+  const openForgot = async () => {
+    setForgotPhone("");
+    setForgotOpen(true);
+    const { data } = await supabase.rpc("get_phone_hint", { _nid: nid });
+    setForgotHint((data as string) || "");
+  };
+
+  const performForget = async () => {
+    if (!PHONE_RE.test(forgotPhone)) {
+      toast.error(t("forgot_data.invalid_phone"));
+      return;
+    }
+    if (!(await confirmAsk({
+      title: t("forgot_data.confirm_title"),
+      description: t("forgot_data.confirm_desc"),
+      confirmText: t("forgot_data.confirm_btn"),
+      variant: "danger",
+    }))) return;
+    setForgotBusy(true);
+    const { data, error } = await supabase.functions.invoke("forget-account", {
+      body: { national_id: nid, phone: forgotPhone },
+    });
+    setForgotBusy(false);
+    if (error || !(data as any)?.ok) {
+      toast.error((data as any)?.error || error?.message || t("toast.error"));
+      return;
+    }
+    toast.success(t("forgot_data.deleted"));
+    setForgotOpen(false);
+    resetFlow();
+    // Auto-route to signup with the same NID
+    setSu((p) => ({ ...p, national_id: nid }));
+    setStage("signup");
+  };
+
 
   const fetchQuestion = async (excludeId?: string) => {
     setBusy(true);
