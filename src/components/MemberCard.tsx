@@ -14,6 +14,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { prepareUpload, formatBytes } from "@/lib/imageUpload";
 import { useConfirm } from "@/components/ConfirmDialog";
+import { DatePickerField } from "@/components/DatePickerField";
 
 export type Member = {
   id?: string;
