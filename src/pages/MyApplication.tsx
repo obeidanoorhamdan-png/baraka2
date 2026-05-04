@@ -1015,6 +1015,32 @@ const MyApplication = () => {
               </div>
             </Card>
 
+            {/* Head of family — editable inline; saved to `profiles` on submit */}
+            <div className="relative">
+              <div className="absolute -top-2 start-4 z-10 px-2 py-0.5 rounded-full bg-accent text-accent-foreground text-[11px] font-bold shadow">
+                رب الأسرة
+              </div>
+              <MemberCard
+                index={0}
+                total={1}
+                member={head}
+                userId={user!.id}
+                errors={headErrors}
+                onFieldBlur={(field) => {
+                  const msg = validateMemberField(head, field);
+                  setHeadErrors((p) => ({ ...p, [field]: msg }));
+                }}
+                onChange={(nm) => {
+                  setHead(nm);
+                  if (Object.keys(headErrors).length) {
+                    const next: Record<string, string> = {};
+                    Object.keys(headErrors).forEach((k) => { next[k] = validateMemberField(nm, k); });
+                    setHeadErrors(next);
+                  }
+                }}
+              />
+            </div>
+
             {members.map((m, i) => {
               const errs = memberErrors[i] || {};
               const hasErrors = Object.values(errs).some(Boolean);
