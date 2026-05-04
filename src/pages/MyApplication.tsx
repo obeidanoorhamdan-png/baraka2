@@ -356,6 +356,7 @@ const MyApplication = () => {
                   pattern="[0-9]*"
                   maxLength={2}
                   value={String(residence.family_size)}
+                  onFocus={(e) => e.currentTarget.select()}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
                     if (digits === "") {
