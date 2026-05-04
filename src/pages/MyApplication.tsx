@@ -44,6 +44,8 @@ const MyApplication = () => {
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [collapsedMembers, setCollapsedMembers] = useState<Record<number, boolean>>({});
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string>("");
+  const [pendingDraft, setPendingDraft] = useState<{ residence: any; members: Member[]; savedAt: string } | null>(null);
+  const [savingDraft, setSavingDraft] = useState(false);
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
