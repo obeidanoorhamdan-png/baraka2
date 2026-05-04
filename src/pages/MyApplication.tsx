@@ -67,29 +67,6 @@ const MyApplication = () => {
   const [pendingSubmitProgress, setPendingSubmitProgress] = useState<number>(0);
   const [pendingSubmitSyncing, setPendingSubmitSyncing] = useState(false);
 
-  const currentSig = () => JSON.stringify({ residence, members });
-  const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
-
-  const guardDiscard = async (): Promise<boolean> => {
-    if (!isDirty) return true;
-    return await confirmAsk({
-      title: t("confirm.discard_changes_title"),
-      description: t("confirm.discard_changes"),
-      confirmText: t("confirm.discard_confirm"),
-      variant: "warning",
-    });
-  };
-
-  // Unsaved-changes detection: dirty if either an existing-app edit has
-  // diverged from its snapshot, OR the in-progress draft (no app yet) has
-  // diverged from the last persisted draft signature.
-  const draftDirty =
-    !appId && !pageLoading && !!user && !pendingDraft && !!lastSavedSig && currentSig() !== lastSavedSig;
-  const anyUnsaved = isDirty || draftDirty;
-
-  // Combined guard: warn on tab close + intercept SPA navigation.
-  useUnsavedChangesGuard(anyUnsaved, confirmAsk as any);
-
   const [residence, setResidence] = useState({
     original_residence: "",
     original_landmark: "",
@@ -122,6 +99,29 @@ const MyApplication = () => {
     is_head: true,
   });
   const [headErrors, setHeadErrors] = useState<Record<string, string>>({});
+
+  const currentSig = () => JSON.stringify({ residence, members });
+  const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
+
+  const guardDiscard = async (): Promise<boolean> => {
+    if (!isDirty) return true;
+    return await confirmAsk({
+      title: t("confirm.discard_changes_title"),
+      description: t("confirm.discard_changes"),
+      confirmText: t("confirm.discard_confirm"),
+      variant: "warning",
+    });
+  };
+
+  // Unsaved-changes detection: dirty if either an existing-app edit has
+  // diverged from its snapshot, OR the in-progress draft (no app yet) has
+  // diverged from the last persisted draft signature.
+  const draftDirty =
+    !appId && !pageLoading && !!user && !pendingDraft && !!lastSavedSig && currentSig() !== lastSavedSig;
+  const anyUnsaved = isDirty || draftDirty;
+
+  // Combined guard: warn on tab close + intercept SPA navigation.
+  useUnsavedChangesGuard(anyUnsaved, confirmAsk as any);
 
 
   const validateMemberField = (m: Member, key: string): string => {
