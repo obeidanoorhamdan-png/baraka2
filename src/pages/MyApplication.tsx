@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Lock, Send, ArrowLeft, ArrowRight, CheckCircle2, Users, Eye } from "lucide-react";
+import { Plus, Lock, Send, ArrowLeft, ArrowRight, CheckCircle2, Users, Eye, AlertTriangle } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -22,8 +22,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import { enqueueOp, cacheGet, cacheSet, logHistory } from "@/lib/offlineOutbox";
-import { drainOutbox } from "@/lib/syncEngine";
+import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } from "@/lib/offlineOutbox";
+import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -58,6 +58,9 @@ const MyApplication = () => {
   // working offline).
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [conflictData, setConflictData] = useState<{ residence: any; members: Member[]; updatedAt: string } | null>(null);
+  const [hasPendingSubmit, setHasPendingSubmit] = useState(false);
+  const [pendingSubmitProgress, setPendingSubmitProgress] = useState<number>(0);
+  const [pendingSubmitSyncing, setPendingSubmitSyncing] = useState(false);
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
@@ -263,6 +266,25 @@ const MyApplication = () => {
     })();
   }, [user]);
 
+  // Track whether a high-level submit op is queued, and surface its
+  // live progress so the user sees a retry banner + progress bar.
+  useEffect(() => {
+    let opId: number | null = null;
+    const refresh = async () => {
+      const all = await listOps();
+      const pending = all.find((o) => o.kind === "app.submit" || o.kind === "app.update");
+      setHasPendingSubmit(!!pending);
+      opId = pending?.id ?? null;
+    };
+    refresh();
+    const off1 = onOutboxChange(refresh);
+    const off2 = onSyncState((s) => {
+      setPendingSubmitSyncing(s.syncing && s.currentOpId === opId && opId !== null);
+      setPendingSubmitProgress(s.currentOpId === opId && opId !== null ? s.currentOpProgress : 0);
+    });
+    return () => { off1(); off2(); };
+  }, []);
+
   // Auto-save draft (local + server) while the user is filling members or
   // residence (only before submission). Debounced 1.2 s to avoid spamming
   // the network on every keystroke.
@@ -382,18 +404,68 @@ const MyApplication = () => {
   const submit = async () => {
     if (!user) return;
     setSummaryOpen(false);
-    if (typeof navigator !== "undefined" && !navigator.onLine) {
-      toast.error("لا يمكن إرسال الطلب دون اتصال بالإنترنت", {
-        description: "تم حفظ بياناتك كمسودة على هذا الجهاز. سيتم الإرسال تلقائياً بعد عودة الإنترنت — أو اضغط إرسال يدوياً.",
-      });
-      return;
-    }
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
       description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
       confirmText: appId ? t("form.save") : t("form.submit"),
       variant: "default",
     }))) return;
+
+    // Offline path → queue a high-level app.submit / app.update op so the
+    // sync engine completes the submission as soon as we're back online.
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      const memberRows = members.map((m) => ({
+        full_name: m.full_name,
+        national_id: m.national_id || null,
+        birth_date: m.birth_date,
+        gender: m.gender,
+        relationship: m.relationship,
+        relationship_other: m.relationship_other || null,
+        is_war_injured: m.is_war_injured,
+        injury_report_url: m.injury_report_url || null,
+        chronic_diseases: m.chronic_diseases || null,
+        is_pregnant: m.is_pregnant,
+        is_breastfeeding: m.is_breastfeeding,
+        pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
+        health_notes: m.health_notes || null,
+      }));
+      const appPayload = {
+        user_id: user.id,
+        original_residence: residence.original_residence,
+        original_landmark: residence.original_landmark,
+        current_camp: "Baraka 2",
+        current_landmark: residence.current_landmark,
+        family_size: residence.family_size,
+        has_martyr: residence.has_martyr,
+        martyr_name: residence.has_martyr ? residence.martyr_name : null,
+        martyr_relationship: residence.has_martyr ? residence.martyr_relationship : null,
+        status: "pending" as const,
+        rejection_reason: null,
+      };
+      try {
+        if (appId) {
+          await enqueueOp({
+            kind: "app.update",
+            payload: { applicationId: appId, application: appPayload, members: memberRows, userId: user.id },
+            label: "تحديث الطلب",
+          });
+        } else {
+          await enqueueOp({
+            kind: "app.submit",
+            payload: { application: appPayload, members: memberRows },
+            label: "إرسال الطلب",
+          });
+        }
+        toast.success("تم وضع الطلب في قائمة الانتظار", {
+          description: "سيتم الإرسال تلقائياً فور عودة الإنترنت — أو اضغط إعادة المحاولة من سجل المزامنة.",
+        });
+        setHasPendingSubmit(true);
+      } catch (e: any) {
+        toast.error(friendlyError(e, "submit"));
+      }
+      return;
+    }
+
     setBusy(true);
     try {
       let currentAppId = appId;
@@ -606,6 +678,48 @@ const MyApplication = () => {
             )}
           </Card>
         )}
+
+        {/* Retry banner — appears whenever a submit/update op is queued. */}
+        {hasPendingSubmit && (
+          <Card className="p-4 mb-6 border-warning/40 bg-gradient-to-br from-warning/15 via-background to-background animate-fade-in">
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className="rounded-full bg-warning/20 p-2 shrink-0">
+                <Send className="h-5 w-5 text-warning-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-primary">طلبك بانتظار الإرسال</div>
+                <p className="text-xs text-muted-foreground mt-0.5">
+                  {pendingSubmitSyncing
+                    ? `جاري الإرسال... ${pendingSubmitProgress}%`
+                    : typeof navigator !== "undefined" && !navigator.onLine
+                    ? "ستتم المحاولة تلقائياً فور عودة الإنترنت."
+                    : "اضغط إعادة المحاولة للإرسال الآن."}
+                </p>
+                {pendingSubmitSyncing && (
+                  <div className="mt-2 h-2 w-full rounded-full bg-muted overflow-hidden">
+                    <div
+                      className="h-full bg-gradient-to-r from-accent to-success transition-all"
+                      style={{ width: `${pendingSubmitProgress}%` }}
+                    />
+                  </div>
+                )}
+                <div className="flex gap-2 mt-3 flex-wrap">
+                  <Button
+                    type="button"
+                    size="sm"
+                    onClick={() => drainOutbox()}
+                    disabled={pendingSubmitSyncing || (typeof navigator !== "undefined" && !navigator.onLine)}
+                    className="brand-gradient text-primary-foreground gap-1.5"
+                  >
+                    <Send className="h-4 w-4" />
+                    {pendingSubmitSyncing ? "جاري الإرسال..." : "إعادة المحاولة الآن"}
+                  </Button>
+                </div>
+              </div>
+            </div>
+          </Card>
+        )}
+
 
         {appId && !editMode ? (
           <ApplicationSummary
@@ -1017,6 +1131,16 @@ const MyApplication = () => {
             </DialogTitle>
             <DialogDescription>{t("form.summary_intro")}</DialogDescription>
           </DialogHeader>
+
+          {typeof navigator !== "undefined" && !navigator.onLine && (
+            <Card className="p-3 border-warning/40 bg-warning/10 text-sm text-warning-foreground flex items-start gap-2">
+              <AlertTriangle className="h-4 w-4 shrink-0 mt-0.5" />
+              <div>
+                <strong>أنت خارج الاتصال حالياً.</strong> عند تأكيد الإرسال سيتم وضع الطلب في طابور الانتظار،
+                وسيُرسل تلقائياً فور عودة الإنترنت.
+              </div>
+            </Card>
+          )}
 
           <div className="space-y-4 py-2">
             <Card className="p-4 bg-muted/30 border-accent/20">
