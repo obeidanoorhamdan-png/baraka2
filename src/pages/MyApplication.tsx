@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Lock, Send, ArrowLeft, ArrowRight } from "lucide-react";
+import { Plus, Lock, Send, ArrowLeft, ArrowRight, CheckCircle2, Users, Eye } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ID_RE, isFullName, PIN_RE } from "@/lib/validators";
-import { pinToAuthPassword } from "@/lib/authPin";
+import { ID_RE, isFullName } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { Card as UICard } from "@/components/ui/card";
-import { KeyRound } from "lucide-react";
 import { AidPreview } from "@/pages/MyAid";
 
 const MyApplication = () => {
