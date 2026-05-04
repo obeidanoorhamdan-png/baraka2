@@ -53,6 +53,11 @@ const MyApplication = () => {
   // Signature of the last successfully saved draft (server or local). Used
   // to decide whether the form has unsaved changes (`draftDirty`).
   const [lastSavedSig, setLastSavedSig] = useState<string>("");
+  // Server-side timestamp of the application row at load time. Used to
+  // detect concurrent edits (someone else modified the row while we were
+  // working offline).
+  const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
+  const [conflictData, setConflictData] = useState<{ residence: any; members: Member[]; updatedAt: string } | null>(null);
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
