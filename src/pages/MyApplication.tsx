@@ -140,44 +140,76 @@ const MyApplication = () => {
         if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
       }
       // No saved application yet — check for an in-progress draft and offer
-      // to resume it (do not auto-overwrite the empty form).
+      // to resume it (do not auto-overwrite the empty form). Server draft
+      // takes precedence over the local copy (most reliable across devices).
       if (!app) {
+        let serverDraft: any = null;
+        try {
+          const { data } = await (supabase as any)
+            .from("application_drafts")
+            .select("payload, updated_at")
+            .eq("user_id", user.id)
+            .maybeSingle();
+          if (data?.payload) serverDraft = { ...data.payload, savedAt: data.updated_at };
+        } catch {}
+
+        let localDraft: any = null;
         try {
           const raw = localStorage.getItem(`baraka2:draft:${user.id}`);
-          if (raw) {
-            const d = JSON.parse(raw);
-            const hasContent =
-              (d?.residence?.original_residence || d?.residence?.original_landmark || d?.residence?.current_landmark) ||
-              (Array.isArray(d?.members) && d.members.length > 0);
-            if (hasContent) {
-              setPendingDraft({
-                residence: d.residence,
-                members: Array.isArray(d.members) ? d.members : [],
-                savedAt: d.savedAt ? new Date(d.savedAt).toLocaleString("ar") : "",
-              });
-            }
-          }
+          if (raw) localDraft = JSON.parse(raw);
         } catch {}
+
+        const d = serverDraft || localDraft;
+        const hasContent =
+          d &&
+          ((d.residence?.original_residence || d.residence?.original_landmark || d.residence?.current_landmark) ||
+            (Array.isArray(d.members) && d.members.length > 0));
+        if (hasContent) {
+          setPendingDraft({
+            residence: d.residence,
+            members: Array.isArray(d.members) ? d.members : [],
+            savedAt: d.savedAt ? new Date(d.savedAt).toLocaleString("ar") : "",
+          });
+        } else {
+          // Mark current empty state as the baseline so we don't flag it
+          // as dirty before the user starts editing.
+          setLastSavedSig(JSON.stringify({ residence, members: [] }));
+        }
+      } else {
+        setLastSavedSig(JSON.stringify({ residence, members }));
       }
       setPageLoading(false);
     })();
   }, [user]);
 
-  // Auto-save draft to localStorage while the user is filling members or
-  // residence (only before submission). This makes the flow feel safe even
-  // if the device reloads. Debounced 600 ms.
+  // Auto-save draft (local + server) while the user is filling members or
+  // residence (only before submission). Debounced 1.2 s to avoid spamming
+  // the network on every keystroke.
   useEffect(() => {
     if (!user || pageLoading) return;
     if (appId && !editMode) return; // already submitted view
-    const handle = setTimeout(() => {
+    if (pendingDraft) return; // waiting for user to resume/discard
+    const handle = setTimeout(async () => {
+      const payload = { residence, members, savedAt: Date.now() };
+      const sig = JSON.stringify({ residence, members });
+      // Local copy is best-effort and immediate.
       try {
-        const payload = { residence, members, savedAt: Date.now() };
         localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
-        setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
       } catch {}
-    }, 600);
+      // Server copy — silent on failure (auto-save shouldn't nag the user;
+      // manual save will surface a toast on its own).
+      try {
+        await (supabase as any)
+          .from("application_drafts")
+          .upsert({ user_id: user.id, payload: { residence, members } });
+        setLastSavedSig(sig);
+        setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
+      } catch {
+        // Silent — local copy still preserves the draft.
+      }
+    }, 1200);
     return () => clearTimeout(handle);
-  }, [residence, members, user, pageLoading, appId, editMode]);
+  }, [residence, members, user, pageLoading, appId, editMode, pendingDraft]);
 
   // Trim members if user reduces family size below current members count.
   // Do NOT auto-add members — user adds them manually with the "Add member" button.
