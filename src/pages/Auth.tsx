@@ -756,6 +756,38 @@ const Auth = () => {
           </div>
         </Card>
       </section>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">{t("forgot_data.title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">{t("forgot_data.warning")}</p>
+            <div>
+              <Label>{t("form.phone")}</Label>
+              <Input
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="059xxxxxxx"
+                value={forgotPhone}
+                onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              />
+              {forgotHint && (
+                <p className="text-[11px] text-muted-foreground mt-1" dir="ltr">
+                  {t("forgot_data.hint")}: <strong>{forgotHint}</strong>
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForgotOpen(false)}>{t("form.cancel")}</Button>
+            <Button variant="destructive" onClick={performForget} disabled={forgotBusy}>
+              {forgotBusy ? "..." : t("forgot_data.confirm_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
