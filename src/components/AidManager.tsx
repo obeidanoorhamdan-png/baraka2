@@ -10,6 +10,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { DatePickerField } from "@/components/DatePickerField";
+import { formatBirthDate } from "@/lib/formatDate";
 
 export type Aid = {
   id?: string;
