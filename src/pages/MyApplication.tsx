@@ -69,7 +69,7 @@ const MyApplication = () => {
   // diverged from its snapshot, OR the in-progress draft (no app yet) has
   // diverged from the last persisted draft signature.
   const draftDirty =
-    !appId && !pageLoading && !!user && !pendingDraft && currentSig() !== lastSavedSig && currentSig() !== JSON.stringify({ residence: emptyResidence, members: [] });
+    !appId && !pageLoading && !!user && !pendingDraft && !!lastSavedSig && currentSig() !== lastSavedSig;
   const anyUnsaved = isDirty || draftDirty;
 
   // Combined guard: warn on tab close + intercept SPA navigation.
