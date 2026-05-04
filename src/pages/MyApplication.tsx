@@ -808,6 +808,7 @@ const MyApplication = () => {
           <ErrorBoundary label="ApplicationSummary">
             <ApplicationSummary
               residence={residence}
+              head={head}
               members={members}
               onEditResidence={() => { setSnapshot(currentSig()); setEditMode(true); setStep(1); }}
               onEditMembers={() => { setSnapshot(currentSig()); setEditMode(true); setStep(2); }}
