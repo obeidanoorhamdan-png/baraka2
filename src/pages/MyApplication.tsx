@@ -48,6 +48,9 @@ const MyApplication = () => {
   const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string>("");
   const [pendingDraft, setPendingDraft] = useState<{ residence: any; members: Member[]; savedAt: string } | null>(null);
   const [savingDraft, setSavingDraft] = useState(false);
+  // Signature of the last successfully saved draft (server or local). Used
+  // to decide whether the form has unsaved changes (`draftDirty`).
+  const [lastSavedSig, setLastSavedSig] = useState<string>("");
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
