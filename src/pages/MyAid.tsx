@@ -7,6 +7,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
+import { formatBirthDate, formatDateShort } from "@/lib/formatDate";
 
 export const AidPreview = ({ applicationId }: { applicationId: string }) => {
   const { t, i18n } = useTranslation();
