@@ -13,6 +13,7 @@ import Auth from "./pages/Auth";
 import MyApplication from "./pages/MyApplication";
 import MyAid from "./pages/MyAid";
 import Admin from "./pages/Admin";
+import AdminHub from "./pages/AdminHub";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
