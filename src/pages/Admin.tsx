@@ -53,6 +53,32 @@ const Admin = () => {
   const [pAgeMax, setPAgeMax] = useState<string>("");
   const [pSearch, setPSearch] = useState<string>("");
   const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
+  const [incomplete, setIncomplete] = useState<any[]>([]);
+
+  const loadIncomplete = async () => {
+    const { data, error } = await supabase.rpc("list_incomplete_accounts");
+    if (!error) setIncomplete((data as any[]) || []);
+  };
+  useEffect(() => { if (isAdmin) loadIncomplete(); }, [isAdmin]);
+
+  const deleteIncomplete = async (row: any) => {
+    if (!(await confirmAsk({
+      title: "حذف الحساب غير المكتمل",
+      description: `سيتم حذف حساب ${row.full_name || row.national_id} وجميع بياناته نهائياً.`,
+      confirmText: "حذف نهائي",
+      variant: "danger",
+    }))) return;
+    const { data, error } = await supabase.functions.invoke("forget-account", {
+      body: { national_id: row.national_id, phone: row.phone },
+    });
+    if (error || !(data as any)?.ok) {
+      toast.error((data as any)?.error || error?.message || t("toast.error"));
+      return;
+    }
+    toast.success("تم حذف الحساب");
+    loadIncomplete();
+    load();
+  };
 
   const loadSettings = async () => {
     const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
