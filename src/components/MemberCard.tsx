@@ -203,12 +203,13 @@ export const MemberCard = ({
         </div>
         <div>
           <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
-          <Input type="date" value={member.birth_date}
-            max={new Date().toISOString().split("T")[0]}
-            aria-invalid={!!errors.birth_date}
-            className={errCls("birth_date")}
+          <DatePickerField
+            value={member.birth_date}
+            disableFuture
+            invalid={!!errors.birth_date}
             onBlur={() => onFieldBlur?.("birth_date")}
-            onChange={(e) => onChange({ ...member, birth_date: e.target.value })} />
+            onChange={(v) => onChange({ ...member, birth_date: v })}
+          />
           {errMsg("birth_date")}
           {member.birth_date && !errors.birth_date && <div className="text-xs text-muted-foreground mt-1">{t("form.age")}: {age} {t("form.years")}</div>}
         </div>
