@@ -396,6 +396,9 @@ const MyApplication = () => {
                       }
                       setMembers(d.members);
                       setPendingDraft(null);
+                      // Mark restored data as the saved baseline so the
+                      // unsaved-changes guard doesn't immediately fire.
+                      setLastSavedSig(JSON.stringify({ residence: d.residence, members: d.members }));
                       toast.success(t("form.draft_restored"));
                     }}
                     className="brand-gradient text-primary-foreground gap-1.5"
