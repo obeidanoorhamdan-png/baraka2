@@ -42,7 +42,7 @@ const MyApplication = () => {
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
   const [editMode, setEditMode] = useState(false);
   const [snapshot, setSnapshot] = useState<string>("");
-  const [familySizeInput, setFamilySizeInput] = useState<string>("2");
+  const [familySizeInput, setFamilySizeInput] = useState<string>("");
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
@@ -69,13 +69,13 @@ const MyApplication = () => {
     original_residence: "",
     original_landmark: "",
     current_landmark: "",
-    family_size: 2,
+    family_size: 1,
     has_martyr: false,
     martyr_name: "",
     martyr_relationship: "",
   });
 
-  const [members, setMembers] = useState<Member[]>([emptyMember()]);
+  const [members, setMembers] = useState<Member[]>([]);
 
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
@@ -361,23 +361,33 @@ const MyApplication = () => {
                   inputMode="numeric"
                   pattern="[0-9]*"
                   maxLength={2}
+                  placeholder="مثال: 5"
                   value={familySizeInput}
                   onFocus={(e) => { e.currentTarget.select(); }}
                   onChange={(e) => {
                     const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
                     setFamilySizeInput(digits);
-                    if (digits === "") return;
-                    const n = Math.min(30, Math.max(1, parseInt(digits, 10)));
+                    if (digits === "") {
+                      setResidence((r) => ({ ...r, family_size: 1 }));
+                      return;
+                    }
+                    let n = parseInt(digits, 10);
+                    if (n < 1) n = 1;
+                    if (n > 20) n = 20;
+                    if (String(n) !== digits) setFamilySizeInput(String(n));
                     setResidence((r) => ({ ...r, family_size: n }));
                   }}
                   onBlur={() => {
-                    const n = Math.min(30, Math.max(1, parseInt(familySizeInput, 10) || 1));
+                    if (familySizeInput === "") return;
+                    let n = parseInt(familySizeInput, 10) || 1;
+                    if (n < 1) n = 1;
+                    if (n > 20) n = 20;
                     setFamilySizeInput(String(n));
                     setResidence((r) => ({ ...r, family_size: n }));
                   }}
                 />
                 <p className="text-xs text-muted-foreground mt-1">
-                  من 1 إلى 30 — سيتم إضافة {Math.max(0, residence.family_size - 1)} فرد بجانب رب الأسرة
+                  من 1 إلى 20 — سيتم طلب بيانات {Math.max(0, residence.family_size - 1)} فرد بجانب رب الأسرة
                 </p>
               </div>
             </div>
