@@ -508,14 +508,24 @@ const Auth = () => {
                       </>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={askAnotherQuestion}
-                    disabled={busy}
-                    className="text-xs text-accent hover:underline inline-flex items-center gap-1"
-                  >
-                    <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
-                  </button>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={askAnotherQuestion}
+                      disabled={busy}
+                      className="text-xs text-accent hover:underline inline-flex items-center gap-1"
+                    >
+                      <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openForgot}
+                      disabled={busy}
+                      className="text-xs text-destructive hover:underline inline-flex items-center gap-1"
+                    >
+                      {t("forgot_data.btn")}
+                    </button>
+                  </div>
                 </>
               )}
 
