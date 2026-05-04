@@ -17,7 +17,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
-import { formatBirthDate } from "@/lib/formatDate";
+import { formatBirthDate, formatDateShort } from "@/lib/formatDate";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
