@@ -769,7 +769,7 @@ const Admin = () => {
                         <div className="font-semibold">{m.full_name} <span className="text-xs text-muted-foreground">— {t(`family.rel_${m.relationship}`)} {m.relationship_other && `(${m.relationship_other})`}</span></div>
                         <div className="text-xs text-muted-foreground">
                           {m.national_id && <span dir="ltr">ID: {m.national_id} • </span>}
-                          {m.birth_date} ({calculateAge(m.birth_date)} {t("form.years")}) • {t(`form.${m.gender}`)}
+                          {formatBirthDate(m.birth_date)} ({calculateAge(m.birth_date)} {t("form.years")}) • {t(`form.${m.gender}`)}
                         </div>
                         {(m.is_war_injured || m.chronic_diseases || m.is_pregnant || m.is_breastfeeding || m.health_notes) && (
                           <div className="text-xs mt-1 space-y-1">
