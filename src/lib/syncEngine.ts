@@ -14,6 +14,7 @@ import {
   updateOp,
   onOutboxChange,
   countOps,
+  logHistory,
   type OutboxOp,
 } from "./offlineOutbox";
 
