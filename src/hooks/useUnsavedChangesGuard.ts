@@ -1,18 +1,25 @@
 import { useEffect } from "react";
-import { useBlocker } from "react-router-dom";
 
 /**
- * Warns the user (via the browser dialog and an in-app confirm callback)
- * when they try to leave the page while `when` is true (unsaved draft).
+ * Warns the user (via the browser dialog) when they try to leave the page
+ * while `when` is true (unsaved draft).
  *
- * - `confirmAsk` should return a boolean Promise (true = leave, false = stay).
- *   Pass our existing ConfirmDialog `useConfirm()` function.
+ * NOTE: We intentionally do NOT use `useBlocker` from react-router here —
+ * it requires a Data Router (`createBrowserRouter` + `RouterProvider`),
+ * and this app uses the classic `<BrowserRouter>`. Calling `useBlocker`
+ * in that context throws an empty-message runtime error that crashes the
+ * page with a blank screen (notably when entering edit mode on
+ * /my-application). The browser-level `beforeunload` guard still covers
+ * tab close / refresh / hard navigation — which is the most important
+ * data-loss scenario.
+ *
+ * The second `confirmAsk` argument is kept for backwards compatibility so
+ * existing callers don't need to change.
  */
 export function useUnsavedChangesGuard(
   when: boolean,
-  confirmAsk: (opts: { title: string; description: string; confirmText: string; cancelText: string; variant?: any }) => Promise<boolean>,
+  _confirmAsk?: unknown,
 ) {
-  // 1) Browser-level: tab close, refresh, history navigation outside SPA.
   useEffect(() => {
     if (!when) return;
     const onBeforeUnload = (e: BeforeUnloadEvent) => {
@@ -22,24 +29,4 @@ export function useUnsavedChangesGuard(
     window.addEventListener("beforeunload", onBeforeUnload);
     return () => window.removeEventListener("beforeunload", onBeforeUnload);
   }, [when]);
-
-  // 2) In-app navigation: react-router blocker + confirm dialog.
-  const blocker = useBlocker(({ currentLocation, nextLocation }) => {
-    return when && currentLocation.pathname !== nextLocation.pathname;
-  });
-
-  useEffect(() => {
-    if (blocker.state !== "blocked") return;
-    (async () => {
-      const ok = await confirmAsk({
-        title: "هل تريد المغادرة؟",
-        description: "لديك تغييرات لم تُحفظ بعد. ستفقد ما أدخلته إذا غادرت الآن.",
-        confirmText: "مغادرة بدون حفظ",
-        cancelText: "البقاء في الصفحة",
-        variant: "warning",
-      });
-      if (ok) blocker.proceed?.();
-      else blocker.reset?.();
-    })();
-  }, [blocker, confirmAsk]);
 }
