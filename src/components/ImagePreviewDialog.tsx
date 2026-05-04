@@ -2,12 +2,19 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "
 import { Button } from "@/components/ui/button";
 import { useTranslation } from "react-i18next";
 import { Download, ExternalLink } from "lucide-react";
+import { downloadAsName } from "@/lib/downloadFile";
 
 export const ImagePreviewDialog = ({
-  open, onClose, url, title,
-}: { open: boolean; onClose: () => void; url: string; title: string }) => {
+  open, onClose, url, title, downloadName,
+}: { open: boolean; onClose: () => void; url: string; title: string; downloadName?: string }) => {
   const { t } = useTranslation();
   const isPdf = url?.includes(".pdf");
+  const handleDownload = () => {
+    if (!url) return;
+    const ext = isPdf ? "pdf" : (url.match(/\.(jpe?g|png|heic|webp)/i)?.[1] || "jpg");
+    const name = `${(downloadName || title || "report").replace(/[\\/:*?"<>|]+/g, "")}.${ext}`;
+    downloadAsName(url, name);
+  };
   return (
     <Dialog open={open} onOpenChange={(o) => !o && onClose()}>
       <DialogContent className="max-w-3xl">
@@ -27,10 +34,8 @@ export const ImagePreviewDialog = ({
           <Button variant="outline" onClick={onClose}>{t("common.cancel")}</Button>
           {url && (
             <>
-              <Button asChild variant="outline" className="gap-1.5">
-                <a href={url} download>
-                  <Download className="h-4 w-4" /> {t("preview.download")}
-                </a>
+              <Button onClick={handleDownload} variant="outline" className="gap-1.5">
+                <Download className="h-4 w-4" /> {t("preview.download")}
               </Button>
               <Button asChild className="brand-gradient text-primary-foreground gap-1.5">
                 <a href={url} target="_blank" rel="noreferrer">
