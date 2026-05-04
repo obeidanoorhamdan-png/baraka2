@@ -22,7 +22,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import { enqueueOp } from "@/lib/offlineOutbox";
+import { enqueueOp, cacheGet, cacheSet, logHistory } from "@/lib/offlineOutbox";
 import { drainOutbox } from "@/lib/syncEngine";
 
 const MyApplication = () => {
