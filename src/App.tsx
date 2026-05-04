@@ -42,7 +42,8 @@ const App = () => {
                 <Route path="/my-application" element={<MyApplication />} />
                 <Route path="/my-aid" element={<MyAid />} />
                 <Route path="/my-aid/:id" element={<MyAid />} />
-                <Route path="/admin" element={<Admin />} />
+                <Route path="/admin" element={<AdminHub />} />
+                <Route path="/admin/applications" element={<Admin />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ConfirmProvider>
