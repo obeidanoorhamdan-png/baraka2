@@ -20,7 +20,11 @@ export type OutboxKind =
   | "supabase.update"
   | "supabase.delete"
   | "supabase.upsert"
-  | "supabase.upload";
+  | "supabase.upload"
+  /** High-level: submit a full application (app + members) atomically. */
+  | "app.submit"
+  /** High-level: update an existing application (app + replace members). */
+  | "app.update";
 
 export interface OutboxOp {
   id?: number;
@@ -29,7 +33,7 @@ export interface OutboxOp {
   bucket?: string; // for storage uploads
   path?: string; // for storage uploads
   match?: Record<string, any>; // filter for update / delete
-  payload?: any; // row data
+  payload?: any; // row data (or composite { application, members } for app.* ops)
   file?: Blob; // for storage uploads
   contentType?: string;
   createdAt: number;
@@ -37,6 +41,8 @@ export interface OutboxOp {
   lastError?: string;
   /** Optional human-readable label shown in the UI ("حفظ مسودة الطلب"). */
   label?: string;
+  /** 0–100 — populated by the sync engine during partial uploads. */
+  progress?: number;
 }
 
 interface OutboxSchema extends DBSchema {
