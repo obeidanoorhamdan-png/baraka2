@@ -136,7 +136,7 @@ export const BulkAidDistributor = ({
           </div>
           <div>
             <Label className="text-xs">{t("aid.delivered_at")} <span className="text-destructive">*</span></Label>
-            <Input type="date" value={date} max={new Date().toISOString().slice(0, 10)} onChange={(e) => setDate(e.target.value)} />
+            <DatePickerField value={date} disableFuture onChange={setDate} />
           </div>
           <div>
             <Label className="text-xs">{t("aid.contents")}</Label>
