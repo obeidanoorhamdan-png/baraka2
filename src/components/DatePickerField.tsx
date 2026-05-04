@@ -132,15 +132,16 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
           variant="outline"
           disabled={disabled}
           aria-invalid={invalid || undefined}
+          onClick={() => setOpen(true)}
           className={cn(
-            "w-full justify-between text-start font-normal h-10",
+            "w-full justify-between text-start font-normal h-11 gap-2",
             !selected && "text-muted-foreground",
             invalid && "border-destructive focus-visible:ring-destructive",
             className,
           )}
         >
-          <span>{selected ? formatArabic(selected) : placeholder}</span>
-          <CalendarIcon className="h-4 w-4 opacity-60" />
+          <span className="flex-1 text-start">{selected ? formatArabic(selected) : placeholder}</span>
+          <CalendarIcon className="h-5 w-5 text-primary opacity-90 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
