@@ -457,8 +457,9 @@ const Auth = () => {
                           value={answer}
                           disableFuture
                           minYear={1900}
+                          autoOpen
                           onChange={setAnswer}
-                          placeholder="اضغط لاختيار تاريخ الميلاد من التقويم"
+                          placeholder="اضغط هنا لفتح التقويم واختيار تاريخ الميلاد"
                         />
                         <p className="text-[11px] text-muted-foreground mt-1">
                           اختر التاريخ من التقويم — اختر السنة ثم الشهر ثم اليوم.
