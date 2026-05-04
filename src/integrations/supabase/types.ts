@@ -345,6 +345,7 @@ export type Database = {
     }
     Functions: {
       find_user_id_by_nid: { Args: { _nid: string }; Returns: string }
+      get_phone_hint: { Args: { _nid: string }; Returns: string }
       get_random_security_question: {
         Args: { _exclude_id?: string; _nid: string }
         Returns: {
@@ -369,6 +370,18 @@ export type Database = {
         Returns: boolean
       }
       head_account_exists: { Args: { _nid: string }; Returns: boolean }
+      list_incomplete_accounts: {
+        Args: never
+        Returns: {
+          application_id: string
+          created_at: string
+          full_name: string
+          national_id: string
+          phone: string
+          reason: string
+          user_id: string
+        }[]
+      }
       national_id_exists: {
         Args: { _exclude_user?: string; _nid: string }
         Returns: boolean

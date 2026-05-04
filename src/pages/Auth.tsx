@@ -9,6 +9,7 @@ import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
@@ -67,7 +68,47 @@ const Auth = () => {
   } | null>(null);
   const [answer, setAnswer] = useState("");
   const [adminPin, setAdminPin] = useState("");
+  const [forgotOpen, setForgotOpen] = useState(false);
+  const [forgotPhone, setForgotPhone] = useState("");
+  const [forgotHint, setForgotHint] = useState<string>("");
+  const [forgotBusy, setForgotBusy] = useState(false);
   const isAdminFlow = nid === ADMIN_NID;
+
+  const openForgot = async () => {
+    setForgotPhone("");
+    setForgotOpen(true);
+    const { data } = await supabase.rpc("get_phone_hint", { _nid: nid });
+    setForgotHint((data as string) || "");
+  };
+
+  const performForget = async () => {
+    if (!PHONE_RE.test(forgotPhone)) {
+      toast.error(t("forgot_data.invalid_phone"));
+      return;
+    }
+    if (!(await confirmAsk({
+      title: t("forgot_data.confirm_title"),
+      description: t("forgot_data.confirm_desc"),
+      confirmText: t("forgot_data.confirm_btn"),
+      variant: "danger",
+    }))) return;
+    setForgotBusy(true);
+    const { data, error } = await supabase.functions.invoke("forget-account", {
+      body: { national_id: nid, phone: forgotPhone },
+    });
+    setForgotBusy(false);
+    if (error || !(data as any)?.ok) {
+      toast.error((data as any)?.error || error?.message || t("toast.error"));
+      return;
+    }
+    toast.success(t("forgot_data.deleted"));
+    setForgotOpen(false);
+    resetFlow();
+    // Auto-route to signup with the same NID
+    setSu((p) => ({ ...p, national_id: nid }));
+    setStage("signup");
+  };
+
 
   const fetchQuestion = async (excludeId?: string) => {
     setBusy(true);
@@ -467,14 +508,24 @@ const Auth = () => {
                       </>
                     )}
                   </div>
-                  <button
-                    type="button"
-                    onClick={askAnotherQuestion}
-                    disabled={busy}
-                    className="text-xs text-accent hover:underline inline-flex items-center gap-1"
-                  >
-                    <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
-                  </button>
+                  <div className="flex items-center justify-between gap-2 flex-wrap">
+                    <button
+                      type="button"
+                      onClick={askAnotherQuestion}
+                      disabled={busy}
+                      className="text-xs text-accent hover:underline inline-flex items-center gap-1"
+                    >
+                      <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
+                    </button>
+                    <button
+                      type="button"
+                      onClick={openForgot}
+                      disabled={busy}
+                      className="text-xs text-destructive hover:underline inline-flex items-center gap-1"
+                    >
+                      {t("forgot_data.btn")}
+                    </button>
+                  </div>
                 </>
               )}
 
@@ -705,6 +756,38 @@ const Auth = () => {
           </div>
         </Card>
       </section>
+
+      <Dialog open={forgotOpen} onOpenChange={setForgotOpen}>
+        <DialogContent className="max-w-md">
+          <DialogHeader>
+            <DialogTitle className="text-destructive">{t("forgot_data.title")}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-3 text-sm">
+            <p className="text-muted-foreground">{t("forgot_data.warning")}</p>
+            <div>
+              <Label>{t("form.phone")}</Label>
+              <Input
+                inputMode="numeric"
+                maxLength={10}
+                placeholder="059xxxxxxx"
+                value={forgotPhone}
+                onChange={(e) => setForgotPhone(e.target.value.replace(/\D/g, "").slice(0, 10))}
+              />
+              {forgotHint && (
+                <p className="text-[11px] text-muted-foreground mt-1" dir="ltr">
+                  {t("forgot_data.hint")}: <strong>{forgotHint}</strong>
+                </p>
+              )}
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setForgotOpen(false)}>{t("form.cancel")}</Button>
+            <Button variant="destructive" onClick={performForget} disabled={forgotBusy}>
+              {forgotBusy ? "..." : t("forgot_data.confirm_btn")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };

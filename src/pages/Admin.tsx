@@ -53,6 +53,32 @@ const Admin = () => {
   const [pAgeMax, setPAgeMax] = useState<string>("");
   const [pSearch, setPSearch] = useState<string>("");
   const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
+  const [incomplete, setIncomplete] = useState<any[]>([]);
+
+  const loadIncomplete = async () => {
+    const { data, error } = await supabase.rpc("list_incomplete_accounts");
+    if (!error) setIncomplete((data as any[]) || []);
+  };
+  useEffect(() => { if (isAdmin) loadIncomplete(); }, [isAdmin]);
+
+  const deleteIncomplete = async (row: any) => {
+    if (!(await confirmAsk({
+      title: "حذف الحساب غير المكتمل",
+      description: `سيتم حذف حساب ${row.full_name || row.national_id} وجميع بياناته نهائياً.`,
+      confirmText: "حذف نهائي",
+      variant: "danger",
+    }))) return;
+    const { data, error } = await supabase.functions.invoke("forget-account", {
+      body: { national_id: row.national_id, phone: row.phone },
+    });
+    if (error || !(data as any)?.ok) {
+      toast.error((data as any)?.error || error?.message || t("toast.error"));
+      return;
+    }
+    toast.success("تم حذف الحساب");
+    loadIncomplete();
+    load();
+  };
 
   const loadSettings = async () => {
     const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
@@ -508,9 +534,15 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="families" className="w-full">
-          <TabsList className="grid grid-cols-3 w-full md:w-[32rem]">
+          <TabsList className="grid grid-cols-4 w-full md:w-[40rem]">
             <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
             <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
+            <TabsTrigger value="incomplete" className="gap-1.5">
+              <Trash2 className="h-4 w-4" /> غير مكتملة
+              {incomplete.length > 0 && (
+                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{incomplete.length}</span>
+              )}
+            </TabsTrigger>
             <TabsTrigger value="aid" className="gap-1.5"><PackageCheck className="h-4 w-4" /> {t("admin.tab_aid")}</TabsTrigger>
           </TabsList>
 
@@ -680,6 +712,53 @@ const Admin = () => {
                         </TableRow>
                       );
                     })}
+                  </TableBody>
+                </Table>
+              </div>
+            </Card>
+          </TabsContent>
+
+          <TabsContent value="incomplete" className="mt-4">
+            <Card className="p-4 shadow-card">
+              <div className="mb-3 text-sm text-muted-foreground">
+                حسابات سجّلت ولم تكمل البيانات (لا يوجد طلب أو الطلب بدون أفراد). يمكنك حذفها لتحرير رقم الهوية.
+              </div>
+              <div className="overflow-x-auto">
+                <Table>
+                  <TableHeader>
+                    <TableRow>
+                      <TableHead>الاسم</TableHead>
+                      <TableHead>{t("form.national_id")}</TableHead>
+                      <TableHead>{t("form.phone")}</TableHead>
+                      <TableHead>السبب</TableHead>
+                      <TableHead>تاريخ التسجيل</TableHead>
+                      <TableHead className="text-end"></TableHead>
+                    </TableRow>
+                  </TableHeader>
+                  <TableBody>
+                    {incomplete.length === 0 && (
+                      <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">لا يوجد حسابات غير مكتملة</TableCell></TableRow>
+                    )}
+                    {incomplete.map((row) => (
+                      <TableRow key={row.user_id}>
+                        <TableCell className="font-semibold">{row.full_name || "—"}</TableCell>
+                        <TableCell dir="ltr">{row.national_id}</TableCell>
+                        <TableCell dir="ltr">{row.phone}</TableCell>
+                        <TableCell>
+                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                            row.reason === "no_application" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"
+                          }`}>
+                            {row.reason === "no_application" ? "بدون طلب" : "طلب فارغ"}
+                          </span>
+                        </TableCell>
+                        <TableCell className="text-xs text-muted-foreground">{formatDateShort(row.created_at)}</TableCell>
+                        <TableCell className="text-end">
+                          <Button size="sm" variant="ghost" onClick={() => deleteIncomplete(row)} className="text-destructive hover:bg-destructive/10 gap-1">
+                            <Trash2 className="h-4 w-4" /> حذف
+                          </Button>
+                        </TableCell>
+                      </TableRow>
+                    ))}
                   </TableBody>
                 </Table>
               </div>
