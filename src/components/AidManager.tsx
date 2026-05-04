@@ -192,7 +192,7 @@ export const AidManager = ({ applicationId, currentUserId }: { applicationId: st
               <div className="flex items-start justify-between gap-2">
                 <div className="min-w-0 flex-1">
                   <div className="font-semibold text-primary">{a.title}</div>
-                  <div className="text-xs text-muted-foreground" dir="ltr">{a.delivered_at}</div>
+                  <div className="text-xs text-muted-foreground">{formatBirthDate(a.delivered_at)}</div>
                   {a.contents && <div className="text-sm mt-1 whitespace-pre-wrap">{a.contents}</div>}
                   {a.notes && <div className="text-xs text-muted-foreground mt-1">{t("aid.notes")}: {a.notes}</div>}
                 </div>
