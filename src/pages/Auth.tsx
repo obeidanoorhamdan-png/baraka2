@@ -437,11 +437,13 @@ const Auth = () => {
                       <KeyRound className="h-4 w-4 text-accent" />
                       {question?.kind === "national_id"
                         ? t("forgot.q_nid", { name: question?.label })
+                        : question?.kind === "self_birth_date"
+                        ? t("forgot.q_self_birth", { name: question?.label })
                         : t("forgot.q_birth", { name: question?.label })}
                     </Label>
                     <Input
                       autoFocus
-                      type={question?.kind === "birth_date" ? "date" : "text"}
+                      type={question?.kind === "national_id" ? "text" : "date"}
                       inputMode={question?.kind === "national_id" ? "numeric" : undefined}
                       maxLength={question?.kind === "national_id" ? 9 : undefined}
                       value={answer}
