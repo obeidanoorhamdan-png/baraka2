@@ -588,26 +588,27 @@ const MyApplication = () => {
         currentAppId = data.id;
         setAppId(data.id);
       }
-      if (members.length) {
-        const rows = members.map((m) => ({
-          application_id: currentAppId!,
-          full_name: m.full_name,
-          national_id: m.national_id || null,
-          birth_date: m.birth_date,
-          gender: m.gender,
-          relationship: m.relationship,
-          relationship_other: m.relationship_other || null,
-          is_war_injured: m.is_war_injured,
-          injury_report_url: m.injury_report_url || null,
-          chronic_diseases: m.chronic_diseases || null,
-          is_pregnant: m.is_pregnant,
-          is_breastfeeding: m.is_breastfeeding,
-          pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
-          health_notes: m.health_notes || null,
-        }));
-        const { error: fmErr } = await supabase.from("family_members").insert(rows);
-        if (fmErr) throw fmErr;
-      }
+      // Build the rows to insert: head of family first, then the rest.
+      const toRow = (m: Member, isHead: boolean) => ({
+        application_id: currentAppId!,
+        full_name: m.full_name,
+        national_id: m.national_id || null,
+        birth_date: m.birth_date,
+        gender: m.gender,
+        relationship: m.relationship,
+        relationship_other: m.relationship_other || null,
+        is_war_injured: m.is_war_injured,
+        injury_report_url: m.injury_report_url || null,
+        chronic_diseases: m.chronic_diseases || null,
+        is_pregnant: m.is_pregnant,
+        is_breastfeeding: m.is_breastfeeding,
+        pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
+        health_notes: m.health_notes || null,
+        is_head: isHead,
+      });
+      const allRows = [toRow(head, true), ...members.map((m) => toRow(m, false))];
+      const { error: fmErr } = await supabase.from("family_members").insert(allRows);
+      if (fmErr) throw fmErr;
       // Persist head-of-family edits to the profiles table.
       try {
         const { error: pErr } = await supabase.from("profiles").update({
