@@ -303,6 +303,8 @@ const MyApplication = () => {
         kind: "info",
       });
       toast.success(wasUpdate ? t("toast.updated") : t("toast.submitted"));
+      try { localStorage.removeItem(`baraka2:draft:${user.id}`); } catch {}
+      setLastDraftSavedAt("");
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
