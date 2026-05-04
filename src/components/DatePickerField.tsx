@@ -35,7 +35,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const parse = (v?: string): { y: string; m: string; d: string } => {
   if (!v) return { y: "", m: "", d: "" };
   const [y, m, d] = v.split("-");
-  return { y: y || "", m: m || "", d: d || "" };
+  const clean = (s?: string) => (!s || s.includes("_") ? "" : s);
+  return { y: clean(y), m: clean(m), d: clean(d) };
 };
 
 const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
