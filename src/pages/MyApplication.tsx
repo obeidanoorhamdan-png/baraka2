@@ -20,6 +20,8 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
+import { friendlyError } from "@/lib/friendlyError";
+import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
