@@ -442,20 +442,22 @@ const Auth = () => {
                         ? t("forgot.q_self_birth", { name: question?.label })
                         : t("forgot.q_birth", { name: question?.label })}
                     </Label>
-                    <Input
-                      autoFocus
-                      type={question?.kind === "national_id" ? "text" : "date"}
-                      inputMode={question?.kind === "national_id" ? "numeric" : undefined}
-                      maxLength={question?.kind === "national_id" ? 9 : undefined}
-                      value={answer}
-                      onChange={(e) => {
-                        const v =
-                          question?.kind === "national_id"
-                            ? e.target.value.replace(/\D/g, "").slice(0, 9)
-                            : e.target.value;
-                        setAnswer(v);
-                      }}
-                    />
+                    {question?.kind === "national_id" ? (
+                      <Input
+                        autoFocus
+                        type="text"
+                        inputMode="numeric"
+                        maxLength={9}
+                        value={answer}
+                        onChange={(e) => setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                      />
+                    ) : (
+                      <DatePickerField
+                        value={answer}
+                        disableFuture
+                        onChange={setAnswer}
+                      />
+                    )}
                   </div>
                   <button
                     type="button"
