@@ -25,6 +25,7 @@ import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } from "@/lib/offlineOutbox";
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
