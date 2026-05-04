@@ -1118,7 +1118,7 @@ const MyApplication = () => {
           </div>
           );
         })()}
-        </>
+        </></ErrorBoundary>
         )}
         </>
         )}
