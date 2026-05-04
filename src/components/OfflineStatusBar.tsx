@@ -12,7 +12,7 @@ export const OfflineStatusBar = () => {
 
   useEffect(() => {
     const off = onSyncState(setState);
-    return off;
+    return () => { off(); };
   }, []);
 
   // Hide entirely when everything is synced and we're online — no clutter
