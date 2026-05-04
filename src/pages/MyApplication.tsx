@@ -479,7 +479,7 @@ const MyApplication = () => {
     // Offline path → queue a high-level app.submit / app.update op so the
     // sync engine completes the submission as soon as we're back online.
     if (typeof navigator !== "undefined" && !navigator.onLine) {
-      const memberRows = members.map((m) => ({
+      const buildRow = (m: Member, isHead: boolean) => ({
         full_name: m.full_name,
         national_id: m.national_id || null,
         birth_date: m.birth_date,
@@ -493,7 +493,9 @@ const MyApplication = () => {
         is_breastfeeding: m.is_breastfeeding,
         pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
         health_notes: m.health_notes || null,
-      }));
+        is_head: isHead,
+      });
+      const memberRows = [buildRow(head, true), ...members.map((m) => buildRow(m, false))];
       const appPayload = {
         user_id: user.id,
         original_residence: residence.original_residence,
