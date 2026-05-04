@@ -771,6 +771,31 @@ const ApplicationSummary = ({
   };
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Submitted hero banner */}
+      <Card className="p-5 md:p-6 shadow-elegant border-success/30 bg-gradient-to-br from-success/10 via-background to-accent-soft/30">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="rounded-full bg-success/15 p-3 shrink-0">
+            <CheckCircle2 className="h-7 w-7 text-success" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl md:text-2xl font-extrabold text-primary mb-1">
+              تم استلام طلبك بنجاح
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              فيما يلي ملخص كامل لبيانات الأسرة كما تم تسجيلها. يمكنك تعديل أي قسم في أي وقت.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3 text-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 text-accent font-bold">
+                <Users className="h-3.5 w-3.5" /> {residence.family_size} فرد في الأسرة
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/15 text-success font-bold">
+                <CheckCircle2 className="h-3.5 w-3.5" /> {members.length} فرد مسجّل
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-5 shadow-elegant">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
           <h2 className="text-xl font-bold text-primary">{t("form.step2")}</h2>
