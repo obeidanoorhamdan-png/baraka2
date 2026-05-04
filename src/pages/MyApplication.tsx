@@ -1280,23 +1280,23 @@ const MyApplication = () => {
                 <Users className="h-4 w-4 text-accent" />
                 {t("form.step3")} ({members.length} / {Math.max(0, residence.family_size - 1)})
               </h3>
-              {members.length === 0 ? (
-                <p className="text-sm text-muted-foreground">لا يوجد أفراد إضافيون</p>
-              ) : (
-                <div className="space-y-2">
-                  {/* Head of family at the top */}
-                  <div className="p-3 rounded-md bg-accent-soft/40 border border-accent/40 text-sm">
-                    <div className="flex items-center gap-2 mb-1">
-                      <span className="rounded-full bg-accent text-accent-foreground px-2 py-0.5 text-[10px] font-bold">رب الأسرة</span>
-                      <strong className="text-primary">{head.full_name || "—"}</strong>
-                    </div>
-                    <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-2">
-                      {head.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{head.national_id}</strong></div>}
-                      <div>{t("form.birth_date")}: <strong className="text-foreground">{formatBirthDate(head.birth_date)}</strong></div>
-                      <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${head.gender}`)}</strong></div>
-                    </div>
+              <div className="space-y-2">
+                {/* Head of family at the top — always shown */}
+                <div className="p-3 rounded-md bg-accent-soft/40 border border-accent/40 text-sm">
+                  <div className="flex items-center gap-2 mb-1">
+                    <span className="rounded-full bg-accent text-accent-foreground px-2 py-0.5 text-[10px] font-bold">رب الأسرة</span>
+                    <strong className="text-primary">{head.full_name || "—"}</strong>
                   </div>
-                  {members.map((m, i) => (
+                  <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-2">
+                    {head.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{head.national_id}</strong></div>}
+                    <div>{t("form.birth_date")}: <strong className="text-foreground">{formatBirthDate(head.birth_date)}</strong></div>
+                    <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${head.gender}`)}</strong></div>
+                  </div>
+                </div>
+                {members.length === 0 ? (
+                  <p className="text-sm text-muted-foreground">لا يوجد أفراد إضافيون</p>
+                ) : (
+                  members.map((m, i) => (
                     <div key={i} className="p-3 rounded-md bg-background border border-border text-sm">
                       <div className="flex items-center gap-2 mb-1">
                         <span className="rounded-full bg-accent/15 text-accent w-6 h-6 inline-flex items-center justify-center text-xs font-bold">{i + 1}</span>
@@ -1308,9 +1308,9 @@ const MyApplication = () => {
                         <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${m.gender}`)}</strong></div>
                       </div>
                     </div>
-                  ))}
-                </div>
-              )}
+                  ))
+                )}
+              </div>
             </Card>
           </div>
 
