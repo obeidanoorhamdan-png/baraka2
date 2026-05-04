@@ -502,6 +502,25 @@ const MyApplication = () => {
               const payload = { residence, members, savedAt: Date.now() };
               localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
             } catch {}
+            const offline = typeof navigator !== "undefined" && !navigator.onLine;
+            if (offline) {
+              try {
+                await enqueueOp({
+                  kind: "supabase.upsert",
+                  table: "application_drafts",
+                  payload: { user_id: user.id, payload: { residence, members } },
+                  label: "حفظ مسودة الطلب",
+                });
+                setLastSavedSig(sig);
+                setLastDraftSavedAt(new Date().toLocaleTimeString("ar") + " (سيُرفع عند عودة الإنترنت)");
+                toast.success("تم الحفظ محلياً — سيتم رفعه عند عودة الإنترنت");
+              } catch (e: any) {
+                toast.error(friendlyError(e, "save_draft"));
+              } finally {
+                setTimeout(() => setSavingDraft(false), 300);
+              }
+              return;
+            }
             try {
               const { error } = await (supabase as any)
                 .from("application_drafts")
@@ -510,6 +529,7 @@ const MyApplication = () => {
               setLastSavedSig(sig);
               setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
               toast.success(t("form.draft_saved_now"));
+              drainOutbox();
             } catch (e: any) {
               toast.error(friendlyError(e, "save_draft"), {
                 description: "تم حفظ نسخة محلية على هذا الجهاز.",
