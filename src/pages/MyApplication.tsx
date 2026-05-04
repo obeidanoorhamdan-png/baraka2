@@ -128,6 +128,65 @@ const MyApplication = () => {
   useEffect(() => {
     if (!user) return;
     (async () => {
+      const cacheKey = `app:${user.id}`;
+      const offline = typeof navigator !== "undefined" && !navigator.onLine;
+
+      // Hydrate immediately from cache so the form is usable even before
+      // (or without) a network round-trip.
+      const cached = await cacheGet<any>(cacheKey);
+      if (cached?.app) {
+        setAppId(cached.app.id);
+        setAppStatus(cached.app.status);
+        setRejection(cached.app.rejection_reason);
+        setResidence({
+          original_residence: cached.app.original_residence,
+          original_landmark: cached.app.original_landmark,
+          current_landmark: cached.app.current_landmark,
+          family_size: cached.app.family_size,
+          has_martyr: cached.app.has_martyr,
+          martyr_name: cached.app.martyr_name || "",
+          martyr_relationship: cached.app.martyr_relationship || "",
+        });
+        setFamilySizeInput(String(cached.app.family_size));
+        if (Array.isArray(cached.members)) setMembers(cached.members);
+        setServerUpdatedAt(cached.app.updated_at || null);
+        setLastSavedSig(JSON.stringify({
+          residence: {
+            original_residence: cached.app.original_residence,
+            original_landmark: cached.app.original_landmark,
+            current_landmark: cached.app.current_landmark,
+            family_size: cached.app.family_size,
+            has_martyr: cached.app.has_martyr,
+            martyr_name: cached.app.martyr_name || "",
+            martyr_relationship: cached.app.martyr_relationship || "",
+          },
+          members: cached.members || [],
+        }));
+      }
+
+      if (offline) {
+        // Cache is now the source of truth until we're back online.
+        if (!cached) {
+          // No app and no cache → offer the in-progress local draft.
+          let localDraft: any = null;
+          try {
+            const raw = localStorage.getItem(`baraka2:draft:${user.id}`);
+            if (raw) localDraft = JSON.parse(raw);
+          } catch {}
+          if (localDraft && (localDraft.residence?.original_residence || localDraft.members?.length)) {
+            setPendingDraft({
+              residence: localDraft.residence,
+              members: Array.isArray(localDraft.members) ? localDraft.members : [],
+              savedAt: localDraft.savedAt ? new Date(localDraft.savedAt).toLocaleString("ar") : "",
+            });
+          } else {
+            setLastSavedSig(JSON.stringify({ residence, members: [] }));
+          }
+        }
+        setPageLoading(false);
+        return;
+      }
+
       const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
       if (app) {
         setAppId(app.id);
@@ -143,8 +202,15 @@ const MyApplication = () => {
           martyr_relationship: app.martyr_relationship || "",
           });
           setFamilySizeInput(String(app.family_size));
+        setServerUpdatedAt(app.updated_at || null);
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
-        if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
+        const memberRows = (fm || []).map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any));
+        if (memberRows.length) setMembers(memberRows);
+        // Persist to cache for next offline launch.
+        await cacheSet(cacheKey, { app, members: memberRows });
+      } else {
+        // Clear stale cache if the app was deleted server-side.
+        await cacheSet(cacheKey, null);
       }
       // No saved application yet — check for an in-progress draft and offer
       // to resume it (do not auto-overwrite the empty form). Server draft
@@ -183,7 +249,15 @@ const MyApplication = () => {
           setLastSavedSig(JSON.stringify({ residence, members: [] }));
         }
       } else {
-        setLastSavedSig(JSON.stringify({ residence, members }));
+        setLastSavedSig(JSON.stringify({ residence: {
+          original_residence: app.original_residence,
+          original_landmark: app.original_landmark,
+          current_landmark: app.current_landmark,
+          family_size: app.family_size,
+          has_martyr: app.has_martyr,
+          martyr_name: app.martyr_name || "",
+          martyr_relationship: app.martyr_relationship || "",
+        }, members }));
       }
       setPageLoading(false);
     })();
