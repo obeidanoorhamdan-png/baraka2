@@ -35,7 +35,8 @@ const pad = (n: number) => String(n).padStart(2, "0");
 const parse = (v?: string): { y: string; m: string; d: string } => {
   if (!v) return { y: "", m: "", d: "" };
   const [y, m, d] = v.split("-");
-  return { y: y || "", m: m || "", d: d || "" };
+  const clean = (s?: string) => (!s || s.includes("_") ? "" : s);
+  return { y: clean(y), m: clean(m), d: clean(d) };
 };
 
 const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
@@ -84,13 +85,20 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   );
 
   const emit = (ny: string, nm: string, nd: string) => {
+    // Allow partial selection — keep whatever the user picked so far,
+    // and only emit a full ISO date once all three parts exist.
+    if (!ny && !nm && !nd) {
+      onChange("");
+      return;
+    }
     if (ny && nm && nd) {
-      // Clamp day if month/year change reduces month length.
       const max = daysInMonth(parseInt(ny, 10), parseInt(nm, 10));
       const safeD = Math.min(parseInt(nd, 10), max);
       onChange(`${ny}-${pad(parseInt(nm, 10))}-${pad(safeD)}`);
     } else {
-      onChange("");
+      // Partial — store as a sentinel so the selects keep showing the user's
+      // choices. Parent treats anything not matching YYYY-MM-DD as "empty".
+      onChange(`${ny || "____"}-${nm || "__"}-${nd || "__"}`);
     }
   };
 
