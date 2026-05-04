@@ -186,14 +186,20 @@ const MyApplication = () => {
     return true;
   };
 
-  const submit = async () => {
+  // Open the review summary dialog after running validations.
+  const openReview = async () => {
     if (!user) return;
-    // Block new submissions when registration is closed; existing application owners can still update
     if (!appId && !settings.registration_open) {
       toast.error(t("toast.registration_closed_now"));
       return;
     }
     if (!(await validateMembers())) return;
+    setSummaryOpen(true);
+  };
+
+  const submit = async () => {
+    if (!user) return;
+    setSummaryOpen(false);
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
       description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
