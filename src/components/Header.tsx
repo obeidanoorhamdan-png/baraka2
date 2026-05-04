@@ -40,9 +40,15 @@ export const Header = () => {
                   <Link to="/dashboard"><HomeIcon className="h-4 w-4" />{t("dashboard.nav")}</Link>
                 </Button>
               )}
-              <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1.5">
+              <Button
+                variant="destructive"
+                size="sm"
+                onClick={handleLogout}
+                className="gap-1.5 font-extrabold shadow-md hover:shadow-lg transition-all border-2 border-destructive/40"
+                aria-label={t("auth.logout")}
+              >
                 <LogOut className="h-4 w-4" />
-                <span className="hidden sm:inline">{t("auth.logout")}</span>
+                <span>{t("auth.logout")}</span>
               </Button>
             </>
           ) : null}

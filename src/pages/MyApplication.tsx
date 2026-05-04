@@ -43,6 +43,7 @@ const MyApplication = () => {
   const [familySizeInput, setFamilySizeInput] = useState<string>("");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [collapsedMembers, setCollapsedMembers] = useState<Record<number, boolean>>({});
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string>("");
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
@@ -129,9 +130,44 @@ const MyApplication = () => {
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", app.id);
         if (fm && fm.length) setMembers(fm.map((m) => ({ ...m, chronic_diseases: m.chronic_diseases || "", health_notes: m.health_notes || "", relationship_other: m.relationship_other || "" } as any)));
       }
+      // No saved application yet — try to restore an in-progress draft from
+      // local storage so the user does not lose what they had typed.
+      if (!app) {
+        try {
+          const raw = localStorage.getItem(`baraka2:draft:${user.id}`);
+          if (raw) {
+            const d = JSON.parse(raw);
+            if (d?.residence) {
+              setResidence(d.residence);
+              setFamilySizeInput(String(d.residence.family_size || 1));
+            }
+            if (Array.isArray(d?.members)) setMembers(d.members);
+            if (d?.savedAt) {
+              setLastDraftSavedAt(new Date(d.savedAt).toLocaleTimeString("ar"));
+              toast.info(t("form.draft_restored"));
+            }
+          }
+        } catch {}
+      }
       setPageLoading(false);
     })();
   }, [user]);
+
+  // Auto-save draft to localStorage while the user is filling members or
+  // residence (only before submission). This makes the flow feel safe even
+  // if the device reloads. Debounced 600 ms.
+  useEffect(() => {
+    if (!user || pageLoading) return;
+    if (appId && !editMode) return; // already submitted view
+    const handle = setTimeout(() => {
+      try {
+        const payload = { residence, members, savedAt: Date.now() };
+        localStorage.setItem(`baraka2:draft:${user.id}`, JSON.stringify(payload));
+        setLastDraftSavedAt(new Date().toLocaleTimeString("ar"));
+      } catch {}
+    }, 600);
+    return () => clearTimeout(handle);
+  }, [residence, members, user, pageLoading, appId, editMode]);
 
   // Trim members if user reduces family size below current members count.
   // Do NOT auto-add members — user adds them manually with the "Add member" button.
@@ -267,6 +303,8 @@ const MyApplication = () => {
         kind: "info",
       });
       toast.success(wasUpdate ? t("toast.updated") : t("toast.submitted"));
+      try { localStorage.removeItem(`baraka2:draft:${user.id}`); } catch {}
+      setLastDraftSavedAt("");
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
@@ -323,12 +361,55 @@ const MyApplication = () => {
           />
         ) : (
         <>
-        {/* Stepper */}
-        <div className="flex items-center justify-between mb-6 gap-2">
-          {[1, 2].map((n) => (
-            <button key={n} onClick={() => setStep(n)} className={`flex-1 h-2 rounded-full transition-colors ${step >= n ? "bg-accent" : "bg-muted"}`} />
-          ))}
-        </div>
+        {/* Stepper — labeled and clearly numbered */}
+        <Card className="p-4 mb-6 shadow-card">
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { n: 1, label: t("form.step2"), hint: "السكن وعدد الأسرة" },
+              { n: 2, label: t("form.step3"), hint: "إضافة بيانات الأفراد" },
+            ].map(({ n, label, hint }) => {
+              const active = step === n;
+              const done = step > n;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setStep(n)}
+                  className={`text-start rounded-xl border-2 p-3 transition-all ${
+                    active
+                      ? "border-accent bg-accent-soft/60 shadow-md"
+                      : done
+                      ? "border-success/40 bg-success/5"
+                      : "border-border bg-muted/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
+                        active
+                          ? "bg-accent text-accent-foreground"
+                          : done
+                          ? "bg-success text-white"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {done ? <CheckCircle2 className="h-4 w-4" /> : n}
+                    </span>
+                    <div className="font-bold text-primary text-sm">
+                      {t("form.step")} {n}: {label}
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1 ms-9">{hint}</div>
+                </button>
+              );
+            })}
+          </div>
+          {lastDraftSavedAt && step === 2 && (
+            <div className="mt-3 text-[11px] text-success inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" /> {t("form.draft_saved_at", { time: lastDraftSavedAt })}
+            </div>
+          )}
+        </Card>
 
         {step === 1 && (
           <Card className="p-5 md:p-6 shadow-elegant space-y-4">
@@ -690,6 +771,31 @@ const ApplicationSummary = ({
   };
   return (
     <div className="space-y-4 animate-fade-in">
+      {/* Submitted hero banner */}
+      <Card className="p-5 md:p-6 shadow-elegant border-success/30 bg-gradient-to-br from-success/10 via-background to-accent-soft/30">
+        <div className="flex items-start gap-4 flex-wrap">
+          <div className="rounded-full bg-success/15 p-3 shrink-0">
+            <CheckCircle2 className="h-7 w-7 text-success" />
+          </div>
+          <div className="flex-1 min-w-0">
+            <h2 className="text-xl md:text-2xl font-extrabold text-primary mb-1">
+              تم استلام طلبك بنجاح
+            </h2>
+            <p className="text-sm text-muted-foreground">
+              فيما يلي ملخص كامل لبيانات الأسرة كما تم تسجيلها. يمكنك تعديل أي قسم في أي وقت.
+            </p>
+            <div className="mt-3 flex flex-wrap gap-3 text-xs">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-accent/15 text-accent font-bold">
+                <Users className="h-3.5 w-3.5" /> {residence.family_size} فرد في الأسرة
+              </span>
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 rounded-full bg-success/15 text-success font-bold">
+                <CheckCircle2 className="h-3.5 w-3.5" /> {members.length} فرد مسجّل
+              </span>
+            </div>
+          </div>
+        </div>
+      </Card>
+
       <Card className="p-5 shadow-elegant">
         <div className="flex items-center justify-between gap-3 flex-wrap mb-4">
           <h2 className="text-xl font-bold text-primary">{t("form.step2")}</h2>
