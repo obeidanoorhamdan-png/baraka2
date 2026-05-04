@@ -446,11 +446,41 @@ const MyApplication = () => {
               />
             ))}
 
-            {appStatus !== "approved" && (
-              <Button type="button" variant="outline" onClick={() => setMembers([...members, emptyMember()])} className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft">
-                <Plus className="h-4 w-4" /> {t("family.add")}
-              </Button>
-            )}
+            {appStatus !== "approved" && (() => {
+              const maxMembers = Math.max(0, residence.family_size - 1);
+              const remaining = maxMembers - members.length;
+              const reachedMax = remaining <= 0;
+              return (
+                <div className="space-y-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={reachedMax || !familySizeInput}
+                    onClick={() => {
+                      if (members.length >= maxMembers) {
+                        toast.error(`لا يمكن إضافة أكثر من ${maxMembers} فرد. عدّل عدد أفراد الأسرة من الخطوة السابقة.`);
+                        return;
+                      }
+                      setMembers([...members, emptyMember()]);
+                    }}
+                    className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft disabled:opacity-50"
+                  >
+                    <Plus className="h-4 w-4" /> {t("family.add")}
+                    {familySizeInput && !reachedMax && (
+                      <span className="text-xs text-muted-foreground">
+                        ({members.length} / {maxMembers})
+                      </span>
+                    )}
+                  </Button>
+                  {!familySizeInput && (
+                    <p className="text-xs text-center text-muted-foreground">حدّد عدد أفراد الأسرة في الخطوة السابقة أولاً</p>
+                  )}
+                  {reachedMax && familySizeInput && (
+                    <p className="text-xs text-center text-success">✓ اكتمل العدد المطلوب ({maxMembers} فرد)</p>
+                  )}
+                </div>
+              );
+            })()}
             {appStatus === "approved" && (
               <Card className="p-3 text-sm text-center text-success bg-success/5 border-success/30">
                 {t("my_app.approved_locked_add")}
