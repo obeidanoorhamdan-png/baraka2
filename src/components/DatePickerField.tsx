@@ -79,6 +79,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   invalid,
   disabled,
   id,
+  autoOpen,
 }) => {
   const selected = parseIso(value);
   const [open, setOpen] = React.useState(false);
@@ -87,6 +88,15 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   React.useEffect(() => {
     if (selected) setMonth(selected);
   }, [value]);
+
+  // Auto-open shortly after mount so users immediately see the calendar
+  // (eliminates confusion about a "small arrow" — the picker opens itself).
+  React.useEffect(() => {
+    if (!autoOpen || disabled) return;
+    const t = setTimeout(() => setOpen(true), 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
 
   const years = React.useMemo(() => {
     const arr: number[] = [];
