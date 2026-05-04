@@ -303,6 +303,12 @@ const MyApplication = () => {
   const submit = async () => {
     if (!user) return;
     setSummaryOpen(false);
+    if (typeof navigator !== "undefined" && !navigator.onLine) {
+      toast.error("لا يمكن إرسال الطلب دون اتصال بالإنترنت", {
+        description: "تم حفظ بياناتك كمسودة على هذا الجهاز. سيتم الإرسال تلقائياً بعد عودة الإنترنت — أو اضغط إرسال يدوياً.",
+      });
+      return;
+    }
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
       description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
