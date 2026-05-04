@@ -490,6 +490,21 @@ const MyApplication = () => {
       try { await (supabase as any).from("application_drafts").delete().eq("user_id", user.id); } catch {}
       setLastDraftSavedAt("");
       setLastSavedSig(JSON.stringify({ residence, members }));
+      // Refresh cache + server timestamp so future conflict checks compare
+      // against the new state.
+      try {
+        const { data: refreshed } = await supabase
+          .from("applications").select("*").eq("id", currentAppId!).maybeSingle();
+        if (refreshed) {
+          setServerUpdatedAt(refreshed.updated_at || null);
+          await cacheSet(`app:${user.id}`, { app: refreshed, members });
+        }
+      } catch {}
+      await logHistory({
+        status: "success",
+        label: wasUpdate ? "تحديث الطلب" : "إرسال الطلب",
+        detail: `تم بنجاح في ${new Date().toLocaleString("ar")}`,
+      });
     } catch (e: any) {
       const msg = (e?.message || "").toLowerCase();
       if (msg.includes("family_members_national_id_unique") || msg.includes("duplicate") || msg.includes("unique")) {
@@ -497,6 +512,7 @@ const MyApplication = () => {
       } else {
         toast.error(friendlyError(e, "submit"));
       }
+      await logHistory({ status: "error", label: "إرسال/تحديث الطلب", detail: e?.message || String(e) });
     }
     setBusy(false);
   };
