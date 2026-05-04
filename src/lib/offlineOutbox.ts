@@ -49,17 +49,30 @@ interface OutboxSchema extends DBSchema {
     key: string;
     value: { key: string; value: any; updatedAt: number };
   };
+  history: {
+    key: number;
+    value: SyncHistoryEntry;
+    indexes: { byTime: number };
+  };
+}
+
+export interface SyncHistoryEntry {
+  id?: number;
+  time: number;
+  status: "success" | "error" | "discarded";
+  label: string;
+  detail?: string;
 }
 
 const DB_NAME = "baraka2-offline";
-const DB_VERSION = 1;
+const DB_VERSION = 2;
 
 let dbp: Promise<IDBPDatabase<OutboxSchema>> | null = null;
 
 function getDB() {
   if (!dbp) {
     dbp = openDB<OutboxSchema>(DB_NAME, DB_VERSION, {
-      upgrade(db) {
+      upgrade(db, oldVersion) {
         if (!db.objectStoreNames.contains("ops")) {
           const store = db.createObjectStore("ops", {
             keyPath: "id",
@@ -69,6 +82,10 @@ function getDB() {
         }
         if (!db.objectStoreNames.contains("cache")) {
           db.createObjectStore("cache", { keyPath: "key" });
+        }
+        if (!db.objectStoreNames.contains("history")) {
+          const h = db.createObjectStore("history", { keyPath: "id", autoIncrement: true });
+          h.createIndex("byTime", "time");
         }
       },
     });
