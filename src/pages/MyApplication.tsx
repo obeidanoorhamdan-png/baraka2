@@ -1467,6 +1467,25 @@ const ApplicationSummary = ({
           </Button>
         </div>
         <div className="space-y-3">
+          {/* Head of family — always rendered first, with a distinct badge. */}
+          <Card className="p-4 bg-accent-soft/40 border-accent/40">
+            <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
+              <div className="font-bold text-primary flex items-center gap-2">
+                <span className="text-[10px] px-2 py-0.5 rounded-full bg-accent text-accent-foreground font-bold">رب الأسرة</span>
+                {head.full_name || "—"}
+              </div>
+              <div className="flex gap-1.5 flex-wrap">
+                {head.is_war_injured && <span className="text-[10px] px-2 py-0.5 rounded-full bg-destructive/15 text-destructive font-bold">{t("health.injured")}</span>}
+              </div>
+            </div>
+            <div className="grid gap-3 md:grid-cols-3 text-sm">
+              <Field label={t("form.national_id")} value={head.national_id} />
+              <Field label={t("form.birth_date")} value={formatBirthDate(head.birth_date)} />
+              <Field label={t("form.gender")} value={t(`form.${head.gender}`)} />
+              {head.chronic_diseases && <Field label={t("health.chronic")} value={head.chronic_diseases} />}
+              {head.health_notes && <Field label={t("health.notes")} value={head.health_notes} />}
+            </div>
+          </Card>
           {members.map((m, i) => (
             <Card key={i} className="p-4 bg-muted/30 border-accent/20">
               <div className="flex items-center justify-between mb-2 flex-wrap gap-2">
