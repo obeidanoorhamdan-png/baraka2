@@ -52,18 +52,22 @@ type FieldKey = "injury_report_url" | "pregnancy_report_url";
 
 export const MemberCard = ({
   index,
+  total,
   member,
   userId,
   onChange,
   onRemove,
+  onSave,
   errors = {},
   onFieldBlur,
 }: {
   index: number;
+  total?: number;
   member: Member;
   userId: string;
   onChange: (m: Member) => void;
   onRemove?: () => void;
+  onSave?: () => void;
   errors?: Record<string, string>;
   onFieldBlur?: (field: string) => void;
 }) => {
