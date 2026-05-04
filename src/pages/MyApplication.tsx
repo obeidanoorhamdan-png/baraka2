@@ -356,39 +356,28 @@ const MyApplication = () => {
               </div>
               <div className="md:col-span-2">
                 <Label>{t("residence.family_size")} <span className="text-muted-foreground text-xs">(شامل رب الأسرة)</span></Label>
-                <Input
-                  type="text"
-                  inputMode="numeric"
-                  pattern="[0-9]*"
-                  maxLength={2}
-                  placeholder="مثال: 5"
+                <Select
                   value={familySizeInput}
-                  onFocus={(e) => { e.currentTarget.select(); }}
-                  onChange={(e) => {
-                    const digits = e.target.value.replace(/\D/g, "").slice(0, 2);
-                    setFamilySizeInput(digits);
-                    if (digits === "") {
-                      setResidence((r) => ({ ...r, family_size: 1 }));
-                      return;
-                    }
-                    let n = parseInt(digits, 10);
-                    if (n < 1) n = 1;
-                    if (n > 20) n = 20;
-                    if (String(n) !== digits) setFamilySizeInput(String(n));
+                  onValueChange={(v) => {
+                    setFamilySizeInput(v);
+                    const n = parseInt(v, 10);
                     setResidence((r) => ({ ...r, family_size: n }));
                   }}
-                  onBlur={() => {
-                    if (familySizeInput === "") return;
-                    let n = parseInt(familySizeInput, 10) || 1;
-                    if (n < 1) n = 1;
-                    if (n > 20) n = 20;
-                    setFamilySizeInput(String(n));
-                    setResidence((r) => ({ ...r, family_size: n }));
-                  }}
-                />
-                <p className="text-xs text-muted-foreground mt-1">
-                  من 1 إلى 20 — سيتم طلب بيانات {Math.max(0, residence.family_size - 1)} فرد بجانب رب الأسرة
-                </p>
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="اختر عدد الأفراد" />
+                  </SelectTrigger>
+                  <SelectContent className="max-h-72">
+                    {Array.from({ length: 15 }, (_, i) => i + 1).map((n) => (
+                      <SelectItem key={n} value={String(n)}>{n}</SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                {familySizeInput && (
+                  <p className="text-xs text-muted-foreground mt-1">
+                    رب الأسرة محسوب — سيتم طلب بيانات {Math.max(0, residence.family_size - 1)} فرد إضافي
+                  </p>
+                )}
               </div>
             </div>
             <div className="pt-2 border-t border-border">
