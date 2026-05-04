@@ -43,6 +43,7 @@ const MyApplication = () => {
   const [familySizeInput, setFamilySizeInput] = useState<string>("");
   const [summaryOpen, setSummaryOpen] = useState(false);
   const [collapsedMembers, setCollapsedMembers] = useState<Record<number, boolean>>({});
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string>("");
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
