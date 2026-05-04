@@ -565,7 +565,7 @@ const Admin = () => {
                           <TableCell dir="ltr">{p.national_id}</TableCell>
                           <TableCell dir="ltr">{p.phone}</TableCell>
                           <TableCell>{r.family_size}</TableCell>
-                          <TableCell className="text-xs text-muted-foreground" dir="ltr">{new Date(r.submitted_at).toLocaleDateString()}</TableCell>
+                          <TableCell className="text-xs text-muted-foreground">{formatDateShort(r.submitted_at)}</TableCell>
                           <TableCell>
                             <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
                               r.status === "approved" ? "bg-success/15 text-success" :
