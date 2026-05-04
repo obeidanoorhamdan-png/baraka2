@@ -14,7 +14,7 @@ const corsHeaders = {
 interface SigninBody {
   national_id: string;
   answer: {
-    kind: "national_id" | "birth_date" | "admin_pin";
+    kind: "national_id" | "birth_date" | "admin_pin" | "self_birth_date";
     question_id?: string;
     value: string;
   };
