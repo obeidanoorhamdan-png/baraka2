@@ -27,6 +27,9 @@ import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } fr
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+// Fields locked on the head-of-family card — tied to the user's auth account.
+const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
+
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
   const { user, isAdmin, loading } = useAuth();
