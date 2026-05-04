@@ -22,8 +22,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
-import { enqueueOp, cacheGet, cacheSet, logHistory } from "@/lib/offlineOutbox";
-import { drainOutbox } from "@/lib/syncEngine";
+import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } from "@/lib/offlineOutbox";
+import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -58,6 +58,9 @@ const MyApplication = () => {
   // working offline).
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [conflictData, setConflictData] = useState<{ residence: any; members: Member[]; updatedAt: string } | null>(null);
+  const [hasPendingSubmit, setHasPendingSubmit] = useState(false);
+  const [pendingSubmitProgress, setPendingSubmitProgress] = useState<number>(0);
+  const [pendingSubmitSyncing, setPendingSubmitSyncing] = useState(false);
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
