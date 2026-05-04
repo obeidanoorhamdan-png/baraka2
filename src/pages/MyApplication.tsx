@@ -14,6 +14,7 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogD
 import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
+import { formatBirthDate } from "@/lib/formatDate";
 import { toast } from "sonner";
 import { ID_RE, isFullName } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
