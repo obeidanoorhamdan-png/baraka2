@@ -485,6 +485,8 @@ const Admin = () => {
           )}
         </Card>
 
+        <ChangeAdminPinCard />
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon={Users} label={t("admin.total")} value={stats.total} color="bg-primary/10 text-primary" />
