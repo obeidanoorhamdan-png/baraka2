@@ -42,6 +42,7 @@ const MyApplication = () => {
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
   const [editMode, setEditMode] = useState(false);
   const [snapshot, setSnapshot] = useState<string>("");
+  const [familySizeInput, setFamilySizeInput] = useState<string>("2");
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
