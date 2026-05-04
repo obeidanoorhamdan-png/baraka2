@@ -29,12 +29,9 @@ const Landing = () => {
             <p className="text-sm opacity-75 max-w-xl">{t("landing.intro")}</p>
             <div className="flex flex-wrap gap-3 pt-3">
               <Button asChild size="lg" className="gold-gradient text-accent-foreground hover:opacity-90 shadow-gold">
-                <Link to="/auth?mode=signup" className="gap-2">
-                  {t("landing.register")} <Arrow className="h-4 w-4" />
+                <Link to="/auth" className="gap-2">
+                  ابدأ الآن — سجِّل أو ادخل ببيانات عائلتك <Arrow className="h-4 w-4" />
                 </Link>
-              </Button>
-              <Button asChild size="lg" variant="outline" className="border-accent/60 text-accent-foreground bg-background/10 hover:bg-background/20">
-                <Link to="/auth?mode=signin">{t("landing.update")}</Link>
               </Button>
             </div>
           </div>

@@ -1,12 +1,11 @@
 import { useEffect, useState } from "react";
-import { useNavigate, useSearchParams, Link } from "react-router-dom";
+import { useNavigate, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Card } from "@/components/ui/card";
-import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Textarea } from "@/components/ui/textarea";
@@ -17,7 +16,7 @@ import { calculateAge } from "@/lib/age";
 import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE } from "@/lib/validators";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowLeft } from "lucide-react";
+import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus } from "lucide-react";
 
 // A deterministic, server-generated initial password for new users.
 // The user never sees or types it. After signup, they sign in via the
@@ -25,14 +24,13 @@ import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowLeft } from "lucide-re
 const initialSignupPassword = (nid: string) =>
   `Baraka2-Init-${nid}-${nid.split("").reverse().join("")}-2026`;
 
+type Stage = "id" | "question" | "signup";
+
 const Auth = () => {
   const { t } = useTranslation();
-  const [params] = useSearchParams();
   const navigate = useNavigate();
   const { user, isAdmin, loading } = useAuth();
   const { settings, loading: settingsLoading } = useAppSettings();
-  const initial = params.get("mode") === "signup" ? "signup" : "signin";
-  const [tab, setTab] = useState<"signin" | "signup">(initial);
   const confirmAsk = useConfirm();
 
   useEffect(() => {
@@ -41,111 +39,153 @@ const Auth = () => {
     }
   }, [user, isAdmin, loading, navigate]);
 
-  // ============== Sign-in (passwordless: ID + 1 random security question) ==============
-  const [siNid, setSiNid] = useState("");
-  const [siStage, setSiStage] = useState<"id" | "question">("id");
-  const [siBusy, setSiBusy] = useState(false);
-  const [siQuestion, setSiQuestion] = useState<{ question_id: string; kind: "national_id" | "birth_date"; label: string } | null>(null);
-  const [siAnswer, setSiAnswer] = useState("");
-  const [siAdminPin, setSiAdminPin] = useState("");
-  const [askedIds, setAskedIds] = useState<string[]>([]);
+  // ============== Unified ID-first flow ==============
+  const [nid, setNid] = useState("");
+  const [stage, setStage] = useState<Stage>("id");
+  const [busy, setBusy] = useState(false);
 
-  const isAdminFlow = siNid === ADMIN_NID;
+  // Question state (existing user)
+  const [question, setQuestion] = useState<{
+    question_id: string;
+    kind: "national_id" | "birth_date";
+    label: string;
+  } | null>(null);
+  const [answer, setAnswer] = useState("");
+  const [adminPin, setAdminPin] = useState("");
+  const isAdminFlow = nid === ADMIN_NID;
 
   const fetchQuestion = async (excludeId?: string) => {
-    setSiBusy(true);
+    setBusy(true);
     const { data, error } = await supabase.rpc("get_random_security_question", {
-      _nid: siNid,
+      _nid: nid,
       _exclude_id: excludeId || null,
     });
-    setSiBusy(false);
-    if (error) { toast.error(error.message); return null; }
+    setBusy(false);
+    if (error) {
+      toast.error(error.message);
+      return null;
+    }
     if (!data || (data as any[]).length === 0) {
       toast.error(t("toast.no_questions_available"));
       return null;
     }
     const q = (data as any[])[0];
-    return { question_id: q.question_id, kind: q.kind as "national_id" | "birth_date", label: q.label };
+    return {
+      question_id: q.question_id,
+      kind: q.kind as "national_id" | "birth_date",
+      label: q.label,
+    };
   };
 
-  const startSignin = async () => {
-    if (!SIGNIN_ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
-    if (siNid === ADMIN_NID) {
-      // Admin flow: just ask for admin PIN
-      setSiStage("question");
+  const handleLookup = async () => {
+    if (!SIGNIN_ID_RE.test(nid)) {
+      toast.error(t("form.invalid_id"));
       return;
     }
-    const q = await fetchQuestion();
-    if (!q) return;
-    setSiQuestion(q);
-    setAskedIds([q.question_id]);
-    setSiAnswer("");
-    setSiStage("question");
+    setBusy(true);
+
+    // Admin path — always go to "question" stage with PIN. UI does not reveal admin nature.
+    if (isAdminFlow) {
+      setStage("question");
+      setBusy(false);
+      return;
+    }
+
+    // Check if a head-of-family account exists for this NID.
+    const { data: exists, error } = await supabase.rpc("head_account_exists", { _nid: nid });
+    if (error) {
+      toast.error(error.message);
+      setBusy(false);
+      return;
+    }
+
+    if (exists === true) {
+      // Existing user — try to fetch a security question. If no questions
+      // available yet (e.g. no family members registered), inform user.
+      const q = await fetchQuestion();
+      if (!q) return;
+      setQuestion(q);
+      setAnswer("");
+      setStage("question");
+    } else {
+      // New user — proceed to signup with prefilled NID.
+      if (!settingsLoading && !settings.registration_open) {
+        toast.error(t("toast.registration_closed_now"));
+        setBusy(false);
+        return;
+      }
+      setSu((p) => ({ ...p, national_id: nid }));
+      setStage("signup");
+      setBusy(false);
+    }
   };
 
   const askAnotherQuestion = async () => {
-    const q = await fetchQuestion(siQuestion?.question_id);
+    const q = await fetchQuestion(question?.question_id);
     if (!q) return;
-    setSiQuestion(q);
-    setAskedIds((p) => [...p, q.question_id]);
-    setSiAnswer("");
+    setQuestion(q);
+    setAnswer("");
     toast.info(t("toast.new_question_loaded"));
   };
 
   const performSignin = async () => {
-    setSiBusy(true);
+    setBusy(true);
     try {
+      if (isAdminFlow && !PIN_RE.test(adminPin)) {
+        toast.error(t("form.invalid_pin"));
+        setBusy(false);
+        return;
+      }
+      if (!isAdminFlow && !answer.trim()) {
+        toast.error(t("form.required"));
+        setBusy(false);
+        return;
+      }
       const payload = isAdminFlow
-        ? { national_id: siNid, answer: { kind: "admin_pin" as const, value: siAdminPin } }
+        ? { national_id: nid, answer: { kind: "admin_pin" as const, value: adminPin } }
         : {
-            national_id: siNid,
+            national_id: nid,
             answer: {
-              kind: siQuestion!.kind,
-              question_id: siQuestion!.question_id,
-              value: siAnswer.trim(),
+              kind: question!.kind,
+              question_id: question!.question_id,
+              value: answer.trim(),
             },
           };
-      if (isAdminFlow && !PIN_RE.test(siAdminPin)) {
-        toast.error(t("form.invalid_pin"));
-        setSiBusy(false);
-        return;
-      }
-      if (!isAdminFlow && !siAnswer.trim()) {
-        toast.error(t("form.required"));
-        setSiBusy(false);
-        return;
-      }
-
       const { data, error } = await supabase.functions.invoke("passwordless-signin", { body: payload });
       if (error || !(data as any)?.ok) {
         const reason = (data as any)?.error || error?.message;
         toast.error(reason || t("toast.wrong_answer"), {
           description: !isAdminFlow ? t("toast.try_another_question") : undefined,
         });
-        setSiBusy(false);
+        setBusy(false);
         return;
       }
-      // Verified — show success then sign-in
       toast.success(t("toast.answer_verified"));
       const password = (data as any).password as string;
       const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: idToEmail(siNid),
+        email: idToEmail(nid),
         password,
       });
-      setSiBusy(false);
-      if (signInErr) { toast.error(t("toast.invalid_credentials")); return; }
+      setBusy(false);
+      if (signInErr) {
+        toast.error(t("toast.invalid_credentials"));
+        return;
+      }
       toast.success(t("toast.signin_success"));
     } catch (e: any) {
-      setSiBusy(false);
+      setBusy(false);
       toast.error(e?.message || t("toast.error"));
     }
   };
 
-  const resetSignin = () => {
-    setSiStage("id"); setSiQuestion(null); setSiAnswer(""); setSiAdminPin(""); setAskedIds([]);
+  const resetFlow = () => {
+    setStage("id");
+    setQuestion(null);
+    setAnswer("");
+    setAdminPin("");
   };
 
-  // ============== Sign-up (no password from user — generated internally) ==============
+  // ============== Sign-up state ==============
   const [su, setSu] = useState({
     national_id: "",
     full_name: "",
@@ -200,12 +240,15 @@ const Auth = () => {
   };
 
   const validateAll = (): boolean => {
-    const keys = ["national_id","full_name","birth_date","phone","alt_phone","marital_status_other"];
+    const keys = ["national_id", "full_name", "birth_date", "phone", "alt_phone", "marital_status_other"];
     const next: Record<string, string> = {};
     let ok = true;
     for (const k of keys) {
       const msg = validateField(k, (su as any)[k]);
-      if (msg) { next[k] = msg; ok = false; } else next[k] = "";
+      if (msg) {
+        next[k] = msg;
+        ok = false;
+      } else next[k] = "";
     }
     setErrors(next);
     return ok;
@@ -217,14 +260,19 @@ const Auth = () => {
       toast.error(t("toast.registration_closed_now"));
       return;
     }
-    if (!validateAll()) { toast.error(t("toast.fix_errors")); return; }
-
-    if (!(await confirmAsk({
-      title: t("confirm.create_account_title"),
-      description: t("confirm.create_account"),
-      confirmText: t("auth.signup_btn"),
-      variant: "default",
-    }))) return;
+    if (!validateAll()) {
+      toast.error(t("toast.fix_errors"));
+      return;
+    }
+    if (
+      !(await confirmAsk({
+        title: t("confirm.create_account_title"),
+        description: t("confirm.create_account"),
+        confirmText: t("auth.signup_btn"),
+        variant: "default",
+      }))
+    )
+      return;
     setSuBusy(true);
     const { data: dup } = await supabase.rpc("national_id_exists", { _nid: su.national_id });
     if (dup === true) {
@@ -265,103 +313,168 @@ const Auth = () => {
     toast.success(t("toast.signup_success"));
   };
 
+  // ============================================================
   return (
     <Layout>
       <section className="container py-10 max-w-2xl">
         <Card className="p-6 md:p-8 shadow-elegant">
-          <Tabs value={tab} onValueChange={(v) => { setTab(v as any); resetSignin(); }}>
-            <TabsList className="grid grid-cols-2 w-full">
-              <TabsTrigger value="signup">{t("auth.signup_title")}</TabsTrigger>
-              <TabsTrigger value="signin">{t("auth.signin_title")}</TabsTrigger>
-            </TabsList>
+          {/* Branded header */}
+          <div className="text-center mb-6 space-y-2">
+            <div className="inline-flex items-center gap-2 rounded-full bg-accent/10 border border-accent/30 px-3 py-1 text-xs text-accent font-bold">
+              <ShieldCheck className="h-3.5 w-3.5" /> {t("auth.unified_title")}
+            </div>
+            <h1 className="text-2xl md:text-3xl font-extrabold text-primary">
+              {stage === "id" && t("auth.signin_title")}
+              {stage === "question" && t("auth.passwordless_title")}
+              {stage === "signup" && t("auth.signup_title")}
+            </h1>
+            {stage === "id" && (
+              <p className="text-sm text-muted-foreground max-w-md mx-auto">{t("auth.unified_intro")}</p>
+            )}
+          </div>
 
-            {/* ============== SIGN-IN TAB ============== */}
-            <TabsContent value="signin" className="mt-6">
-              <div className="rounded-xl border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-background p-4 mb-5 flex items-start gap-3">
-                <div className="rounded-full bg-accent/20 p-2 shrink-0">
-                  <ShieldCheck className="h-5 w-5 text-accent" />
+          {/* ============== STAGE 1: ID lookup ============== */}
+          {stage === "id" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleLookup();
+              }}
+              className="space-y-4 animate-fade-in"
+            >
+              <div>
+                <Label className="font-semibold">{t("form.national_id")}</Label>
+                <div className="relative mt-1">
+                  <Search className="absolute top-1/2 -translate-y-1/2 start-3 h-4 w-4 text-muted-foreground pointer-events-none" />
+                  <Input
+                    inputMode="numeric"
+                    maxLength={9}
+                    required
+                    autoFocus
+                    value={nid}
+                    placeholder={t("form.id_or_admin_placeholder")}
+                    className="ps-9 text-lg tracking-wider"
+                    onChange={(e) => setNid(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                  />
                 </div>
-                <div>
-                  <div className="font-bold text-primary text-sm">{t("auth.passwordless_title")}</div>
-                  <p className="text-xs text-muted-foreground mt-1">{t("auth.passwordless_intro")}</p>
+                <p className="text-xs text-muted-foreground mt-2">
+                  {t("auth.unified_intro")}
+                </p>
+              </div>
+              <Button
+                type="submit"
+                disabled={busy}
+                className="w-full brand-gradient text-primary-foreground gap-2 h-11 text-base"
+              >
+                {busy ? t("auth.lookup_busy") : (
+                  <>
+                    <ArrowRight className="h-4 w-4" /> {t("auth.lookup_btn")}
+                  </>
+                )}
+              </Button>
+            </form>
+          )}
+
+          {/* ============== STAGE 2: Security question (or admin PIN) ============== */}
+          {stage === "question" && (
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                performSignin();
+              }}
+              className="space-y-4 animate-fade-in"
+            >
+              <div className="rounded-xl border border-success/30 bg-success/5 p-4 flex items-start gap-3">
+                <div className="rounded-full bg-success/15 p-2 shrink-0">
+                  <ShieldCheck className="h-5 w-5 text-success" />
+                </div>
+                <div className="text-sm">
+                  <div className="font-bold text-primary">{t("auth.existing_user_hint")}</div>
+                  <div className="text-xs text-muted-foreground mt-1" dir="ltr">
+                    {t("form.national_id")}: <strong>{nid}</strong>
+                  </div>
                 </div>
               </div>
 
-              {siStage === "id" && (
-                <form onSubmit={(e) => { e.preventDefault(); startSignin(); }} className="space-y-4 animate-fade-in">
+              {isAdminFlow ? (
+                <div>
+                  <Label className="flex items-center gap-2">
+                    <KeyRound className="h-4 w-4 text-accent" />
+                    {t("auth.admin_pin_label")}
+                  </Label>
+                  <Input
+                    type="password"
+                    inputMode="numeric"
+                    maxLength={4}
+                    required
+                    autoFocus
+                    placeholder="••••"
+                    value={adminPin}
+                    onChange={(e) => setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                  />
+                </div>
+              ) : (
+                <>
                   <div>
-                    <Label>{t("form.national_id")}</Label>
-                    <Input inputMode="numeric" maxLength={9} required autoFocus value={siNid}
-                      placeholder={t("form.id_or_admin_placeholder")}
-                      onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
+                    <Label className="flex items-center gap-2">
+                      <KeyRound className="h-4 w-4 text-accent" />
+                      {question?.kind === "national_id"
+                        ? t("forgot.q_nid", { name: question?.label })
+                        : t("forgot.q_birth", { name: question?.label })}
+                    </Label>
+                    <Input
+                      autoFocus
+                      type={question?.kind === "birth_date" ? "date" : "text"}
+                      inputMode={question?.kind === "national_id" ? "numeric" : undefined}
+                      maxLength={question?.kind === "national_id" ? 9 : undefined}
+                      value={answer}
+                      onChange={(e) => {
+                        const v =
+                          question?.kind === "national_id"
+                            ? e.target.value.replace(/\D/g, "").slice(0, 9)
+                            : e.target.value;
+                        setAnswer(v);
+                      }}
+                    />
                   </div>
-                  <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground gap-2">
-                    {siBusy ? "..." : (<><Sparkles className="h-4 w-4" /> {t("auth.next")}</>)}
-                  </Button>
-                  <p className="text-sm text-muted-foreground text-center">
-                    {t("auth.no_account")}{" "}
-                    <button type="button" onClick={() => setTab("signup")} className="text-accent font-semibold underline-offset-4 hover:underline">
-                      {t("auth.signup_link")}
-                    </button>
-                  </p>
-                </form>
+                  <button
+                    type="button"
+                    onClick={askAnotherQuestion}
+                    disabled={busy}
+                    className="text-xs text-accent hover:underline inline-flex items-center gap-1"
+                  >
+                    <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
+                  </button>
+                </>
               )}
 
-              {siStage === "question" && (
-                <form onSubmit={(e) => { e.preventDefault(); performSignin(); }} className="space-y-4 animate-fade-in">
-                  <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs flex items-center justify-between">
-                    <span><strong>{t("form.national_id")}:</strong> {siNid}</span>
-                    <button type="button" onClick={resetSignin} className="text-accent hover:underline inline-flex items-center gap-1">
-                      <ArrowLeft className="h-3 w-3" /> {t("form.cancel")}
-                    </button>
-                  </div>
-
-                  {isAdminFlow ? (
-                    <div>
-                      <Label>{t("auth.admin_pin_label")} <span className="text-xs text-muted-foreground">({t("auth.admin_pin_hint")})</span></Label>
-                      <Input type="password" inputMode="numeric" maxLength={4} required autoFocus
-                        placeholder="••••" value={siAdminPin}
-                        onChange={(e) => setSiAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-                    </div>
-                  ) : (
+              <div className="flex gap-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={resetFlow}
+                  className="flex-shrink-0"
+                >
+                  {t("auth.change_id")}
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={busy}
+                  className="flex-1 brand-gradient text-primary-foreground gap-2"
+                >
+                  {busy ? "..." : (
                     <>
-                      <div>
-                        <Label className="flex items-center gap-2">
-                          <KeyRound className="h-4 w-4 text-accent" />
-                          {siQuestion?.kind === "national_id"
-                            ? t("forgot.q_nid", { name: siQuestion?.label })
-                            : t("forgot.q_birth", { name: siQuestion?.label })}
-                        </Label>
-                        <Input
-                          autoFocus
-                          type={siQuestion?.kind === "birth_date" ? "date" : "text"}
-                          inputMode={siQuestion?.kind === "national_id" ? "numeric" : undefined}
-                          maxLength={siQuestion?.kind === "national_id" ? 9 : undefined}
-                          value={siAnswer}
-                          onChange={(e) => {
-                            const v = siQuestion?.kind === "national_id"
-                              ? e.target.value.replace(/\D/g, "").slice(0, 9)
-                              : e.target.value;
-                            setSiAnswer(v);
-                          }}
-                        />
-                      </div>
-                      <button type="button" onClick={askAnotherQuestion} disabled={siBusy}
-                        className="text-xs text-accent hover:underline inline-flex items-center gap-1">
-                        <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
-                      </button>
+                      <ShieldCheck className="h-4 w-4" /> {t("auth.verify_signin")}
                     </>
                   )}
+                </Button>
+              </div>
+            </form>
+          )}
 
-                  <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground gap-2">
-                    {siBusy ? "..." : (<><ShieldCheck className="h-4 w-4" /> {t("auth.verify_signin")}</>)}
-                  </Button>
-                </form>
-              )}
-            </TabsContent>
-
-            {/* ============== SIGN-UP TAB ============== */}
-            <TabsContent value="signup" className="mt-6">
+          {/* ============== STAGE 3: Signup (no head account exists) ============== */}
+          {stage === "signup" && (
+            <>
               {!settingsLoading && !settings.registration_open ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5 text-center space-y-2">
                   <div className="font-bold text-destructive">{t("closed.title")}</div>
@@ -371,145 +484,196 @@ const Auth = () => {
                       <strong>{t("closed.reason_label")}:</strong> {settings.closed_reason}
                     </div>
                   )}
+                  <Button variant="outline" className="mt-3" onClick={resetFlow}>
+                    {t("auth.change_id")}
+                  </Button>
                 </div>
               ) : (
-              <form onSubmit={handleSignup} className="space-y-4" noValidate>
-                <div className="rounded-xl border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-background p-4 flex items-start gap-3">
-                  <div className="rounded-full bg-accent/20 p-2 shrink-0">
-                    <Sparkles className="h-5 w-5 text-accent" />
+                <form onSubmit={handleSignup} className="space-y-4 animate-fade-in" noValidate>
+                  <div className="rounded-xl border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-background p-4 flex items-start gap-3">
+                    <div className="rounded-full bg-accent/20 p-2 shrink-0">
+                      <UserPlus className="h-5 w-5 text-accent" />
+                    </div>
+                    <div className="text-sm">
+                      <div className="font-bold text-primary">{t("auth.new_user_hint")}</div>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        لا تحتاج إلى كلمة مرور — سنحمي حسابك تلقائياً عبر بياناتك الشخصية وبيانات أفراد عائلتك.
+                      </p>
+                    </div>
                   </div>
-                  <div>
-                    <div className="font-bold text-primary text-sm">تسجيل آمن وسريع</div>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      لا تحتاج إلى كلمة مرور — سنحمي حسابك تلقائياً عبر بياناتك الشخصية وبيانات أفراد عائلتك.
-                    </p>
-                  </div>
-                </div>
-                <div className="grid gap-4 md:grid-cols-2">
-                  <div>
-                    <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
-                    <Input inputMode="numeric" maxLength={9} value={su.national_id}
-                      placeholder="9 أرقام" aria-invalid={!!errors.national_id}
-                      className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))}
-                      onChange={(e) => setField("national_id", e.target.value.replace(/\D/g, "").slice(0, 9))} />
-                    {errors.national_id && <p className="text-xs text-destructive mt-1">{errors.national_id}</p>}
-                  </div>
-                  <div>
-                    <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
-                    <Input value={su.full_name} placeholder="الاسم الأول الأب الجد العائلة"
-                      aria-invalid={!!errors.full_name}
-                      className={errors.full_name ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, full_name: validateField("full_name", su.full_name) }))}
-                      onChange={(e) => setField("full_name", e.target.value)} />
-                    {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name}</p>}
-                  </div>
-                  <div>
-                    <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
-                    <Input type="date" value={su.birth_date}
-                      max={new Date().toISOString().split("T")[0]}
-                      aria-invalid={!!errors.birth_date}
-                      className={errors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, birth_date: validateField("birth_date", su.birth_date) }))}
-                      onChange={(e) => setField("birth_date", e.target.value)} />
-                    {errors.birth_date && <p className="text-xs text-destructive mt-1">{errors.birth_date}</p>}
-                    {su.birth_date && !errors.birth_date && <div className="text-xs text-muted-foreground mt-1">{t("form.age")}: {age} {t("form.years")}</div>}
-                  </div>
-                  <div>
-                    <Label>{t("form.gender")}</Label>
-                    <Select value={su.gender} onValueChange={(v) => setSu({ ...su, gender: v as any })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="male">{t("form.male")}</SelectItem>
-                        <SelectItem value="female">{t("form.female")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div>
-                    <Label>{t("form.phone")} <span className="text-destructive">*</span></Label>
-                    <Input inputMode="numeric" maxLength={10} value={su.phone} placeholder="059xxxxxxx"
-                      aria-invalid={!!errors.phone}
-                      className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, phone: validateField("phone", su.phone) }))}
-                      onChange={(e) => setField("phone", e.target.value.replace(/\D/g, "").slice(0, 10))} />
-                    {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
-                  </div>
-                  <div>
-                    <Label>{t("form.alt_phone")}</Label>
-                    <Input inputMode="numeric" maxLength={10} value={su.alt_phone} placeholder="059xxxxxxx"
-                      aria-invalid={!!errors.alt_phone}
-                      className={errors.alt_phone ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, alt_phone: validateField("alt_phone", su.alt_phone) }))}
-                      onChange={(e) => setField("alt_phone", e.target.value.replace(/\D/g, "").slice(0, 10))} />
-                    {errors.alt_phone && <p className="text-xs text-destructive mt-1">{errors.alt_phone}</p>}
-                  </div>
-                  <div className="md:col-span-2">
-                    <Label>{t("form.marital_status")}</Label>
-                    <Select value={su.marital_status} onValueChange={(v) => setSu({ ...su, marital_status: v as any })}>
-                      <SelectTrigger><SelectValue /></SelectTrigger>
-                      <SelectContent>
-                        <SelectItem value="married">{t("form.married")}</SelectItem>
-                        <SelectItem value="single">{t("form.single")}</SelectItem>
-                        <SelectItem value="widowed">{t("form.widowed")}</SelectItem>
-                        <SelectItem value="divorced">{t("form.divorced")}</SelectItem>
-                        <SelectItem value="other">{t("form.other")}</SelectItem>
-                      </SelectContent>
-                    </Select>
-                    {su.marital_status === "other" && (
-                      <>
-                        <Input className={`mt-2 ${errors.marital_status_other ? "border-destructive focus-visible:ring-destructive" : ""}`}
-                          placeholder={t("form.specify")} value={su.marital_status_other}
-                          onBlur={() => setErrors((p) => ({ ...p, marital_status_other: validateField("marital_status_other", su.marital_status_other) }))}
-                          onChange={(e) => setField("marital_status_other", e.target.value)} />
-                        {errors.marital_status_other && <p className="text-xs text-destructive mt-1">{errors.marital_status_other}</p>}
-                      </>
-                    )}
-                  </div>
-                </div>
 
-                <Card className="p-4 bg-accent-soft/50 border-accent/30">
-                  <h3 className="font-semibold text-primary mb-3">{t("health.title")}</h3>
-                  <div className="space-y-3">
+                  <div className="grid gap-4 md:grid-cols-2">
                     <div>
-                      <Label>{t("health.is_war_injured")}</Label>
-                      <RadioGroup className="flex gap-4 mt-1" value={su.is_war_injured ? "yes" : "no"}
-                        onValueChange={(v) => setSu({ ...su, is_war_injured: v === "yes" })}>
-                        <label className="flex items-center gap-2"><RadioGroupItem value="yes" />{t("health.yes")}</label>
-                        <label className="flex items-center gap-2"><RadioGroupItem value="no" />{t("health.no")}</label>
-                      </RadioGroup>
-                      {su.is_war_injured && (
-                        <p className="text-xs text-warning-foreground bg-warning/20 p-2 rounded mt-2">
-                          {t("health.report_required")} — يمكن رفعه بعد إنشاء الحساب من صفحة الطلب.
-                        </p>
+                      <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
+                      <Input
+                        inputMode="numeric"
+                        maxLength={9}
+                        value={su.national_id}
+                        placeholder="9 أرقام"
+                        aria-invalid={!!errors.national_id}
+                        className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onBlur={() =>
+                          setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))
+                        }
+                        onChange={(e) => setField("national_id", e.target.value.replace(/\D/g, "").slice(0, 9))}
+                      />
+                      {errors.national_id && <p className="text-xs text-destructive mt-1">{errors.national_id}</p>}
+                    </div>
+                    <div>
+                      <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
+                      <Input
+                        value={su.full_name}
+                        placeholder="الاسم الأول الأب الجد العائلة"
+                        aria-invalid={!!errors.full_name}
+                        className={errors.full_name ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onBlur={() =>
+                          setErrors((p) => ({ ...p, full_name: validateField("full_name", su.full_name) }))
+                        }
+                        onChange={(e) => setField("full_name", e.target.value)}
+                      />
+                      {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name}</p>}
+                    </div>
+                    <div>
+                      <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
+                      <Input
+                        type="date"
+                        value={su.birth_date}
+                        max={new Date().toISOString().split("T")[0]}
+                        aria-invalid={!!errors.birth_date}
+                        className={errors.birth_date ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onBlur={() =>
+                          setErrors((p) => ({ ...p, birth_date: validateField("birth_date", su.birth_date) }))
+                        }
+                        onChange={(e) => setField("birth_date", e.target.value)}
+                      />
+                      {errors.birth_date && <p className="text-xs text-destructive mt-1">{errors.birth_date}</p>}
+                      {su.birth_date && !errors.birth_date && (
+                        <div className="text-xs text-muted-foreground mt-1">
+                          {t("form.age")}: {age} {t("form.years")}
+                        </div>
                       )}
                     </div>
                     <div>
-                      <Label>{t("health.chronic")}</Label>
-                      <Textarea rows={2} value={su.chronic_diseases} onChange={(e) => setSu({ ...su, chronic_diseases: e.target.value })} />
+                      <Label>{t("form.gender")}</Label>
+                      <Select value={su.gender} onValueChange={(v) => setSu({ ...su, gender: v as any })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="male">{t("form.male")}</SelectItem>
+                          <SelectItem value="female">{t("form.female")}</SelectItem>
+                        </SelectContent>
+                      </Select>
                     </div>
                     <div>
-                      <Label>{t("health.notes")}</Label>
-                      <Textarea rows={2} value={su.health_notes} onChange={(e) => setSu({ ...su, health_notes: e.target.value })} />
+                      <Label>{t("form.phone")} <span className="text-destructive">*</span></Label>
+                      <Input
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={su.phone}
+                        placeholder="059xxxxxxx"
+                        aria-invalid={!!errors.phone}
+                        className={errors.phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onBlur={() => setErrors((p) => ({ ...p, phone: validateField("phone", su.phone) }))}
+                        onChange={(e) => setField("phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      />
+                      {errors.phone && <p className="text-xs text-destructive mt-1">{errors.phone}</p>}
+                    </div>
+                    <div>
+                      <Label>{t("form.alt_phone")}</Label>
+                      <Input
+                        inputMode="numeric"
+                        maxLength={10}
+                        value={su.alt_phone}
+                        placeholder="059xxxxxxx"
+                        aria-invalid={!!errors.alt_phone}
+                        className={errors.alt_phone ? "border-destructive focus-visible:ring-destructive" : ""}
+                        onBlur={() =>
+                          setErrors((p) => ({ ...p, alt_phone: validateField("alt_phone", su.alt_phone) }))
+                        }
+                        onChange={(e) => setField("alt_phone", e.target.value.replace(/\D/g, "").slice(0, 10))}
+                      />
+                      {errors.alt_phone && <p className="text-xs text-destructive mt-1">{errors.alt_phone}</p>}
+                    </div>
+                    <div className="md:col-span-2">
+                      <Label>{t("form.marital_status")}</Label>
+                      <Select value={su.marital_status} onValueChange={(v) => setSu({ ...su, marital_status: v as any })}>
+                        <SelectTrigger><SelectValue /></SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="married">{t("form.married")}</SelectItem>
+                          <SelectItem value="single">{t("form.single")}</SelectItem>
+                          <SelectItem value="widowed">{t("form.widowed")}</SelectItem>
+                          <SelectItem value="divorced">{t("form.divorced")}</SelectItem>
+                          <SelectItem value="other">{t("form.other")}</SelectItem>
+                        </SelectContent>
+                      </Select>
+                      {su.marital_status === "other" && (
+                        <>
+                          <Input
+                            className={`mt-2 ${errors.marital_status_other ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                            placeholder={t("form.specify")}
+                            value={su.marital_status_other}
+                            onBlur={() =>
+                              setErrors((p) => ({
+                                ...p,
+                                marital_status_other: validateField("marital_status_other", su.marital_status_other),
+                              }))
+                            }
+                            onChange={(e) => setField("marital_status_other", e.target.value)}
+                          />
+                          {errors.marital_status_other && (
+                            <p className="text-xs text-destructive mt-1">{errors.marital_status_other}</p>
+                          )}
+                        </>
+                      )}
                     </div>
                   </div>
-                </Card>
 
-                <Button type="submit" disabled={suBusy} className="w-full brand-gradient text-primary-foreground gap-2">
-                  <Sparkles className="h-4 w-4" /> {t("auth.signup_btn")}
-                </Button>
-                <p className="text-sm text-muted-foreground text-center">
-                  {t("auth.have_account")}{" "}
-                  <button type="button" onClick={() => setTab("signin")} className="text-accent font-semibold underline-offset-4 hover:underline">
-                    {t("auth.signin_link")}
-                  </button>
-                </p>
-              </form>
+                  <Card className="p-4 bg-accent-soft/50 border-accent/30">
+                    <h3 className="font-semibold text-primary mb-3">{t("health.title")}</h3>
+                    <div className="space-y-3">
+                      <div>
+                        <Label>{t("health.is_war_injured")}</Label>
+                        <RadioGroup
+                          className="flex gap-4 mt-1"
+                          value={su.is_war_injured ? "yes" : "no"}
+                          onValueChange={(v) => setSu({ ...su, is_war_injured: v === "yes" })}
+                        >
+                          <label className="flex items-center gap-2"><RadioGroupItem value="yes" />{t("health.yes")}</label>
+                          <label className="flex items-center gap-2"><RadioGroupItem value="no" />{t("health.no")}</label>
+                        </RadioGroup>
+                        {su.is_war_injured && (
+                          <p className="text-xs text-warning-foreground bg-warning/20 p-2 rounded mt-2">
+                            {t("health.report_required")} — يمكن رفعه بعد إنشاء الحساب من صفحة الطلب.
+                          </p>
+                        )}
+                      </div>
+                      <div>
+                        <Label>{t("health.chronic")}</Label>
+                        <Textarea rows={2} value={su.chronic_diseases} onChange={(e) => setSu({ ...su, chronic_diseases: e.target.value })} />
+                      </div>
+                      <div>
+                        <Label>{t("health.notes")}</Label>
+                        <Textarea rows={2} value={su.health_notes} onChange={(e) => setSu({ ...su, health_notes: e.target.value })} />
+                      </div>
+                    </div>
+                  </Card>
+
+                  <div className="flex gap-2">
+                    <Button type="button" variant="outline" onClick={resetFlow}>
+                      {t("auth.change_id")}
+                    </Button>
+                    <Button type="submit" disabled={suBusy} className="flex-1 brand-gradient text-primary-foreground gap-2">
+                      <Sparkles className="h-4 w-4" /> {t("auth.signup_btn")}
+                    </Button>
+                  </div>
+                </form>
               )}
-            </TabsContent>
-          </Tabs>
+            </>
+          )}
 
-          <div className="text-center mt-4">
-            <Link to="/" className="text-sm text-muted-foreground hover:text-primary">{t("auth.back")}</Link>
+          <div className="text-center mt-6 pt-4 border-t border-border/40">
+            <Link to="/" className="text-sm text-muted-foreground hover:text-primary">
+              {t("auth.back")}
+            </Link>
           </div>
         </Card>
       </section>

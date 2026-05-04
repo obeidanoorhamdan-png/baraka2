@@ -445,7 +445,12 @@ const Admin = () => {
     <Layout>
       <section className="container py-8 space-y-6">
         <div className="flex flex-wrap justify-between items-center gap-3">
-          <h1 className="text-2xl md:text-3xl text-primary">{t("admin.title")}</h1>
+          <div className="space-y-1">
+            <a href="/admin" className="text-xs text-accent hover:underline inline-flex items-center gap-1">
+              ← {t("admin.back_to_hub")}
+            </a>
+            <h1 className="text-2xl md:text-3xl text-primary">{t("admin.applications_page_title")}</h1>
+          </div>
           <div className="flex gap-2">
             <Button variant="outline" size="sm" onClick={() => exportData("csv")} className="gap-1.5">
               <Download className="h-4 w-4" /> {t("admin.export_csv")}

@@ -347,6 +347,7 @@ export type Database = {
         }
         Returns: boolean
       }
+      head_account_exists: { Args: { _nid: string }; Returns: boolean }
       national_id_exists: {
         Args: { _exclude_user?: string; _nid: string }
         Returns: boolean
