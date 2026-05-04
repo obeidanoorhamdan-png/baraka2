@@ -25,6 +25,8 @@ interface DatePickerFieldProps {
   invalid?: boolean;
   disabled?: boolean;
   id?: string;
+  /** Auto-open the calendar when mounted (great for security questions) */
+  autoOpen?: boolean;
 }
 
 const toIso = (d: Date) => {
@@ -77,6 +79,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   invalid,
   disabled,
   id,
+  autoOpen,
 }) => {
   const selected = parseIso(value);
   const [open, setOpen] = React.useState(false);
@@ -85,6 +88,15 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   React.useEffect(() => {
     if (selected) setMonth(selected);
   }, [value]);
+
+  // Auto-open shortly after mount so users immediately see the calendar
+  // (eliminates confusion about a "small arrow" — the picker opens itself).
+  React.useEffect(() => {
+    if (!autoOpen || disabled) return;
+    const t = setTimeout(() => setOpen(true), 120);
+    return () => clearTimeout(t);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [autoOpen]);
 
   const years = React.useMemo(() => {
     const arr: number[] = [];
@@ -120,15 +132,16 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
           variant="outline"
           disabled={disabled}
           aria-invalid={invalid || undefined}
+          onClick={() => setOpen(true)}
           className={cn(
-            "w-full justify-between text-start font-normal h-10",
+            "w-full justify-between text-start font-normal h-11 gap-2",
             !selected && "text-muted-foreground",
             invalid && "border-destructive focus-visible:ring-destructive",
             className,
           )}
         >
-          <span>{selected ? formatArabic(selected) : placeholder}</span>
-          <CalendarIcon className="h-4 w-4 opacity-60" />
+          <span className="flex-1 text-start">{selected ? formatArabic(selected) : placeholder}</span>
+          <CalendarIcon className="h-5 w-5 text-primary opacity-90 shrink-0" />
         </Button>
       </PopoverTrigger>
       <PopoverContent
