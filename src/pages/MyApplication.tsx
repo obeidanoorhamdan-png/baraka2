@@ -266,6 +266,25 @@ const MyApplication = () => {
     })();
   }, [user]);
 
+  // Track whether a high-level submit op is queued, and surface its
+  // live progress so the user sees a retry banner + progress bar.
+  useEffect(() => {
+    let opId: number | null = null;
+    const refresh = async () => {
+      const all = await listOps();
+      const pending = all.find((o) => o.kind === "app.submit" || o.kind === "app.update");
+      setHasPendingSubmit(!!pending);
+      opId = pending?.id ?? null;
+    };
+    refresh();
+    const off1 = onOutboxChange(refresh);
+    const off2 = onSyncState((s) => {
+      setPendingSubmitSyncing(s.syncing && s.currentOpId === opId && opId !== null);
+      setPendingSubmitProgress(s.currentOpId === opId && opId !== null ? s.currentOpProgress : 0);
+    });
+    return () => { off1(); off2(); };
+  }, []);
+
   // Auto-save draft (local + server) while the user is filling members or
   // residence (only before submission). Debounced 1.2 s to avoid spamming
   // the network on every keystroke.
