@@ -2,9 +2,6 @@ import * as React from "react";
 import { CalendarIcon } from "lucide-react";
 
 import { cn } from "@/lib/utils";
-import { Button } from "@/components/ui/button";
-import { Calendar } from "@/components/ui/calendar";
-import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
 
 interface DatePickerFieldProps {
   /** ISO date string YYYY-MM-DD */
@@ -24,46 +21,35 @@ interface DatePickerFieldProps {
   invalid?: boolean;
   disabled?: boolean;
   id?: string;
-  /** Auto-open the calendar when mounted (great for security questions) */
+  /** Kept for backwards compatibility — ignored in this implementation. */
   autoOpen?: boolean;
 }
-
-const toIso = (d: Date) => {
-  const y = d.getFullYear();
-  const m = String(d.getMonth() + 1).padStart(2, "0");
-  const day = String(d.getDate()).padStart(2, "0");
-  return `${y}-${m}-${day}`;
-};
-
-const parseIso = (v?: string): Date | undefined => {
-  if (!v) return undefined;
-  const [y, m, d] = v.split("-").map(Number);
-  if (!y || !m || !d) return undefined;
-  const date = new Date(y, m - 1, d);
-  return isNaN(date.getTime()) ? undefined : date;
-};
-
-const formatArabic = (d: Date) => {
-  try {
-    return new Intl.DateTimeFormat("ar-EG", {
-      day: "2-digit",
-      month: "long",
-      year: "numeric",
-    }).format(d);
-  } catch {
-    return toIso(d);
-  }
-};
 
 const MONTHS_AR = [
   "يناير", "فبراير", "مارس", "أبريل", "مايو", "يونيو",
   "يوليو", "أغسطس", "سبتمبر", "أكتوبر", "نوفمبر", "ديسمبر",
 ];
 
+const pad = (n: number) => String(n).padStart(2, "0");
+
+const parse = (v?: string): { y: string; m: string; d: string } => {
+  if (!v) return { y: "", m: "", d: "" };
+  const [y, m, d] = v.split("-");
+  return { y: y || "", m: m || "", d: d || "" };
+};
+
+const daysInMonth = (y: number, m: number) => new Date(y, m, 0).getDate();
+
 /**
- * Birth-date / generic date picker that opens a calendar overlay.
- * Designed for users who struggle with the native "type=date" formats.
- * Includes year + month dropdowns so navigating decades is fast.
+ * Robust birth-date / generic date picker built from three native <select>
+ * dropdowns (day / month / year). We intentionally avoid react-day-picker
+ * here — that library has repeatedly crashed in production with
+ * "Cannot access 'Oe' before initialization" inside its internal hooks,
+ * which leaves the user with a blank screen. Native selects:
+ *   • cannot crash the React tree,
+ *   • give the OS-native picker on mobile (the user explicitly asked for a
+ *     dropdown, not a popup),
+ *   • work in RTL Arabic without extra wiring.
  */
 export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   value,
@@ -78,140 +64,88 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
   invalid,
   disabled,
   id,
-  autoOpen,
 }) => {
-  const selected = parseIso(value);
-  const [open, setOpen] = React.useState(false);
-  const [month, setMonth] = React.useState<Date>(selected ?? new Date(maxYear, 0, 1));
-
-  React.useEffect(() => {
-    if (selected) setMonth(selected);
-  }, [value]);
-
-  // Auto-open shortly after mount so users immediately see the calendar
-  // (eliminates confusion about a "small arrow" — the picker opens itself).
-  React.useEffect(() => {
-    if (!autoOpen || disabled) return;
-    const t = setTimeout(() => setOpen(true), 120);
-    return () => clearTimeout(t);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [autoOpen]);
+  const { y, m, d } = parse(value);
 
   const years = React.useMemo(() => {
     const arr: number[] = [];
-    for (let y = maxYear; y >= minYear; y--) arr.push(y);
+    const cap = disableFuture ? Math.min(maxYear, new Date().getFullYear()) : maxYear;
+    const floor = disablePast ? Math.max(minYear, new Date().getFullYear()) : minYear;
+    for (let yr = cap; yr >= floor; yr--) arr.push(yr);
     return arr;
-  }, [minYear, maxYear]);
+  }, [minYear, maxYear, disableFuture, disablePast]);
 
-  const today = new Date();
-  today.setHours(0, 0, 0, 0);
+  const yNum = parseInt(y, 10);
+  const mNum = parseInt(m, 10);
+  const dayCount = !isNaN(yNum) && !isNaN(mNum) ? daysInMonth(yNum, mNum) : 31;
+  const days = React.useMemo(
+    () => Array.from({ length: dayCount }, (_, i) => i + 1),
+    [dayCount],
+  );
 
-  const disabledMatcher = React.useMemo(() => {
-    return (d: Date) => {
-      if (disableFuture && d > today) return true;
-      if (disablePast && d < today) return true;
-      const y = d.getFullYear();
-      if (y < minYear || y > maxYear) return true;
-      return false;
-    };
-  }, [disableFuture, disablePast, minYear, maxYear]);
+  const emit = (ny: string, nm: string, nd: string) => {
+    if (ny && nm && nd) {
+      // Clamp day if month/year change reduces month length.
+      const max = daysInMonth(parseInt(ny, 10), parseInt(nm, 10));
+      const safeD = Math.min(parseInt(nd, 10), max);
+      onChange(`${ny}-${pad(parseInt(nm, 10))}-${pad(safeD)}`);
+    } else {
+      onChange("");
+    }
+  };
+
+  const baseSelect = cn(
+    "h-11 rounded-md border bg-background px-2 text-sm font-medium",
+    "focus:outline-none focus:ring-2 focus:ring-primary/40",
+    invalid ? "border-destructive" : "border-input",
+    disabled && "opacity-50 cursor-not-allowed",
+  );
 
   return (
-    <Popover
-      open={open}
-      onOpenChange={(o) => {
-        setOpen(o);
-        if (!o) onBlur?.();
-      }}
+    <div
+      id={id}
+      className={cn("flex items-stretch gap-2", className)}
+      onBlur={onBlur}
     >
-      <PopoverTrigger asChild>
-        <Button
-          id={id}
-          type="button"
-          variant="outline"
-          disabled={disabled}
-          aria-invalid={invalid || undefined}
-          onClick={() => setOpen(true)}
-          className={cn(
-            "w-full justify-between text-start font-normal h-11 gap-2",
-            !selected && "text-muted-foreground",
-            invalid && "border-destructive focus-visible:ring-destructive",
-            className,
-          )}
-        >
-          <span className="flex-1 text-start">{selected ? formatArabic(selected) : placeholder}</span>
-          <CalendarIcon className="h-5 w-5 text-primary opacity-90 shrink-0" />
-        </Button>
-      </PopoverTrigger>
-      <PopoverContent
-        className="w-auto p-0 z-50 bg-popover"
-        align="start"
-        side="bottom"
+      <div className="flex items-center justify-center px-2 rounded-md bg-accent-soft/40 text-primary shrink-0">
+        <CalendarIcon className="h-5 w-5" />
+      </div>
+      <select
+        aria-label="اليوم"
+        disabled={disabled}
+        value={d}
+        onChange={(e) => emit(y, m, e.target.value)}
+        className={cn(baseSelect, "flex-1 min-w-0")}
       >
-        <div className="p-3 space-y-3">
-          {/* Year + Month quick selectors — critical for birth dates */}
-          <div className="flex gap-2">
-            <select
-              aria-label="السنة"
-              value={month.getFullYear()}
-              onChange={(e) => {
-                const y = Number(e.target.value);
-                setMonth(new Date(y, month.getMonth(), 1));
-              }}
-              className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
-            >
-              {years.map((y) => (
-                <option key={y} value={y}>{y}</option>
-              ))}
-            </select>
-            <select
-              aria-label="الشهر"
-              value={month.getMonth()}
-              onChange={(e) => {
-                const m = Number(e.target.value);
-                setMonth(new Date(month.getFullYear(), m, 1));
-              }}
-              className="flex-1 h-9 rounded-md border border-input bg-background px-2 text-sm"
-            >
-              {MONTHS_AR.map((name, idx) => (
-                <option key={idx} value={idx}>{name}</option>
-              ))}
-            </select>
-          </div>
-
-          <Calendar
-            mode="single"
-            selected={selected}
-            month={month}
-            onMonthChange={setMonth}
-            onSelect={(d) => {
-              if (d) {
-                onChange(toIso(d));
-                setOpen(false);
-              }
-            }}
-            disabled={disabledMatcher}
-            showOutsideDays
-            classNames={{ caption: "hidden" }}
-            className="pointer-events-auto"
-          />
-
-          {value && (
-            <Button
-              type="button"
-              variant="ghost"
-              size="sm"
-              className="w-full text-xs"
-              onClick={() => {
-                onChange("");
-                setOpen(false);
-              }}
-            >
-              مسح التاريخ
-            </Button>
-          )}
-        </div>
-      </PopoverContent>
-    </Popover>
+        <option value="">يوم</option>
+        {days.map((n) => (
+          <option key={n} value={pad(n)}>{n}</option>
+        ))}
+      </select>
+      <select
+        aria-label="الشهر"
+        disabled={disabled}
+        value={m}
+        onChange={(e) => emit(y, e.target.value, d)}
+        className={cn(baseSelect, "flex-[1.4] min-w-0")}
+      >
+        <option value="">شهر</option>
+        {MONTHS_AR.map((name, idx) => (
+          <option key={idx} value={pad(idx + 1)}>{name}</option>
+        ))}
+      </select>
+      <select
+        aria-label="السنة"
+        disabled={disabled}
+        value={y}
+        onChange={(e) => emit(e.target.value, m, d)}
+        className={cn(baseSelect, "flex-1 min-w-0")}
+      >
+        <option value="">سنة</option>
+        {years.map((yr) => (
+          <option key={yr} value={String(yr)}>{yr}</option>
+        ))}
+      </select>
+    </div>
   );
 };
