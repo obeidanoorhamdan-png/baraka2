@@ -191,9 +191,11 @@ export const MemberCard = ({
           <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
           <Input value={member.full_name} placeholder="الاسم الأول الأب الجد العائلة"
             aria-invalid={!!errors.full_name}
+            disabled={isLocked("full_name")}
             className={errCls("full_name")}
             onBlur={() => onFieldBlur?.("full_name")}
             onChange={(e) => onChange({ ...member, full_name: e.target.value })} />
+          {isLocked("full_name") && <p className="text-[11px] text-muted-foreground mt-1">حقل مقفل — يُحدّث من حسابك الأساسي</p>}
           {errMsg("full_name")}
         </div>
         <div>
@@ -201,9 +203,11 @@ export const MemberCard = ({
           <Input inputMode="numeric" maxLength={9} value={member.national_id}
             placeholder="9 أرقام (اختياري للأطفال)"
             aria-invalid={!!errors.national_id}
+            disabled={isLocked("national_id")}
             className={errCls("national_id")}
             onBlur={() => onFieldBlur?.("national_id")}
             onChange={(e) => onChange({ ...member, national_id: e.target.value.replace(/\D/g, "").slice(0, 9) })} />
+          {isLocked("national_id") && <p className="text-[11px] text-muted-foreground mt-1">حقل مقفل لأنه مرتبط بحسابك</p>}
           {errMsg("national_id")}
         </div>
         <div>
@@ -211,6 +215,7 @@ export const MemberCard = ({
           <DatePickerField
             value={member.birth_date}
             disableFuture
+            disabled={isLocked("birth_date")}
             invalid={!!errors.birth_date}
             onBlur={() => onFieldBlur?.("birth_date")}
             onChange={(v) => onChange({ ...member, birth_date: v })}
@@ -220,7 +225,7 @@ export const MemberCard = ({
         </div>
         <div>
           <Label>{t("form.gender")}</Label>
-          <Select value={member.gender} onValueChange={(v) => onChange({ ...member, gender: v as any })}>
+          <Select value={member.gender} disabled={isLocked("gender")} onValueChange={(v) => onChange({ ...member, gender: v as any })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="male">{t("form.male")}</SelectItem>
@@ -230,7 +235,7 @@ export const MemberCard = ({
         </div>
         <div className="md:col-span-2">
           <Label>{t("family.relationship")} <span className="text-destructive">*</span></Label>
-          <Select value={member.relationship} onValueChange={(v) => onChange({ ...member, relationship: v as any })}>
+          <Select value={member.relationship} disabled={isLocked("relationship")} onValueChange={(v) => onChange({ ...member, relationship: v as any })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="wife">{t("family.rel_wife")}</SelectItem>
@@ -247,6 +252,7 @@ export const MemberCard = ({
           {member.relationship === "other" && (
             <>
               <Input className={`mt-2 ${errCls("relationship_other")}`} placeholder={t("form.specify")} value={member.relationship_other || ""}
+                disabled={isLocked("relationship_other")}
                 onBlur={() => onFieldBlur?.("relationship_other")}
                 onChange={(e) => onChange({ ...member, relationship_other: e.target.value })} />
               {errMsg("relationship_other")}
