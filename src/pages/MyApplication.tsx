@@ -75,7 +75,7 @@ const MyApplication = () => {
     martyr_relationship: "",
   });
 
-  const [members, setMembers] = useState<Member[]>([emptyMember()]);
+  const [members, setMembers] = useState<Member[]>([]);
 
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
