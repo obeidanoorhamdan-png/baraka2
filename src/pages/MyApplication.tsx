@@ -323,12 +323,55 @@ const MyApplication = () => {
           />
         ) : (
         <>
-        {/* Stepper */}
-        <div className="flex items-center justify-between mb-6 gap-2">
-          {[1, 2].map((n) => (
-            <button key={n} onClick={() => setStep(n)} className={`flex-1 h-2 rounded-full transition-colors ${step >= n ? "bg-accent" : "bg-muted"}`} />
-          ))}
-        </div>
+        {/* Stepper — labeled and clearly numbered */}
+        <Card className="p-4 mb-6 shadow-card">
+          <div className="grid grid-cols-2 gap-3">
+            {[
+              { n: 1, label: t("form.step2"), hint: "السكن وعدد الأسرة" },
+              { n: 2, label: t("form.step3"), hint: "إضافة بيانات الأفراد" },
+            ].map(({ n, label, hint }) => {
+              const active = step === n;
+              const done = step > n;
+              return (
+                <button
+                  key={n}
+                  type="button"
+                  onClick={() => setStep(n)}
+                  className={`text-start rounded-xl border-2 p-3 transition-all ${
+                    active
+                      ? "border-accent bg-accent-soft/60 shadow-md"
+                      : done
+                      ? "border-success/40 bg-success/5"
+                      : "border-border bg-muted/30"
+                  }`}
+                >
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={`inline-flex h-7 w-7 items-center justify-center rounded-full text-xs font-extrabold ${
+                        active
+                          ? "bg-accent text-accent-foreground"
+                          : done
+                          ? "bg-success text-white"
+                          : "bg-muted text-muted-foreground"
+                      }`}
+                    >
+                      {done ? <CheckCircle2 className="h-4 w-4" /> : n}
+                    </span>
+                    <div className="font-bold text-primary text-sm">
+                      {t("form.step")} {n}: {label}
+                    </div>
+                  </div>
+                  <div className="text-[11px] text-muted-foreground mt-1 ms-9">{hint}</div>
+                </button>
+              );
+            })}
+          </div>
+          {lastDraftSavedAt && step === 2 && (
+            <div className="mt-3 text-[11px] text-success inline-flex items-center gap-1.5">
+              <CheckCircle2 className="h-3.5 w-3.5" /> {t("form.draft_saved_at", { time: lastDraftSavedAt })}
+            </div>
+          )}
+        </Card>
 
         {step === 1 && (
           <Card className="p-5 md:p-6 shadow-elegant space-y-4">
