@@ -179,7 +179,7 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
             </select>
           </div>
 
-          <DayPicker
+          <Calendar
             mode="single"
             selected={selected}
             month={month}
@@ -192,34 +192,8 @@ export const DatePickerField: React.FC<DatePickerFieldProps> = ({
             }}
             disabled={disabledMatcher}
             showOutsideDays
+            classNames={{ caption: "hidden" }}
             className="pointer-events-auto"
-            classNames={{
-              months: "flex flex-col",
-              month: "space-y-2",
-              caption: "hidden",
-              nav: "flex items-center justify-between",
-              nav_button: cn(
-                buttonVariants({ variant: "outline" }),
-                "h-7 w-7 bg-transparent p-0 opacity-70 hover:opacity-100",
-              ),
-              nav_button_previous: "",
-              nav_button_next: "",
-              table: "w-full border-collapse",
-              head_row: "flex",
-              head_cell: "text-muted-foreground rounded-md w-9 font-normal text-[0.75rem]",
-              row: "flex w-full mt-1",
-              cell: "h-9 w-9 text-center text-sm p-0 relative [&:has([aria-selected])]:bg-accent first:[&:has([aria-selected])]:rounded-l-md last:[&:has([aria-selected])]:rounded-r-md",
-              day: cn(buttonVariants({ variant: "ghost" }), "h-9 w-9 p-0 font-normal aria-selected:opacity-100"),
-              day_selected: "bg-primary text-primary-foreground hover:bg-primary hover:text-primary-foreground focus:bg-primary focus:text-primary-foreground",
-              day_today: "bg-accent text-accent-foreground",
-              day_outside: "text-muted-foreground opacity-40",
-              day_disabled: "text-muted-foreground opacity-30",
-              day_hidden: "invisible",
-            }}
-            components={{
-              IconLeft: () => <ChevronLeft className="h-4 w-4" />,
-              IconRight: () => <ChevronRight className="h-4 w-4" />,
-            }}
           />
 
           {value && (
