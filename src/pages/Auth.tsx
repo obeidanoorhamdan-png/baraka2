@@ -35,7 +35,21 @@ const Auth = () => {
 
   useEffect(() => {
     if (!loading && user) {
-      navigate(isAdmin ? "/admin" : "/dashboard", { replace: true });
+      if (isAdmin) {
+        navigate("/admin", { replace: true });
+        return;
+      }
+      // If the head of family has not yet submitted family data, route
+      // them to the application form so they can complete the missing info
+      // (family size + members). Otherwise show the dashboard.
+      (async () => {
+        const { data: app } = await supabase
+          .from("applications")
+          .select("id")
+          .eq("user_id", user.id)
+          .maybeSingle();
+        navigate(app ? "/dashboard" : "/my-application", { replace: true });
+      })();
     }
   }, [user, isAdmin, loading, navigate]);
 
