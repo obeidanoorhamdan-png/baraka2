@@ -27,6 +27,9 @@ import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } fr
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
+// Fields locked on the head-of-family card — tied to the user's auth account.
+const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
+
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
   const { user, isAdmin, loading } = useAuth();
@@ -119,9 +122,7 @@ const MyApplication = () => {
     is_head: true,
   });
   const [headErrors, setHeadErrors] = useState<Record<string, string>>({});
-  // Fields locked on the head card — they're tied to the user's account and
-  // managed via the profile/auth flow, not editable in the family editor.
-  const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
+
 
   const validateMemberField = (m: Member, key: string): string => {
     switch (key) {
