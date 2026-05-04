@@ -31,6 +31,7 @@ export type Member = {
   is_breastfeeding: boolean;
   pregnancy_report_url?: string | null;
   health_notes: string;
+  is_head?: boolean;
 };
 
 export const emptyMember = (): Member => ({
