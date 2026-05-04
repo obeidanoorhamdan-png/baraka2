@@ -151,8 +151,11 @@ export const AidManager = ({ applicationId, currentUserId }: { applicationId: st
             </div>
             <div>
               <Label className="text-xs">{t("aid.delivered_at")} <span className="text-destructive">*</span></Label>
-              <Input type="date" value={draft.delivered_at} max={new Date().toISOString().slice(0, 10)}
-                onChange={(e) => setDraft({ ...draft, delivered_at: e.target.value })} />
+              <DatePickerField
+                value={draft.delivered_at}
+                disableFuture
+                onChange={(v) => setDraft({ ...draft, delivered_at: v })}
+              />
             </div>
           </div>
           <div>
