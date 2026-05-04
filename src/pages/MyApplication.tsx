@@ -1,7 +1,7 @@
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { Plus, Lock, Send, ArrowLeft, ArrowRight } from "lucide-react";
+import { Plus, Lock, Send, ArrowLeft, ArrowRight, CheckCircle2, Users, Eye } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -10,17 +10,15 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter, DialogDescription } from "@/components/ui/dialog";
 import { MemberCard, emptyMember, type Member } from "@/components/MemberCard";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ID_RE, isFullName, PIN_RE } from "@/lib/validators";
-import { pinToAuthPassword } from "@/lib/authPin";
+import { ID_RE, isFullName } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { Card as UICard } from "@/components/ui/card";
-import { KeyRound } from "lucide-react";
 import { AidPreview } from "@/pages/MyAid";
 
 const MyApplication = () => {
@@ -43,6 +41,8 @@ const MyApplication = () => {
   const [editMode, setEditMode] = useState(false);
   const [snapshot, setSnapshot] = useState<string>("");
   const [familySizeInput, setFamilySizeInput] = useState<string>("");
+  const [summaryOpen, setSummaryOpen] = useState(false);
+  const [collapsedMembers, setCollapsedMembers] = useState<Record<number, boolean>>({});
 
   const currentSig = () => JSON.stringify({ residence, members });
   const isDirty = editMode && !!appId && snapshot && snapshot !== currentSig();
@@ -186,14 +186,20 @@ const MyApplication = () => {
     return true;
   };
 
-  const submit = async () => {
+  // Open the review summary dialog after running validations.
+  const openReview = async () => {
     if (!user) return;
-    // Block new submissions when registration is closed; existing application owners can still update
     if (!appId && !settings.registration_open) {
       toast.error(t("toast.registration_closed_now"));
       return;
     }
     if (!(await validateMembers())) return;
+    setSummaryOpen(true);
+  };
+
+  const submit = async () => {
+    if (!user) return;
+    setSummaryOpen(false);
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
       description: appId ? t("confirm.save_changes") : t("confirm.submit_app"),
@@ -410,46 +416,113 @@ const MyApplication = () => {
           </Card>
         )}
 
-        {step === 2 && (
+        {step === 2 && (() => {
+          const totalMembers = Math.max(0, residence.family_size - 1);
+          const filledMembers = members.length;
+          return (
           <div className="space-y-4">
             <Card className="p-5 shadow-elegant">
-              <h2 className="text-xl font-bold text-primary mb-1">{t("form.step3")}</h2>
-              <p className="text-sm text-muted-foreground">{t("family.title")}</p>
+              <div className="flex items-center gap-3 flex-wrap justify-between">
+                <div>
+                  <h2 className="text-xl font-bold text-primary mb-1 flex items-center gap-2">
+                    <Users className="h-5 w-5 text-accent" /> {t("form.step3")}
+                  </h2>
+                  <p className="text-sm text-muted-foreground">{t("family.title")}</p>
+                </div>
+                {familySizeInput && (
+                  <div className="text-end">
+                    <div className="text-xs text-muted-foreground">{t("residence.family_size")}</div>
+                    <div className="text-lg font-bold text-primary">
+                      {filledMembers} / {totalMembers}
+                      {filledMembers === totalMembers && totalMembers > 0 && (
+                        <CheckCircle2 className="inline h-5 w-5 text-success ms-1" />
+                      )}
+                    </div>
+                  </div>
+                )}
+              </div>
             </Card>
 
-            {members.map((m, i) => (
-              <MemberCard
-                key={i}
-                index={i}
-                member={m}
-                userId={user!.id}
-                errors={memberErrors[i] || {}}
-                onFieldBlur={(field) => {
-                  const msg = validateMemberField(m, field);
-                  setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), [field]: msg } }));
-                }}
-                onChange={(nm) => {
-                  setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)));
-                  // re-validate fields that may now be fixed
-                  if (memberErrors[i]) {
-                    const next: Record<string, string> = {};
-                    Object.keys(memberErrors[i]).forEach((k) => {
-                      next[k] = validateMemberField(nm, k);
-                    });
-                    setMemberErrors((p) => ({ ...p, [i]: next }));
-                  }
-                }}
-                onRemove={appStatus === "approved" ? undefined : () => {
-                  setMembers((prev) => prev.filter((_, idx) => idx !== i));
-                  setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
-                }}
-              />
-            ))}
+            {members.map((m, i) => {
+              const errs = memberErrors[i] || {};
+              const hasErrors = Object.values(errs).some(Boolean);
+              const isCollapsed = !!collapsedMembers[i] && !hasErrors;
+              return (
+                <div key={i} className="relative">
+                  {isCollapsed ? (
+                    <Card className="p-4 shadow-card border-success/30 bg-success/5 animate-fade-in">
+                      <div className="flex items-center justify-between gap-3 flex-wrap">
+                        <div className="flex items-center gap-3">
+                          <div className="rounded-full bg-success/15 p-2">
+                            <CheckCircle2 className="h-5 w-5 text-success" />
+                          </div>
+                          <div>
+                            <div className="text-xs text-muted-foreground">
+                              {t("family.person")} {i + 1} / {totalMembers}
+                            </div>
+                            <div className="font-bold text-primary">
+                              {m.full_name || <span className="text-muted-foreground italic">—</span>}
+                            </div>
+                          </div>
+                        </div>
+                        <Button type="button" size="sm" variant="outline"
+                          onClick={() => setCollapsedMembers((p) => ({ ...p, [i]: false }))}
+                          className="gap-2">
+                          {t("form.edit_member")}
+                        </Button>
+                      </div>
+                    </Card>
+                  ) : (
+                    <MemberCard
+                      index={i}
+                      total={totalMembers}
+                      member={m}
+                      userId={user!.id}
+                      errors={errs}
+                      onFieldBlur={(field) => {
+                        const msg = validateMemberField(m, field);
+                        setMemberErrors((p) => ({ ...p, [i]: { ...(p[i] || {}), [field]: msg } }));
+                      }}
+                      onChange={(nm) => {
+                        setMembers((prev) => prev.map((p, idx) => (idx === i ? nm : p)));
+                        if (memberErrors[i]) {
+                          const next: Record<string, string> = {};
+                          Object.keys(memberErrors[i]).forEach((k) => {
+                            next[k] = validateMemberField(nm, k);
+                          });
+                          setMemberErrors((p) => ({ ...p, [i]: next }));
+                        }
+                      }}
+                      onRemove={appStatus === "approved" ? undefined : () => {
+                        setMembers((prev) => prev.filter((_, idx) => idx !== i));
+                        setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
+                        setCollapsedMembers((p) => { const c = { ...p }; delete c[i]; return c; });
+                      }}
+                      onSave={() => {
+                        // Validate this member only
+                        const fields = ["full_name","national_id","birth_date","relationship_other","injury_report_url","pregnancy_report_url"];
+                        const errsLocal: Record<string, string> = {};
+                        for (const f of fields) {
+                          const msg = validateMemberField(m, f);
+                          if (msg) errsLocal[f] = msg;
+                        }
+                        if (Object.keys(errsLocal).length) {
+                          setMemberErrors((p) => ({ ...p, [i]: errsLocal }));
+                          toast.error(t("toast.fix_errors"));
+                          return;
+                        }
+                        setMemberErrors((p) => ({ ...p, [i]: {} }));
+                        setCollapsedMembers((p) => ({ ...p, [i]: true }));
+                        toast.success(t("form.member_saved"));
+                      }}
+                    />
+                  )}
+                </div>
+              );
+            })}
 
             {appStatus !== "approved" && (() => {
-              const maxMembers = Math.max(0, residence.family_size - 1);
-              const remaining = maxMembers - members.length;
-              const reachedMax = remaining <= 0;
+              const reachedMax = filledMembers >= totalMembers;
               return (
                 <div className="space-y-2">
                   <Button
@@ -457,18 +530,18 @@ const MyApplication = () => {
                     variant="outline"
                     disabled={reachedMax || !familySizeInput}
                     onClick={() => {
-                      if (members.length >= maxMembers) {
-                        toast.error(`لا يمكن إضافة أكثر من ${maxMembers} فرد. عدّل عدد أفراد الأسرة من الخطوة السابقة.`);
+                      if (filledMembers >= totalMembers) {
+                        toast.error(`اكتمل العدد المطلوب (${totalMembers} فرد). عدّل عدد أفراد الأسرة من الخطوة السابقة لإضافة المزيد.`);
                         return;
                       }
                       setMembers([...members, emptyMember()]);
                     }}
-                    className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft disabled:opacity-50"
+                    className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     <Plus className="h-4 w-4" /> {t("family.add")}
-                    {familySizeInput && !reachedMax && (
+                    {familySizeInput && (
                       <span className="text-xs text-muted-foreground">
-                        ({members.length} / {maxMembers})
+                        ({filledMembers} / {totalMembers})
                       </span>
                     )}
                   </Button>
@@ -476,7 +549,10 @@ const MyApplication = () => {
                     <p className="text-xs text-center text-muted-foreground">حدّد عدد أفراد الأسرة في الخطوة السابقة أولاً</p>
                   )}
                   {reachedMax && familySizeInput && (
-                    <p className="text-xs text-center text-success">✓ اكتمل العدد المطلوب ({maxMembers} فرد)</p>
+                    <Card className="p-3 text-center bg-success/5 border-success/30 text-success font-semibold text-sm flex items-center justify-center gap-2">
+                      <CheckCircle2 className="h-5 w-5" />
+                      اكتمل العدد المطلوب ({totalMembers} فرد) — لا يمكن إضافة المزيد
+                    </Card>
                   )}
                 </div>
               );
@@ -491,7 +567,6 @@ const MyApplication = () => {
               <Button variant="outline" onClick={async () => {
                 if (appId) {
                   if (!(await guardDiscard())) return;
-                  // restore snapshot
                   if (snapshot) {
                     try { const s = JSON.parse(snapshot); setResidence(s.residence); setMembers(s.members); } catch {}
                   }
@@ -503,20 +578,88 @@ const MyApplication = () => {
               }} className="gap-2">
                 <ArrowBack className="h-4 w-4" /> {appId ? t("form.cancel") : t("form.prev")}
               </Button>
-              <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
-                <Send className="h-4 w-4" /> {appId ? t("form.save") : t("form.submit")}
+              <Button onClick={openReview} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+                <Eye className="h-4 w-4" /> {t("form.review_summary")}
               </Button>
             </div>
           </div>
-        )}
+          );
+        })()}
         </>
         )}
         </>
         )}
 
         {appId && <AidPreview applicationId={appId} />}
-        {user && <ChangePinCard userId={user.id} />}
       </section>
+
+      {/* ============== Review Summary Dialog ============== */}
+      <Dialog open={summaryOpen} onOpenChange={setSummaryOpen}>
+        <DialogContent className="max-w-3xl max-h-[85vh] overflow-y-auto">
+          <DialogHeader>
+            <DialogTitle className="text-2xl text-primary flex items-center gap-2">
+              <Eye className="h-6 w-6 text-accent" /> {t("form.summary_title")}
+            </DialogTitle>
+            <DialogDescription>{t("form.summary_intro")}</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-2">
+            <Card className="p-4 bg-muted/30 border-accent/20">
+              <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
+                <Lock className="h-4 w-4 text-accent" /> {t("form.step2")}
+              </h3>
+              <div className="grid gap-3 md:grid-cols-2 text-sm">
+                <div><span className="text-muted-foreground">{t("residence.original_residence")}:</span> <strong>{residence.original_residence || "—"}</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.original_landmark")}:</span> <strong>{residence.original_landmark || "—"}</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.current_camp")}:</span> <strong>{t("app.name")} (Baraka 2)</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.current_landmark")}:</span> <strong>{residence.current_landmark || "—"}</strong></div>
+                <div><span className="text-muted-foreground">{t("residence.family_size")}:</span> <strong>{residence.family_size}</strong></div>
+                {residence.has_martyr && (
+                  <>
+                    <div><span className="text-muted-foreground">{t("family.martyr_name")}:</span> <strong>{residence.martyr_name}</strong></div>
+                    <div><span className="text-muted-foreground">{t("family.martyr_relationship")}:</span> <strong>{residence.martyr_relationship}</strong></div>
+                  </>
+                )}
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-muted/30 border-accent/20">
+              <h3 className="font-bold text-primary mb-3 flex items-center gap-2">
+                <Users className="h-4 w-4 text-accent" />
+                {t("form.step3")} ({members.length} / {Math.max(0, residence.family_size - 1)})
+              </h3>
+              {members.length === 0 ? (
+                <p className="text-sm text-muted-foreground">لا يوجد أفراد إضافيون</p>
+              ) : (
+                <div className="space-y-2">
+                  {members.map((m, i) => (
+                    <div key={i} className="p-3 rounded-md bg-background border border-border text-sm">
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="rounded-full bg-accent/15 text-accent w-6 h-6 inline-flex items-center justify-center text-xs font-bold">{i + 1}</span>
+                        <strong className="text-primary">{m.full_name || "—"}</strong>
+                      </div>
+                      <div className="grid gap-1 md:grid-cols-3 text-xs text-muted-foreground ms-8">
+                        {m.national_id && <div>{t("form.national_id")}: <strong className="text-foreground">{m.national_id}</strong></div>}
+                        <div>{t("form.birth_date")}: <strong className="text-foreground">{m.birth_date || "—"}</strong></div>
+                        <div>{t("form.gender")}: <strong className="text-foreground">{t(`form.${m.gender}`)}</strong></div>
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </Card>
+          </div>
+
+          <DialogFooter className="gap-2">
+            <Button variant="outline" onClick={() => setSummaryOpen(false)}>
+              <ArrowBack className="h-4 w-4 me-1" /> {t("form.back_to_edit")}
+            </Button>
+            <Button onClick={submit} disabled={busy} className="gold-gradient text-accent-foreground shadow-gold gap-2">
+              <Send className="h-4 w-4" /> {busy ? "..." : t("form.confirm_send")}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </Layout>
   );
 };
@@ -624,87 +767,5 @@ const ApplicationSummary = ({
   );
 };
 
-
-// ----------------- Change PIN card -----------------
-const ChangePinCard = ({ userId: _userId }: { userId: string }) => {
-  const { t } = useTranslation();
-  const confirmAsk = useConfirm();
-  const [open, setOpen] = useState(false);
-  const [current, setCurrent] = useState("");
-  const [next, setNext] = useState("");
-  const [next2, setNext2] = useState("");
-  const [busy, setBusy] = useState(false);
-
-  const onSave = async () => {
-    if (!PIN_RE.test(current) || !PIN_RE.test(next)) { toast.error(t("form.invalid_pin")); return; }
-    if (next !== next2) { toast.error(t("toast.password_mismatch")); return; }
-
-    // Verify current PIN by re-authenticating
-    const { data: profile } = await supabase.from("profiles").select("national_id").eq("id", _userId).maybeSingle();
-    if (!profile?.national_id) { toast.error(t("toast.error")); return; }
-
-    if (!(await confirmAsk({
-      title: t("confirm.change_pin_title"),
-      description: t("confirm.change_pin"),
-      confirmText: t("auth.change_pin_save"),
-      variant: "warning",
-    }))) return;
-
-    setBusy(true);
-    const { error: signInErr } = await supabase.auth.signInWithPassword({
-      email: `${profile.national_id}@baraka2.local`,
-      password: pinToAuthPassword(current),
-    });
-    if (signInErr) {
-      const { error: legacyErr } = await supabase.auth.signInWithPassword({
-        email: `${profile.national_id}@baraka2.local`,
-        password: current,
-      });
-      if (legacyErr) { setBusy(false); toast.error(t("toast.wrong_current_pin")); return; }
-    }
-
-    const { error } = await supabase.auth.updateUser({ password: pinToAuthPassword(next) });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    toast.success(t("toast.pin_changed"));
-    setCurrent(""); setNext(""); setNext2(""); setOpen(false);
-  };
-
-  return (
-    <UICard className="p-5 mt-6 shadow-card border-accent/20">
-      <button type="button" onClick={() => setOpen((o) => !o)}
-        className="w-full flex items-center justify-between gap-2 text-start">
-        <span className="flex items-center gap-2 font-semibold text-primary">
-          <KeyRound className="h-4 w-4 text-accent" /> {t("auth.change_pin")}
-        </span>
-        <span className="text-xs text-muted-foreground">{open ? "−" : "+"}</span>
-      </button>
-      {open && (
-        <div className="grid gap-3 md:grid-cols-3 mt-4 animate-fade-in">
-          <div>
-            <Label className="text-xs">{t("auth.current_pin")}</Label>
-            <Input type="password" inputMode="numeric" maxLength={4} value={current}
-              onChange={(e) => setCurrent(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-          </div>
-          <div>
-            <Label className="text-xs">{t("auth.new_pin")}</Label>
-            <Input type="password" inputMode="numeric" maxLength={4} value={next}
-              onChange={(e) => setNext(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-          </div>
-          <div>
-            <Label className="text-xs">{t("auth.new_pin_confirm")}</Label>
-            <Input type="password" inputMode="numeric" maxLength={4} value={next2}
-              onChange={(e) => setNext2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-          </div>
-          <div className="md:col-span-3 flex justify-end">
-            <Button onClick={onSave} disabled={busy} className="brand-gradient text-primary-foreground gap-2">
-              <KeyRound className="h-4 w-4" /> {busy ? "..." : t("auth.change_pin_save")}
-            </Button>
-          </div>
-        </div>
-      )}
-    </UICard>
-  );
-};
 
 export default MyApplication;

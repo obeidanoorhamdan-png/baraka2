@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
-import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet, Filter, Image as ImageIcon } from "lucide-react";
+import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet, Filter, Image as ImageIcon, KeyRound } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -485,6 +485,8 @@ const Admin = () => {
           )}
         </Card>
 
+        <ChangeAdminPinCard />
+
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
           <StatCard icon={Users} label={t("admin.total")} value={stats.total} color="bg-primary/10 text-primary" />
@@ -817,6 +819,80 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
     </Layout>
+  );
+};
+
+// ============== Change Admin PIN Card ==============
+const ChangeAdminPinCard = () => {
+  const { t } = useTranslation();
+  const confirmAsk = useConfirm();
+  const [open, setOpen] = useState(false);
+  const [current, setCurrent] = useState("");
+  const [next, setNext] = useState("");
+  const [next2, setNext2] = useState("");
+  const [busy, setBusy] = useState(false);
+
+  const onSave = async () => {
+    if (!/^\d{4}$/.test(current) || !/^\d{4}$/.test(next)) {
+      toast.error(t("form.invalid_pin")); return;
+    }
+    if (next !== next2) { toast.error(t("toast.password_mismatch")); return; }
+
+    // Verify current PIN
+    const { data } = await supabase.from("app_settings").select("admin_pin").eq("id", 1).maybeSingle();
+    const actual = (data as any)?.admin_pin || "1234";
+    if (current !== actual) { toast.error(t("toast.wrong_current_pin")); return; }
+    if (next === actual) { toast.error(t("toast.pin_same_as_current")); return; }
+
+    if (!(await confirmAsk({
+      title: t("auth.change_admin_pin"),
+      description: "هل أنت متأكد من تغيير كلمة مرور الإدارة؟",
+      confirmText: t("auth.save_admin_pin"),
+      variant: "warning",
+    }))) return;
+
+    setBusy(true);
+    const { error } = await supabase.from("app_settings").update({ admin_pin: next }).eq("id", 1);
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(t("auth.admin_pin_saved"));
+    setCurrent(""); setNext(""); setNext2(""); setOpen(false);
+  };
+
+  return (
+    <Card className="p-4 shadow-card border-accent/30">
+      <button type="button" onClick={() => setOpen((o) => !o)}
+        className="w-full flex items-center justify-between gap-2 text-start">
+        <span className="flex items-center gap-2 font-bold text-primary">
+          <KeyRound className="h-4 w-4 text-accent" /> {t("auth.change_admin_pin")}
+        </span>
+        <span className="text-xs text-muted-foreground">{open ? "−" : "+"}</span>
+      </button>
+      {open && (
+        <div className="grid gap-3 md:grid-cols-3 mt-4 animate-fade-in">
+          <div>
+            <Label className="text-xs">{t("auth.current_admin_pin")}</Label>
+            <Input type="password" inputMode="numeric" maxLength={4} value={current}
+              onChange={(e) => setCurrent(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          <div>
+            <Label className="text-xs">{t("auth.new_admin_pin")}</Label>
+            <Input type="password" inputMode="numeric" maxLength={4} value={next}
+              onChange={(e) => setNext(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          <div>
+            <Label className="text-xs">{t("auth.new_admin_pin")} (تأكيد)</Label>
+            <Input type="password" inputMode="numeric" maxLength={4} value={next2}
+              onChange={(e) => setNext2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+          </div>
+          <div className="md:col-span-3 flex justify-end">
+            <Button onClick={onSave} disabled={busy} className="brand-gradient text-primary-foreground gap-2">
+              <KeyRound className="h-4 w-4" /> {busy ? "..." : t("auth.save_admin_pin")}
+            </Button>
+          </div>
+        </div>
+      )}
+    </Card>
   );
 };
 

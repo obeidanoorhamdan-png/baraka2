@@ -1,7 +1,6 @@
 import { useEffect, useState } from "react";
 import { useNavigate, useSearchParams, Link } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import { z } from "zod";
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -16,10 +15,15 @@ import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
 import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE } from "@/lib/validators";
-import { pinToAuthPassword } from "@/lib/authPin";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
-import { KeyRound } from "lucide-react";
+import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowLeft } from "lucide-react";
+
+// A deterministic, server-generated initial password for new users.
+// The user never sees or types it. After signup, they sign in via the
+// passwordless-signin edge function which rotates this to a fresh value.
+const initialSignupPassword = (nid: string) =>
+  `Baraka2-Init-${nid}-${nid.split("").reverse().join("")}-2026`;
 
 const Auth = () => {
   const { t } = useTranslation();
@@ -29,7 +33,6 @@ const Auth = () => {
   const { settings, loading: settingsLoading } = useAppSettings();
   const initial = params.get("mode") === "signup" ? "signup" : "signin";
   const [tab, setTab] = useState<"signin" | "signup">(initial);
-  const [forgotOpen, setForgotOpen] = useState(false);
   const confirmAsk = useConfirm();
 
   useEffect(() => {
@@ -38,37 +41,108 @@ const Auth = () => {
     }
   }, [user, isAdmin, loading, navigate]);
 
-  // ---------------- Sign in (national_id + password) ----------------
+  // ============== Sign-in (passwordless: ID + 1 random security question) ==============
   const [siNid, setSiNid] = useState("");
-  const [siPassword, setSiPassword] = useState("");
+  const [siStage, setSiStage] = useState<"id" | "question">("id");
   const [siBusy, setSiBusy] = useState(false);
+  const [siQuestion, setSiQuestion] = useState<{ question_id: string; kind: "national_id" | "birth_date"; label: string } | null>(null);
+  const [siAnswer, setSiAnswer] = useState("");
+  const [siAdminPin, setSiAdminPin] = useState("");
+  const [askedIds, setAskedIds] = useState<string[]>([]);
 
-  const handleSignin = async (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!SIGNIN_ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
-    if (!PIN_RE.test(siPassword)) { toast.error(t("form.invalid_pin")); return; }
+  const isAdminFlow = siNid === ADMIN_NID;
+
+  const fetchQuestion = async (excludeId?: string) => {
     setSiBusy(true);
-    const { error } = await supabase.auth.signInWithPassword({
-      email: idToEmail(siNid),
-      password: pinToAuthPassword(siPassword),
+    const { data, error } = await supabase.rpc("get_random_security_question", {
+      _nid: siNid,
+      _exclude_id: excludeId || null,
     });
-    const finalError = error
-      ? (await supabase.auth.signInWithPassword({ email: idToEmail(siNid), password: siPassword })).error
-      : null;
     setSiBusy(false);
-    if (finalError) {
-      toast.error(t("toast.invalid_credentials"));
-      return;
+    if (error) { toast.error(error.message); return null; }
+    if (!data || (data as any[]).length === 0) {
+      toast.error(t("toast.no_questions_available"));
+      return null;
     }
-    toast.success(t("toast.signin_success"));
+    const q = (data as any[])[0];
+    return { question_id: q.question_id, kind: q.kind as "national_id" | "birth_date", label: q.label };
   };
 
-  // ---------------- Sign up ----------------
+  const startSignin = async () => {
+    if (!SIGNIN_ID_RE.test(siNid)) { toast.error(t("form.invalid_id")); return; }
+    if (siNid === ADMIN_NID) {
+      // Admin flow: just ask for admin PIN
+      setSiStage("question");
+      return;
+    }
+    const q = await fetchQuestion();
+    if (!q) return;
+    setSiQuestion(q);
+    setAskedIds([q.question_id]);
+    setSiAnswer("");
+    setSiStage("question");
+  };
+
+  const askAnotherQuestion = async () => {
+    const q = await fetchQuestion(siQuestion?.question_id);
+    if (!q) return;
+    setSiQuestion(q);
+    setAskedIds((p) => [...p, q.question_id]);
+    setSiAnswer("");
+  };
+
+  const performSignin = async () => {
+    setSiBusy(true);
+    try {
+      const payload = isAdminFlow
+        ? { national_id: siNid, answer: { kind: "admin_pin" as const, value: siAdminPin } }
+        : {
+            national_id: siNid,
+            answer: {
+              kind: siQuestion!.kind,
+              question_id: siQuestion!.question_id,
+              value: siAnswer.trim(),
+            },
+          };
+      if (isAdminFlow && !PIN_RE.test(siAdminPin)) {
+        toast.error(t("form.invalid_pin"));
+        setSiBusy(false);
+        return;
+      }
+      if (!isAdminFlow && !siAnswer.trim()) {
+        toast.error(t("form.required"));
+        setSiBusy(false);
+        return;
+      }
+
+      const { data, error } = await supabase.functions.invoke("passwordless-signin", { body: payload });
+      if (error || !(data as any)?.ok) {
+        toast.error((data as any)?.error || error?.message || t("toast.error"));
+        setSiBusy(false);
+        return;
+      }
+      const password = (data as any).password as string;
+      const { error: signInErr } = await supabase.auth.signInWithPassword({
+        email: idToEmail(siNid),
+        password,
+      });
+      setSiBusy(false);
+      if (signInErr) { toast.error(t("toast.invalid_credentials")); return; }
+      toast.success(t("toast.signin_success"));
+    } catch (e: any) {
+      setSiBusy(false);
+      toast.error(e?.message || t("toast.error"));
+    }
+  };
+
+  const resetSignin = () => {
+    setSiStage("id"); setSiQuestion(null); setSiAnswer(""); setSiAdminPin(""); setAskedIds([]);
+  };
+
+  // ============== Sign-up (no password from user — generated internally) ==============
   const [su, setSu] = useState({
     national_id: "",
     full_name: "",
-    password: "",
-    password_confirm: "",
     phone: "",
     alt_phone: "",
     birth_date: "",
@@ -92,14 +166,6 @@ const Auth = () => {
       case "full_name":
         if (!value?.trim()) return t("field_errors.name_required");
         if (!isFullName(value)) return t("field_errors.name_format");
-        return "";
-      case "password":
-        if (!value) return t("field_errors.pin_required");
-        if (!PIN_RE.test(value)) return t("field_errors.pin_format");
-        return "";
-      case "password_confirm":
-        if (!value) return t("field_errors.pin_confirm_required");
-        if (value !== full.password) return t("field_errors.pin_mismatch");
         return "";
       case "birth_date":
         if (!value) return t("field_errors.birth_required");
@@ -125,13 +191,10 @@ const Auth = () => {
     if (errors[key] !== undefined) {
       setErrors((p) => ({ ...p, [key]: validateField(key, value, next) }));
     }
-    if (key === "password" && errors.password_confirm !== undefined) {
-      setErrors((p) => ({ ...p, password_confirm: validateField("password_confirm", next.password_confirm, next) }));
-    }
   };
 
   const validateAll = (): boolean => {
-    const keys = ["national_id","full_name","password","password_confirm","birth_date","phone","alt_phone","marital_status_other"];
+    const keys = ["national_id","full_name","birth_date","phone","alt_phone","marital_status_other"];
     const next: Record<string, string> = {};
     let ok = true;
     for (const k of keys) {
@@ -166,7 +229,7 @@ const Auth = () => {
     }
     const { error } = await supabase.auth.signUp({
       email: idToEmail(su.national_id),
-      password: pinToAuthPassword(su.password),
+      password: initialSignupPassword(su.national_id),
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
@@ -190,8 +253,7 @@ const Auth = () => {
       if (msg.includes("already") || msg.includes("registered") || msg.includes("exists")) {
         setErrors((p) => ({ ...p, national_id: t("field_errors.id_duplicate") }));
         toast.error(t("toast.id_exists"));
-      }
-      else toast.error(error.message);
+      } else toast.error(error.message);
       return;
     }
     toast.success(t("toast.signup_success"));
@@ -201,45 +263,98 @@ const Auth = () => {
     <Layout>
       <section className="container py-10 max-w-2xl">
         <Card className="p-6 md:p-8 shadow-elegant">
-          <Tabs value={tab} onValueChange={(v) => setTab(v as any)}>
+          <Tabs value={tab} onValueChange={(v) => { setTab(v as any); resetSignin(); }}>
             <TabsList className="grid grid-cols-2 w-full">
               <TabsTrigger value="signup">{t("auth.signup_title")}</TabsTrigger>
               <TabsTrigger value="signin">{t("auth.signin_title")}</TabsTrigger>
             </TabsList>
 
+            {/* ============== SIGN-IN TAB ============== */}
             <TabsContent value="signin" className="mt-6">
-              <form onSubmit={handleSignin} className="space-y-4">
-                <div>
-                  <Label>{t("form.national_id")}</Label>
-                  <Input inputMode="numeric" maxLength={9} required value={siNid}
-                    placeholder={t("form.id_or_admin_placeholder")}
-                    onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
+              <div className="rounded-xl border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-background p-4 mb-5 flex items-start gap-3">
+                <div className="rounded-full bg-accent/20 p-2 shrink-0">
+                  <ShieldCheck className="h-5 w-5 text-accent" />
                 </div>
                 <div>
-                  <Label>{t("auth.password")} <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
-                  <Input type="password" inputMode="numeric" maxLength={4} required
-                    placeholder="••••"
-                    value={siPassword}
-                    onChange={(e) => setSiPassword(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                  <div className="font-bold text-primary text-sm">{t("auth.passwordless_title")}</div>
+                  <p className="text-xs text-muted-foreground mt-1">{t("auth.passwordless_intro")}</p>
                 </div>
-                <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground">
-                  {t("auth.signin_btn")}
-                </Button>
-                <div className="text-center">
-                  <button type="button" onClick={() => setForgotOpen(true)}
-                    className="text-sm text-accent hover:underline inline-flex items-center gap-1">
-                    <KeyRound className="h-3.5 w-3.5" /> {t("auth.forgot")}
-                  </button>
-                </div>
-                <p className="text-sm text-muted-foreground text-center">
-                  {t("auth.no_account")}{" "}
-                  <button type="button" onClick={() => setTab("signup")} className="text-accent font-semibold underline-offset-4 hover:underline">
-                    {t("auth.signup_link")}
-                  </button>
-                </p>
-              </form>
+              </div>
+
+              {siStage === "id" && (
+                <form onSubmit={(e) => { e.preventDefault(); startSignin(); }} className="space-y-4 animate-fade-in">
+                  <div>
+                    <Label>{t("form.national_id")}</Label>
+                    <Input inputMode="numeric" maxLength={9} required autoFocus value={siNid}
+                      placeholder={t("form.id_or_admin_placeholder")}
+                      onChange={(e) => setSiNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
+                  </div>
+                  <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground gap-2">
+                    {siBusy ? "..." : (<><Sparkles className="h-4 w-4" /> {t("auth.next")}</>)}
+                  </Button>
+                  <p className="text-sm text-muted-foreground text-center">
+                    {t("auth.no_account")}{" "}
+                    <button type="button" onClick={() => setTab("signup")} className="text-accent font-semibold underline-offset-4 hover:underline">
+                      {t("auth.signup_link")}
+                    </button>
+                  </p>
+                </form>
+              )}
+
+              {siStage === "question" && (
+                <form onSubmit={(e) => { e.preventDefault(); performSignin(); }} className="space-y-4 animate-fade-in">
+                  <div className="rounded-lg bg-muted/40 px-3 py-2 text-xs flex items-center justify-between">
+                    <span><strong>{t("form.national_id")}:</strong> {siNid}</span>
+                    <button type="button" onClick={resetSignin} className="text-accent hover:underline inline-flex items-center gap-1">
+                      <ArrowLeft className="h-3 w-3" /> {t("form.cancel")}
+                    </button>
+                  </div>
+
+                  {isAdminFlow ? (
+                    <div>
+                      <Label>{t("auth.admin_pin_label")} <span className="text-xs text-muted-foreground">({t("auth.admin_pin_hint")})</span></Label>
+                      <Input type="password" inputMode="numeric" maxLength={4} required autoFocus
+                        placeholder="••••" value={siAdminPin}
+                        onChange={(e) => setSiAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+                    </div>
+                  ) : (
+                    <>
+                      <div>
+                        <Label className="flex items-center gap-2">
+                          <KeyRound className="h-4 w-4 text-accent" />
+                          {siQuestion?.kind === "national_id"
+                            ? t("forgot.q_nid", { name: siQuestion?.label })
+                            : t("forgot.q_birth", { name: siQuestion?.label })}
+                        </Label>
+                        <Input
+                          autoFocus
+                          type={siQuestion?.kind === "birth_date" ? "date" : "text"}
+                          inputMode={siQuestion?.kind === "national_id" ? "numeric" : undefined}
+                          maxLength={siQuestion?.kind === "national_id" ? 9 : undefined}
+                          value={siAnswer}
+                          onChange={(e) => {
+                            const v = siQuestion?.kind === "national_id"
+                              ? e.target.value.replace(/\D/g, "").slice(0, 9)
+                              : e.target.value;
+                            setSiAnswer(v);
+                          }}
+                        />
+                      </div>
+                      <button type="button" onClick={askAnotherQuestion} disabled={siBusy}
+                        className="text-xs text-accent hover:underline inline-flex items-center gap-1">
+                        <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
+                      </button>
+                    </>
+                  )}
+
+                  <Button type="submit" disabled={siBusy} className="w-full brand-gradient text-primary-foreground gap-2">
+                    {siBusy ? "..." : (<><ShieldCheck className="h-4 w-4" /> {t("auth.verify_signin")}</>)}
+                  </Button>
+                </form>
+              )}
             </TabsContent>
 
+            {/* ============== SIGN-UP TAB ============== */}
             <TabsContent value="signup" className="mt-6">
               {!settingsLoading && !settings.registration_open ? (
                 <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-5 text-center space-y-2">
@@ -253,9 +368,17 @@ const Auth = () => {
                 </div>
               ) : (
               <form onSubmit={handleSignup} className="space-y-4" noValidate>
-                <p className="text-xs text-muted-foreground bg-accent-soft/40 p-2 rounded border border-accent/20">
-                  {t("auth_extra.after_signup_hint")}
-                </p>
+                <div className="rounded-xl border border-accent/30 bg-gradient-to-br from-accent-soft/40 to-background p-4 flex items-start gap-3">
+                  <div className="rounded-full bg-accent/20 p-2 shrink-0">
+                    <Sparkles className="h-5 w-5 text-accent" />
+                  </div>
+                  <div>
+                    <div className="font-bold text-primary text-sm">تسجيل آمن وسريع</div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      لا تحتاج إلى كلمة مرور — سنحمي حسابك تلقائياً عبر بياناتك الشخصية وبيانات أفراد عائلتك.
+                    </p>
+                  </div>
+                </div>
                 <div className="grid gap-4 md:grid-cols-2">
                   <div>
                     <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
@@ -274,26 +397,6 @@ const Auth = () => {
                       onBlur={() => setErrors((p) => ({ ...p, full_name: validateField("full_name", su.full_name) }))}
                       onChange={(e) => setField("full_name", e.target.value)} />
                     {errors.full_name && <p className="text-xs text-destructive mt-1">{errors.full_name}</p>}
-                  </div>
-                  <div>
-                    <Label>{t("auth.password")} <span className="text-destructive">*</span> <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
-                    <Input type="password" inputMode="numeric" maxLength={4}
-                      placeholder="••••" value={su.password}
-                      aria-invalid={!!errors.password}
-                      className={errors.password ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, password: validateField("password", su.password) }))}
-                      onChange={(e) => setField("password", e.target.value.replace(/\D/g, "").slice(0, 4))} />
-                    {errors.password && <p className="text-xs text-destructive mt-1">{errors.password}</p>}
-                  </div>
-                  <div>
-                    <Label>{t("auth_extra.password_confirm")} <span className="text-destructive">*</span></Label>
-                    <Input type="password" inputMode="numeric" maxLength={4}
-                      placeholder="••••" value={su.password_confirm}
-                      aria-invalid={!!errors.password_confirm}
-                      className={errors.password_confirm ? "border-destructive focus-visible:ring-destructive" : ""}
-                      onBlur={() => setErrors((p) => ({ ...p, password_confirm: validateField("password_confirm", su.password_confirm) }))}
-                      onChange={(e) => setField("password_confirm", e.target.value.replace(/\D/g, "").slice(0, 4))} />
-                    {errors.password_confirm && <p className="text-xs text-destructive mt-1">{errors.password_confirm}</p>}
                   </div>
                   <div>
                     <Label>{t("form.birth_date")} <span className="text-destructive">*</span></Label>
@@ -385,8 +488,8 @@ const Auth = () => {
                   </div>
                 </Card>
 
-                <Button type="submit" disabled={suBusy} className="w-full brand-gradient text-primary-foreground">
-                  {t("auth.signup_btn")}
+                <Button type="submit" disabled={suBusy} className="w-full brand-gradient text-primary-foreground gap-2">
+                  <Sparkles className="h-4 w-4" /> {t("auth.signup_btn")}
                 </Button>
                 <p className="text-sm text-muted-foreground text-center">
                   {t("auth.have_account")}{" "}
@@ -403,160 +506,9 @@ const Auth = () => {
             <Link to="/" className="text-sm text-muted-foreground hover:text-primary">{t("auth.back")}</Link>
           </div>
         </Card>
-
-        <ForgotPasswordDialog open={forgotOpen} onClose={() => setForgotOpen(false)} />
       </section>
     </Layout>
   );
 };
 
 export default Auth;
-
-// ===================================================================
-// Forgot Password — answer 2 random family questions, then reset
-// ===================================================================
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-
-type SecQ = { question_id: string; kind: "national_id" | "birth_date"; label: string };
-
-const ForgotPasswordDialog = ({ open, onClose }: { open: boolean; onClose: () => void }) => {
-  const { t } = useTranslation();
-  const confirmAsk = useConfirm();
-  const [stage, setStage] = useState<"id" | "questions" | "reset">("id");
-  const [nid, setNid] = useState("");
-  const [busy, setBusy] = useState(false);
-  const [questions, setQuestions] = useState<SecQ[]>([]);
-  const [answers, setAnswers] = useState<string[]>(["", ""]);
-  const [newPw, setNewPw] = useState("");
-  const [newPw2, setNewPw2] = useState("");
-
-  const reset = () => {
-    setStage("id"); setNid(""); setQuestions([]); setAnswers(["", ""]); setNewPw(""); setNewPw2("");
-  };
-
-  const startQuestions = async () => {
-    if (!ID_RE.test(nid)) { toast.error(t("form.invalid_id")); return; }
-    setBusy(true);
-    const { data, error } = await supabase.rpc("get_security_questions", { _nid: nid });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    if (!data || data.length < 2) {
-      toast.error(t("toast.no_questions_available"));
-      return;
-    }
-    setQuestions(data as SecQ[]);
-    setStage("questions");
-  };
-
-  const verifyAnswers = async () => {
-    if (!answers[0] || !answers[1]) { toast.error(t("form.required")); return; }
-    setBusy(true);
-    const { data, error } = await supabase.rpc("verify_security_answers", {
-      _nid: nid,
-      _q1: questions[0].question_id, _k1: questions[0].kind, _v1: answers[0].trim(),
-      _q2: questions[1].question_id, _k2: questions[1].kind, _v2: answers[1].trim(),
-    });
-    setBusy(false);
-    if (error) { toast.error(error.message); return; }
-    if (data !== true) { toast.error(t("toast.wrong_answers")); return; }
-    setStage("reset");
-  };
-
-  const performReset = async () => {
-    if (!PIN_RE.test(newPw)) { toast.error(t("form.invalid_pin")); return; }
-    if (newPw !== newPw2) { toast.error(t("toast.password_mismatch")); return; }
-    if (!(await confirmAsk({
-      title: t("confirm.reset_password_title"),
-      description: t("confirm.reset_password"),
-      confirmText: t("forgot.save_password"),
-      variant: "warning",
-    }))) return;
-    setBusy(true);
-    // Sign in with a temporary recovery using the verify RPC outcome:
-    // we call an edge function or rely on supabase.auth.updateUser? updateUser requires session.
-    // Strategy: sign in is impossible without password. So we must use a server-side reset via Edge Function.
-    // For simplicity & per spec, we use a publicly callable edge function `reset-password`.
-    const { data, error } = await supabase.functions.invoke("reset-password", {
-      body: {
-        national_id: nid,
-        new_password: newPw,
-        q1: { id: questions[0].question_id, kind: questions[0].kind, value: answers[0].trim() },
-        q2: { id: questions[1].question_id, kind: questions[1].kind, value: answers[1].trim() },
-      },
-    });
-    setBusy(false);
-    if (error || (data as any)?.error) {
-      toast.error((data as any)?.error || error?.message || t("toast.error"));
-      return;
-    }
-    toast.success(t("toast.password_reset_success"));
-    reset(); onClose();
-  };
-
-  return (
-    <Dialog open={open} onOpenChange={(o) => { if (!o) { reset(); onClose(); } }}>
-      <DialogContent>
-        <DialogHeader><DialogTitle>{t("auth.forgot")}</DialogTitle></DialogHeader>
-
-        {stage === "id" && (
-          <div className="space-y-3">
-            <p className="text-sm text-muted-foreground">{t("forgot.intro")}</p>
-            <Label>{t("form.national_id")}</Label>
-            <Input inputMode="numeric" maxLength={9} value={nid}
-              onChange={(e) => setNid(e.target.value.replace(/\D/g, "").slice(0, 9))} />
-            <DialogFooter>
-              <Button onClick={startQuestions} disabled={busy} className="brand-gradient text-primary-foreground">
-                {t("forgot.next")}
-              </Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {stage === "questions" && (
-          <div className="space-y-4">
-            <p className="text-sm text-muted-foreground">{t("forgot.answer_intro")}</p>
-            {questions.map((q, i) => (
-              <div key={q.question_id + i}>
-                <Label>
-                  {q.kind === "national_id" ? t("forgot.q_nid", { name: q.label }) : t("forgot.q_birth", { name: q.label })}
-                </Label>
-                <Input
-                  type={q.kind === "birth_date" ? "date" : "text"}
-                  inputMode={q.kind === "national_id" ? "numeric" : undefined}
-                  maxLength={q.kind === "national_id" ? 9 : undefined}
-                  value={answers[i]}
-                  onChange={(e) => {
-                    const v = q.kind === "national_id" ? e.target.value.replace(/\D/g, "").slice(0, 9) : e.target.value;
-                    setAnswers((a) => a.map((x, idx) => (idx === i ? v : x)));
-                  }}
-                />
-              </div>
-            ))}
-            <DialogFooter>
-              <Button onClick={verifyAnswers} disabled={busy} className="brand-gradient text-primary-foreground">
-                {t("forgot.verify")}
-              </Button>
-            </DialogFooter>
-          </div>
-        )}
-
-        {stage === "reset" && (
-          <div className="space-y-3">
-            <p className="text-sm text-success font-semibold">{t("forgot.verified")}</p>
-            <Label>{t("forgot.new_password")} <span className="text-xs text-muted-foreground">({t("form.pin_hint")})</span></Label>
-            <Input type="password" inputMode="numeric" maxLength={4} placeholder="••••"
-              value={newPw} onChange={(e) => setNewPw(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-            <Label>{t("forgot.new_password_confirm")}</Label>
-            <Input type="password" inputMode="numeric" maxLength={4} placeholder="••••"
-              value={newPw2} onChange={(e) => setNewPw2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-            <DialogFooter>
-              <Button onClick={performReset} disabled={busy} className="brand-gradient text-primary-foreground">
-                {t("forgot.save_password")}
-              </Button>
-            </DialogFooter>
-          </div>
-        )}
-      </DialogContent>
-    </Dialog>
-  );
-};
