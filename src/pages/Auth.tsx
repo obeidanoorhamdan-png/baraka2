@@ -89,6 +89,7 @@ const Auth = () => {
     setSiQuestion(q);
     setAskedIds((p) => [...p, q.question_id]);
     setSiAnswer("");
+    toast.info(t("toast.new_question_loaded"));
   };
 
   const performSignin = async () => {
@@ -117,10 +118,15 @@ const Auth = () => {
 
       const { data, error } = await supabase.functions.invoke("passwordless-signin", { body: payload });
       if (error || !(data as any)?.ok) {
-        toast.error((data as any)?.error || error?.message || t("toast.error"));
+        const reason = (data as any)?.error || error?.message;
+        toast.error(reason || t("toast.wrong_answer"), {
+          description: !isAdminFlow ? t("toast.try_another_question") : undefined,
+        });
         setSiBusy(false);
         return;
       }
+      // Verified — show success then sign-in
+      toast.success(t("toast.answer_verified"));
       const password = (data as any).password as string;
       const { error: signInErr } = await supabase.auth.signInWithPassword({
         email: idToEmail(siNid),
