@@ -45,6 +45,7 @@ const Admin = () => {
   const [closedReason, setClosedReason] = useState("");
   const [previewUrl, setPreviewUrl] = useState<string>("");
   const [previewTitle, setPreviewTitle] = useState<string>("");
+  const [previewDownloadName, setPreviewDownloadName] = useState<string>("");
   // People filter state
   const [pCategory, setPCategory] = useState<string>("all");
   const [pAgeMin, setPAgeMin] = useState<string>("");
@@ -216,12 +217,13 @@ const Admin = () => {
     );
   }, [allPeople, pCategory, pAgeMin, pAgeMax, pSearch]);
 
-  const openImagePreview = async (path: string, title: string) => {
+  const openImagePreview = async (path: string, title: string, downloadName?: string) => {
     if (!path) return;
     const { data } = await supabase.storage.from("medical-reports").createSignedUrl(path, 3600);
     if (!data?.signedUrl) { toast.error(t("toast.error")); return; }
     setPreviewUrl(data.signedUrl);
     setPreviewTitle(title);
+    setPreviewDownloadName(downloadName || title);
   };
 
   const deleteReportImage = async (
@@ -724,7 +726,7 @@ const Admin = () => {
                       {p.is_war_injured && <div className="text-destructive font-semibold">{t("health.is_war_injured")}: {t("health.yes")}</div>}
                       {p.injury_report_url && (
                         <div className="flex flex-wrap gap-1.5 mt-1">
-                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"))}>
+                          <Button size="sm" variant="outline" className="gap-1.5" onClick={() => openImagePreview(p.injury_report_url, t("health.upload_report"), `Injury_${p.full_name}_${p.national_id}`)}>
                             <ImageIcon className="h-3.5 w-3.5" /> {t("preview.view_image")}
                           </Button>
                           <Button size="sm" variant="outline" className="gap-1.5 text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(p.injury_report_url, "head_injury", p.id)}>
@@ -773,7 +775,7 @@ const Admin = () => {
                             <div className="flex flex-wrap gap-1.5 pt-1">
                               {m.injury_report_url && (
                                 <>
-                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`)}>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.injury_report_url, `${t("health.upload_report")} — ${m.full_name}`, `Injury_${m.full_name}_${m.national_id || ""}`)}>
                                     <ImageIcon className="h-3 w-3" /> {t("preview.view_injury")}
                                   </Button>
                                   <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(m.injury_report_url, "member_injury", m.id)}>
@@ -783,7 +785,7 @@ const Admin = () => {
                               )}
                               {m.pregnancy_report_url && (
                                 <>
-                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`)}>
+                                  <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs" onClick={() => openImagePreview(m.pregnancy_report_url, `${t("health_extra.pregnancy_report")} — ${m.full_name}`, `Pregnancy_${m.full_name}_${m.national_id || ""}`)}>
                                     <ImageIcon className="h-3 w-3" /> {t("preview.view_pregnancy")}
                                   </Button>
                                   <Button size="sm" variant="outline" className="h-7 px-2 gap-1 text-xs text-destructive hover:bg-destructive/10" onClick={() => deleteReportImage(m.pregnancy_report_url, "member_pregnancy", m.id)}>
@@ -806,7 +808,7 @@ const Admin = () => {
         </DialogContent>
       </Dialog>
 
-      <ImagePreviewDialog open={!!previewUrl} onClose={() => setPreviewUrl("")} url={previewUrl} title={previewTitle} />
+      <ImagePreviewDialog open={!!previewUrl} onClose={() => setPreviewUrl("")} url={previewUrl} title={previewTitle} downloadName={previewDownloadName} />
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>

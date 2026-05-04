@@ -1,6 +1,6 @@
 import { useTranslation } from "react-i18next";
 import { Link, useNavigate } from "react-router-dom";
-import { Languages, LogOut, ShieldCheck, User as UserIcon } from "lucide-react";
+import { Languages, LogOut, ShieldCheck, Home as HomeIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -45,7 +45,7 @@ export const Header = () => {
                 </Button>
               ) : (
                 <Button asChild variant="outline" size="sm" className="gap-1.5">
-                  <Link to="/my-application"><UserIcon className="h-4 w-4" />{t("my_app.title")}</Link>
+                  <Link to="/dashboard"><HomeIcon className="h-4 w-4" />{t("dashboard.nav")}</Link>
                 </Button>
               )}
               <Button variant="ghost" size="sm" onClick={handleLogout} className="gap-1.5">

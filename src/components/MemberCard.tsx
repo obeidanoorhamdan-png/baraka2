@@ -259,28 +259,33 @@ export const MemberCard = ({
             <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="no" />{t("health.no")}</label>
           </RadioGroup>
           {member.is_war_injured && (
-            <UploadBlock
-              field="injury_report_url"
-              index={index}
-              path={member.injury_report_url || ""}
-              uploading={uploading === "injury_report_url"}
-              dragOver={dragOver === "injury_report_url"}
-              localPreview={localPreviews.injury_report_url}
-              signedPreview={signedPreviews.injury_report_url}
-              onUpload={(f) => handleUpload(f, "injury_report_url")}
-              onRemove={() => handleRemoveFile("injury_report_url")}
-              setDragOver={(v) => setDragOver(v ? "injury_report_url" : null)}
-              onDrop={(e) => handleDrop(e, "injury_report_url")}
-              requiredText={t("health.report_required")}
-              uploadLabel={t("health.upload_report")}
-              uploadingLabel={t("health.uploading")}
-              hintLabel={t("health.upload_hint")}
-              secureLabel={t("health.upload_secure")}
-              uploadedLabel={t("health.report_uploaded")}
-              replaceLabel={t("health.replace")}
-              removeLabel={t("health.remove")}
-              error={errors.injury_report_url}
-            />
+            <>
+              <p className="text-xs text-warning-foreground bg-warning/10 border border-warning/30 rounded p-2 mt-2">
+                {t("health.report_optional_notice")}
+              </p>
+              <UploadBlock
+                field="injury_report_url"
+                index={index}
+                path={member.injury_report_url || ""}
+                uploading={uploading === "injury_report_url"}
+                dragOver={dragOver === "injury_report_url"}
+                localPreview={localPreviews.injury_report_url}
+                signedPreview={signedPreviews.injury_report_url}
+                onUpload={(f) => handleUpload(f, "injury_report_url")}
+                onRemove={() => handleRemoveFile("injury_report_url")}
+                setDragOver={(v) => setDragOver(v ? "injury_report_url" : null)}
+                onDrop={(e) => handleDrop(e, "injury_report_url")}
+                requiredText={t("health.report_required")}
+                uploadLabel={t("health.upload_report")}
+                uploadingLabel={t("health.uploading")}
+                hintLabel={t("health.upload_hint")}
+                secureLabel={t("health.upload_secure")}
+                uploadedLabel={t("health.report_uploaded")}
+                replaceLabel={t("health.replace")}
+                removeLabel={t("health.remove")}
+                error={errors.injury_report_url}
+              />
+            </>
           )}
         </div>
         <div>
