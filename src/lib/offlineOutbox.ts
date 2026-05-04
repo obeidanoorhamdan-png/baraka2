@@ -150,6 +150,37 @@ export async function cacheDelete(key: string) {
   await db.delete("cache", key);
 }
 
+/* ---------------- sync history (audit log) ---------------- */
+
+export async function logHistory(entry: Omit<SyncHistoryEntry, "id" | "time"> & { time?: number }) {
+  const db = await getDB();
+  await db.add("history", {
+    time: entry.time ?? Date.now(),
+    status: entry.status,
+    label: entry.label,
+    detail: entry.detail,
+  });
+  // Trim to last 100 entries
+  const all = await db.getAllFromIndex("history", "byTime");
+  if (all.length > 100) {
+    const toDelete = all.slice(0, all.length - 100);
+    for (const e of toDelete) if (e.id) await db.delete("history", e.id);
+  }
+  notifyOutboxChanged();
+}
+
+export async function listHistory(): Promise<SyncHistoryEntry[]> {
+  const db = await getDB();
+  const all = await db.getAllFromIndex("history", "byTime");
+  return all.reverse(); // newest first
+}
+
+export async function clearHistory() {
+  const db = await getDB();
+  await db.clear("history");
+  notifyOutboxChanged();
+}
+
 /* ---------------- pub/sub for UI updates ---------------- */
 
 const listeners = new Set<() => void>();
