@@ -724,14 +724,16 @@ const MyApplication = () => {
 
 
         {appId && !editMode ? (
-          <ApplicationSummary
-            residence={residence}
-            members={members}
-            onEditResidence={() => { setSnapshot(currentSig()); setEditMode(true); setStep(1); }}
-            onEditMembers={() => { setSnapshot(currentSig()); setEditMode(true); setStep(2); }}
-          />
+          <ErrorBoundary label="ApplicationSummary">
+            <ApplicationSummary
+              residence={residence}
+              members={members}
+              onEditResidence={() => { setSnapshot(currentSig()); setEditMode(true); setStep(1); }}
+              onEditMembers={() => { setSnapshot(currentSig()); setEditMode(true); setStep(2); }}
+            />
+          </ErrorBoundary>
         ) : (
-        <>
+        <ErrorBoundary label="EditForm"><>
         {/* Stepper — labeled, with progress bar and manual save. */}
         {(() => {
           const expectedMembers = Math.max(0, residence.family_size - 1);
