@@ -20,7 +20,8 @@ export function registerServiceWorker() {
   const isPreviewHost =
     host.includes("id-preview--") ||
     host.includes("lovableproject.com") ||
-    host.includes("lovable.app") === false && host.includes("localhost");
+    host === "localhost" ||
+    host === "127.0.0.1";
 
   const isDev = import.meta.env.DEV;
 
