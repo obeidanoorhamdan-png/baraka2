@@ -69,7 +69,7 @@ const MyApplication = () => {
     original_residence: "",
     original_landmark: "",
     current_landmark: "",
-    family_size: 2,
+    family_size: 1,
     has_martyr: false,
     martyr_name: "",
     martyr_relationship: "",
