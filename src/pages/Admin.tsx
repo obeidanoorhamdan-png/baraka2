@@ -723,7 +723,7 @@ const Admin = () => {
                     <div><strong>{t("form.national_id")}:</strong> <span dir="ltr">{p.national_id}</span></div>
                     <div><strong>{t("form.phone")}:</strong> <span dir="ltr">{p.phone}</span></div>
                     {p.alt_phone && <div><strong>{t("form.alt_phone")}:</strong> <span dir="ltr">{p.alt_phone}</span></div>}
-                    <div><strong>{t("form.birth_date")}:</strong> {p.birth_date} ({calculateAge(p.birth_date)} {t("form.years")})</div>
+                    <div><strong>{t("form.birth_date")}:</strong> {formatBirthDate(p.birth_date)} ({calculateAge(p.birth_date)} {t("form.years")})</div>
                     <div><strong>{t("form.gender")}:</strong> {t(`form.${p.gender}`)}</div>
                     <div><strong>{t("form.marital_status")}:</strong> {t(`form.${p.marital_status}`)} {p.marital_status_other && `(${p.marital_status_other})`}</div>
                   </div>
