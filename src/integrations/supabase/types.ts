@@ -14,6 +14,42 @@ export type Database = {
   }
   public: {
     Tables: {
+      admin_audit_log: {
+        Row: {
+          action: string
+          actor_id: string
+          actor_name: string | null
+          created_at: string
+          details: Json | null
+          id: string
+          target_id: string | null
+          target_label: string | null
+          target_type: string | null
+        }
+        Insert: {
+          action: string
+          actor_id: string
+          actor_name?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string
+          actor_name?: string | null
+          created_at?: string
+          details?: Json | null
+          id?: string
+          target_id?: string | null
+          target_label?: string | null
+          target_type?: string | null
+        }
+        Relationships: []
+      }
       aid_distributions: {
         Row: {
           application_id: string
@@ -362,6 +398,7 @@ export type Database = {
           question_id: string
         }[]
       }
+      grant_admin_by_nid: { Args: { _nid: string }; Returns: boolean }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -370,6 +407,16 @@ export type Database = {
         Returns: boolean
       }
       head_account_exists: { Args: { _nid: string }; Returns: boolean }
+      list_admins: {
+        Args: never
+        Returns: {
+          created_at: string
+          full_name: string
+          national_id: string
+          phone: string
+          user_id: string
+        }[]
+      }
       list_incomplete_accounts: {
         Args: never
         Returns: {
@@ -382,6 +429,16 @@ export type Database = {
           user_id: string
         }[]
       }
+      log_admin_action: {
+        Args: {
+          _action: string
+          _details?: Json
+          _target_id?: string
+          _target_label?: string
+          _target_type?: string
+        }
+        Returns: undefined
+      }
       national_id_exists: {
         Args: { _exclude_user?: string; _nid: string }
         Returns: boolean
@@ -390,6 +447,7 @@ export type Database = {
         Args: { _exclude_member?: string; _exclude_user?: string; _nid: string }
         Returns: boolean
       }
+      revoke_admin: { Args: { _uid: string }; Returns: boolean }
       verify_security_answers: {
         Args: {
           _k1: string

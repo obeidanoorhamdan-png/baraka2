@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import * as XLSX from "xlsx";
 import { CheckCircle2, XCircle, Eye, Download, Search, Users, Heart, Baby, Activity, FileSpreadsheet, Filter, Image as ImageIcon, KeyRound } from "lucide-react";
-import { Layout } from "@/components/Layout";
+import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -289,6 +289,10 @@ const Admin = () => {
       status: "approved", rejection_reason: null, reviewed_at: new Date().toISOString(), reviewed_by: user!.id,
     }).eq("id", r.id);
     if (error) { toast.error(error.message); return; }
+    await supabase.rpc("log_admin_action", {
+      _action: "approve_application", _target_type: "application", _target_id: r.id,
+      _target_label: profiles[r.user_id]?.full_name || profiles[r.user_id]?.national_id,
+    });
     toast.success(t("toast.approved"));
     load();
   };
@@ -299,6 +303,10 @@ const Admin = () => {
       status: "rejected", rejection_reason: rejectReason, reviewed_at: new Date().toISOString(), reviewed_by: user!.id,
     }).eq("id", rejectTarget.id);
     if (error) { toast.error(error.message); return; }
+    await supabase.rpc("log_admin_action", {
+      _action: "reject_application", _target_type: "application", _target_id: rejectTarget.id,
+      _target_label: profiles[rejectTarget.user_id]?.full_name, _details: { reason: rejectReason },
+    });
     toast.success(t("toast.rejected"));
     setRejectOpen(false); setRejectReason(""); setRejectTarget(null);
     load();
@@ -456,7 +464,7 @@ const Admin = () => {
     toast.success(t("toast.export_done"));
   };
 
-  if (loading || !isAdmin) return <Layout><div className="container py-20 text-center">...</div></Layout>;
+  if (loading || !isAdmin) return <AdminLayout title="إدارة الطلبات"><div className="container py-20 text-center">...</div></AdminLayout>;
 
   const StatCard = ({ icon: Icon, label, value, color }: any) => (
     <Card className="p-4 shadow-card">
@@ -469,13 +477,10 @@ const Admin = () => {
   );
 
   return (
-    <Layout>
+    <AdminLayout title="إدارة الطلبات">
       <section className="container py-8 space-y-6">
         <div className="flex flex-wrap justify-between items-center gap-3">
           <div className="space-y-1">
-            <a href="/admin" className="text-xs text-accent hover:underline inline-flex items-center gap-1">
-              ← {t("admin.back_to_hub")}
-            </a>
             <h1 className="text-2xl md:text-3xl text-primary">{t("admin.applications_page_title")}</h1>
           </div>
           <div className="flex gap-2">
@@ -488,38 +493,8 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Registration control */}
-        <Card className={`p-4 shadow-card border-2 ${regOpen ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="font-bold text-primary">{t("admin.registration_control")}</div>
-              <div className={`text-sm font-semibold ${regOpen ? "text-success" : "text-destructive"}`}>
-                {regOpen ? t("admin.registration_open") : t("admin.registration_closed")}
-              </div>
-            </div>
-            {regOpen ? (
-              <Button onClick={() => saveSettings(false)} variant="destructive" size="sm">
-                {t("admin.close_registration")}
-              </Button>
-            ) : (
-              <Button onClick={() => saveSettings(true)} className="bg-success text-success-foreground hover:bg-success/90" size="sm">
-                {t("admin.open_registration")}
-              </Button>
-            )}
-          </div>
-          {!regOpen && (
-            <div className="mt-3">
-              <Label className="text-xs">{t("admin.closed_reason")}</Label>
-              <div className="flex gap-2 mt-1">
-                <Textarea rows={2} value={closedReason} onChange={(e) => setClosedReason(e.target.value)}
-                  placeholder={t("admin.closed_reason_placeholder")} />
-                <Button onClick={() => saveSettings(false)} variant="outline" size="sm">{t("form.save")}</Button>
-              </div>
-            </div>
-          )}
-        </Card>
+        {/* Settings + PIN moved to /admin/settings */}
 
-        <ChangeAdminPinCard />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
@@ -534,16 +509,9 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="families" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full md:w-[40rem]">
+          <TabsList className="grid grid-cols-2 w-full md:w-[24rem]">
             <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
             <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
-            <TabsTrigger value="incomplete" className="gap-1.5">
-              <Trash2 className="h-4 w-4" /> غير مكتملة
-              {incomplete.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{incomplete.length}</span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="aid" className="gap-1.5"><PackageCheck className="h-4 w-4" /> {t("admin.tab_aid")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="families" className="mt-4">
@@ -718,66 +686,6 @@ const Admin = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="incomplete" className="mt-4">
-            <Card className="p-4 shadow-card">
-              <div className="mb-3 text-sm text-muted-foreground">
-                حسابات سجّلت ولم تكمل البيانات (لا يوجد طلب أو الطلب بدون أفراد). يمكنك حذفها لتحرير رقم الهوية.
-              </div>
-              <div className="overflow-x-auto">
-                <Table>
-                  <TableHeader>
-                    <TableRow>
-                      <TableHead>الاسم</TableHead>
-                      <TableHead>{t("form.national_id")}</TableHead>
-                      <TableHead>{t("form.phone")}</TableHead>
-                      <TableHead>السبب</TableHead>
-                      <TableHead>تاريخ التسجيل</TableHead>
-                      <TableHead className="text-end"></TableHead>
-                    </TableRow>
-                  </TableHeader>
-                  <TableBody>
-                    {incomplete.length === 0 && (
-                      <TableRow><TableCell colSpan={6} className="text-center py-10 text-muted-foreground">لا يوجد حسابات غير مكتملة</TableCell></TableRow>
-                    )}
-                    {incomplete.map((row) => (
-                      <TableRow key={row.user_id}>
-                        <TableCell className="font-semibold">{row.full_name || "—"}</TableCell>
-                        <TableCell dir="ltr">{row.national_id}</TableCell>
-                        <TableCell dir="ltr">{row.phone}</TableCell>
-                        <TableCell>
-                          <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                            row.reason === "no_application" ? "bg-destructive/15 text-destructive" : "bg-warning/20 text-warning-foreground"
-                          }`}>
-                            {row.reason === "no_application" ? "بدون طلب" : "طلب فارغ"}
-                          </span>
-                        </TableCell>
-                        <TableCell className="text-xs text-muted-foreground">{formatDateShort(row.created_at)}</TableCell>
-                        <TableCell className="text-end">
-                          <Button size="sm" variant="ghost" onClick={() => deleteIncomplete(row)} className="text-destructive hover:bg-destructive/10 gap-1">
-                            <Trash2 className="h-4 w-4" /> حذف
-                          </Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
-              </div>
-            </Card>
-          </TabsContent>
-
-          <TabsContent value="aid" className="mt-4">
-            <BulkAidDistributor
-              currentUserId={user!.id}
-              families={rows.map((r) => ({
-                application_id: r.id,
-                user_id: r.user_id,
-                head_name: profiles[r.user_id]?.full_name || "",
-                national_id: profiles[r.user_id]?.national_id || "",
-                family_size: r.family_size || 0,
-                status: r.status,
-              }))}
-            />
-          </TabsContent>
         </Tabs>
       </section>
 
@@ -905,7 +813,7 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </AdminLayout>
   );
 };
 
