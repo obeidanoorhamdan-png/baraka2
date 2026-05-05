@@ -289,6 +289,10 @@ const Admin = () => {
       status: "approved", rejection_reason: null, reviewed_at: new Date().toISOString(), reviewed_by: user!.id,
     }).eq("id", r.id);
     if (error) { toast.error(error.message); return; }
+    await supabase.rpc("log_admin_action", {
+      _action: "approve_application", _target_type: "application", _target_id: r.id,
+      _target_label: profiles[r.user_id]?.full_name || profiles[r.user_id]?.national_id,
+    });
     toast.success(t("toast.approved"));
     load();
   };
