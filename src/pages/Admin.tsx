@@ -303,6 +303,10 @@ const Admin = () => {
       status: "rejected", rejection_reason: rejectReason, reviewed_at: new Date().toISOString(), reviewed_by: user!.id,
     }).eq("id", rejectTarget.id);
     if (error) { toast.error(error.message); return; }
+    await supabase.rpc("log_admin_action", {
+      _action: "reject_application", _target_type: "application", _target_id: rejectTarget.id,
+      _target_label: profiles[rejectTarget.user_id]?.full_name, _details: { reason: rejectReason },
+    });
     toast.success(t("toast.rejected"));
     setRejectOpen(false); setRejectReason(""); setRejectTarget(null);
     load();
