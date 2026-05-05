@@ -140,10 +140,11 @@ const Auth = () => {
     }
     setBusy(true);
 
-    // Admin path — always go to "question" stage with PIN. UI does not reveal admin nature.
+    // Admin path is no longer accessible from family auth — redirect to dedicated entry.
     if (isAdminFlow) {
-      setStage("question");
       setBusy(false);
+      toast.info("دخول الإدارة عبر الصفحة المخصصة");
+      navigate("/admin-login", { replace: true });
       return;
     }
 

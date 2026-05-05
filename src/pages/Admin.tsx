@@ -99,7 +99,7 @@ const Admin = () => {
   };
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) navigate("/");
+    if (!loading && (!user || !isAdmin)) navigate("/admin-login", { replace: true });
   }, [user, isAdmin, loading, navigate]);
 
   const load = async () => {

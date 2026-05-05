@@ -43,7 +43,7 @@ const AdminHub = () => {
   const navigate = useNavigate();
 
   useEffect(() => {
-    if (!loading && (!user || !isAdmin)) navigate("/");
+    if (!loading && (!user || !isAdmin)) navigate("/admin-login", { replace: true });
   }, [user, isAdmin, loading, navigate]);
 
   if (loading || !isAdmin) {
