@@ -1142,6 +1142,12 @@ const MyApplication = () => {
                         setMembers((prev) => prev.filter((_, idx) => idx !== i));
                         setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
                         setCollapsedMembers((p) => { const c = { ...p }; delete c[i]; return c; });
+                        // Sync family_size down so it matches the actual member count + head
+                        setResidence((r) => {
+                          const nextSize = Math.max(1, r.family_size - 1);
+                          setFamilySizeInput(String(nextSize));
+                          return { ...r, family_size: nextSize };
+                        });
                       }}
                       onSave={() => {
                         // Validate this member only
@@ -1166,42 +1172,33 @@ const MyApplication = () => {
               );
             })}
 
-            {appStatus !== "approved" && (() => {
-              const reachedMax = filledMembers >= totalMembers;
-              return (
-                <div className="space-y-2">
-                  <Button
-                    type="button"
-                    variant="outline"
-                    disabled={reachedMax || !familySizeInput}
-                    onClick={() => {
-                      if (filledMembers >= totalMembers) {
-                        toast.error(`اكتمل العدد المطلوب (${totalMembers} فرد). عدّل عدد أفراد الأسرة من الخطوة السابقة لإضافة المزيد.`);
-                        return;
-                      }
-                      setMembers([...members, emptyMember()]);
-                    }}
-                    className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft disabled:opacity-50 disabled:cursor-not-allowed"
-                  >
-                    <Plus className="h-4 w-4" /> {t("family.add")}
-                    {familySizeInput && (
-                      <span className="text-xs text-muted-foreground">
-                        ({filledMembers} / {totalMembers})
-                      </span>
-                    )}
-                  </Button>
-                  {!familySizeInput && (
-                    <p className="text-xs text-center text-muted-foreground">حدّد عدد أفراد الأسرة في الخطوة السابقة أولاً</p>
-                  )}
-                  {reachedMax && familySizeInput && (
-                    <Card className="p-3 text-center bg-success/5 border-success/30 text-success font-semibold text-sm flex items-center justify-center gap-2">
-                      <CheckCircle2 className="h-5 w-5" />
-                      اكتمل العدد المطلوب ({totalMembers} فرد) — لا يمكن إضافة المزيد
-                    </Card>
-                  )}
-                </div>
-              );
-            })()}
+            {appStatus !== "approved" && (
+              <div className="space-y-2">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => {
+                    // Auto-grow family_size to fit the new member (head + members)
+                    const newCount = members.length + 1;
+                    const newFamilySize = newCount + 1; // +1 for head
+                    if (!familySizeInput || newFamilySize > residence.family_size) {
+                      setResidence((r) => ({ ...r, family_size: newFamilySize }));
+                      setFamilySizeInput(String(newFamilySize));
+                    }
+                    setMembers([...members, emptyMember()]);
+                  }}
+                  className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft"
+                >
+                  <Plus className="h-4 w-4" /> {t("family.add")}
+                  <span className="text-xs text-muted-foreground">
+                    ({filledMembers + 1} / {Math.max(filledMembers + 1, totalMembers)})
+                  </span>
+                </Button>
+                <p className="text-xs text-center text-muted-foreground">
+                  سيتم تحديث عدد أفراد الأسرة تلقائياً حسب عدد الأفراد المُضافين
+                </p>
+              </div>
+            )}
             {appStatus === "approved" && (
               <Card className="p-3 text-sm text-center text-success bg-success/5 border-success/30">
                 {t("my_app.approved_locked_add")}
