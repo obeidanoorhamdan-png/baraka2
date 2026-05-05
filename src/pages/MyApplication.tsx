@@ -1142,6 +1142,12 @@ const MyApplication = () => {
                         setMembers((prev) => prev.filter((_, idx) => idx !== i));
                         setMemberErrors((p) => { const c = { ...p }; delete c[i]; return c; });
                         setCollapsedMembers((p) => { const c = { ...p }; delete c[i]; return c; });
+                        // Sync family_size down so it matches the actual member count + head
+                        setResidence((r) => {
+                          const nextSize = Math.max(1, r.family_size - 1);
+                          setFamilySizeInput(String(nextSize));
+                          return { ...r, family_size: nextSize };
+                        });
                       }}
                       onSave={() => {
                         // Validate this member only
