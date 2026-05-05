@@ -509,16 +509,9 @@ const Admin = () => {
         </div>
 
         <Tabs defaultValue="families" className="w-full">
-          <TabsList className="grid grid-cols-4 w-full md:w-[40rem]">
+          <TabsList className="grid grid-cols-2 w-full md:w-[24rem]">
             <TabsTrigger value="families" className="gap-1.5"><Users className="h-4 w-4" /> {t("admin.tab_families")}</TabsTrigger>
             <TabsTrigger value="people" className="gap-1.5"><Filter className="h-4 w-4" /> {t("admin.tab_people")}</TabsTrigger>
-            <TabsTrigger value="incomplete" className="gap-1.5">
-              <Trash2 className="h-4 w-4" /> غير مكتملة
-              {incomplete.length > 0 && (
-                <span className="ml-1 px-1.5 py-0.5 rounded-full bg-destructive text-destructive-foreground text-[10px] font-bold">{incomplete.length}</span>
-              )}
-            </TabsTrigger>
-            <TabsTrigger value="aid" className="gap-1.5"><PackageCheck className="h-4 w-4" /> {t("admin.tab_aid")}</TabsTrigger>
           </TabsList>
 
           <TabsContent value="families" className="mt-4">
