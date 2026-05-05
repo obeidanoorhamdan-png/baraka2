@@ -456,7 +456,7 @@ const Admin = () => {
     toast.success(t("toast.export_done"));
   };
 
-  if (loading || !isAdmin) return <Layout><div className="container py-20 text-center">...</div></Layout>;
+  if (loading || !isAdmin) return <AdminLayout title="إدارة الطلبات"><div className="container py-20 text-center">...</div></AdminLayout>;
 
   const StatCard = ({ icon: Icon, label, value, color }: any) => (
     <Card className="p-4 shadow-card">
@@ -469,7 +469,7 @@ const Admin = () => {
   );
 
   return (
-    <Layout>
+    <AdminLayout title="إدارة الطلبات">
       <section className="container py-8 space-y-6">
         <div className="flex flex-wrap justify-between items-center gap-3">
           <div className="space-y-1">
@@ -905,7 +905,7 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-    </Layout>
+    </AdminLayout>
   );
 };
 
