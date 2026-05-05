@@ -979,18 +979,21 @@ const MyApplication = () => {
                   value={familySizeInput}
                   onValueChange={(v) => {
                     const n = Math.max(1, parseInt(v, 10) || 1);
+                    const prevSize = residence.family_size;
                     setFamilySizeInput(String(n));
                     setResidence((r) => ({ ...r, family_size: n }));
-                    // Sync members array to match new size (head + members)
                     const expected = Math.max(0, n - 1);
                     setMembers((prev) => {
                       if (prev.length === expected) return prev;
-                      if (prev.length > expected) return prev.slice(0, expected);
+                      if (prev.length > expected) {
+                        toast.info(`تم تقليل عدد الأفراد إلى ${n} وإزالة آخر ${prev.length - expected} فرد`);
+                        return prev.slice(0, expected);
+                      }
                       const add = expected - prev.length;
+                      toast.info(`تم زيادة عدد الأفراد إلى ${n} وإضافة ${add} فرد جديد`);
                       return [...prev, ...Array.from({ length: add }, () => emptyMember())];
                     });
                   }}
-                  disabled={appStatus === "approved"}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر عدد الأفراد" />
