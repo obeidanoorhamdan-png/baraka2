@@ -978,10 +978,19 @@ const MyApplication = () => {
                 <Select
                   value={familySizeInput}
                   onValueChange={(v) => {
-                    setFamilySizeInput(v);
-                    const n = parseInt(v, 10);
+                    const n = Math.max(1, parseInt(v, 10) || 1);
+                    setFamilySizeInput(String(n));
                     setResidence((r) => ({ ...r, family_size: n }));
+                    // Sync members array to match new size (head + members)
+                    const expected = Math.max(0, n - 1);
+                    setMembers((prev) => {
+                      if (prev.length === expected) return prev;
+                      if (prev.length > expected) return prev.slice(0, expected);
+                      const add = expected - prev.length;
+                      return [...prev, ...Array.from({ length: add }, () => emptyMember())];
+                    });
                   }}
+                  disabled={appStatus === "approved"}
                 >
                   <SelectTrigger>
                     <SelectValue placeholder="اختر عدد الأفراد" />
@@ -994,7 +1003,7 @@ const MyApplication = () => {
                 </Select>
                 {familySizeInput && (
                   <p className="text-xs text-muted-foreground mt-1">
-                    رب الأسرة محسوب — سيتم طلب بيانات {Math.max(0, residence.family_size - 1)} فرد إضافي
+                    رب الأسرة محسوب — سيتم طلب بيانات {Math.max(0, residence.family_size - 1)} فرد إضافي. سيتم مزامنة العدد تلقائياً مع الإضافة أو الحذف.
                   </p>
                 )}
               </div>
