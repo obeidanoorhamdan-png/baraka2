@@ -1185,38 +1185,28 @@ const MyApplication = () => {
               );
             })}
 
-            {appStatus !== "approved" && (
-              <div className="space-y-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={() => {
-                    // Auto-grow family_size to fit the new member (head + members)
-                    const newCount = members.length + 1;
-                    const newFamilySize = newCount + 1; // +1 for head
-                    if (!familySizeInput || newFamilySize > residence.family_size) {
-                      setResidence((r) => ({ ...r, family_size: newFamilySize }));
-                      setFamilySizeInput(String(newFamilySize));
-                    }
-                    setMembers([...members, emptyMember()]);
-                  }}
-                  className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft"
-                >
-                  <Plus className="h-4 w-4" /> {t("family.add")}
-                  <span className="text-xs text-muted-foreground">
-                    ({filledMembers + 1} / {Math.max(filledMembers + 1, totalMembers)})
-                  </span>
-                </Button>
-                <p className="text-xs text-center text-muted-foreground">
-                  سيتم تحديث عدد أفراد الأسرة تلقائياً حسب عدد الأفراد المُضافين
-                </p>
-              </div>
-            )}
-            {appStatus === "approved" && (
-              <Card className="p-3 text-sm text-center text-success bg-success/5 border-success/30">
-                {t("my_app.approved_locked_add")}
-              </Card>
-            )}
+            <div className="space-y-2">
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => {
+                  const newFamilySize = members.length + 2; // existing members + new + head
+                  setResidence((r) => ({ ...r, family_size: newFamilySize }));
+                  setFamilySizeInput(String(newFamilySize));
+                  setMembers([...members, emptyMember()]);
+                  toast.info(`تم إضافة فرد جديد — عدد الأسرة الآن ${newFamilySize}`);
+                }}
+                className="w-full gap-2 border-dashed border-accent text-accent hover:bg-accent-soft"
+              >
+                <Plus className="h-4 w-4" /> {t("family.add")}
+                <span className="text-xs text-muted-foreground">
+                  ({filledMembers + 1} / {Math.max(filledMembers + 1, totalMembers)})
+                </span>
+              </Button>
+              <p className="text-xs text-center text-muted-foreground">
+                سيتم تحديث عدد أفراد الأسرة تلقائياً حسب عدد الأفراد المُضافين
+              </p>
+            </div>
 
             <div className="flex justify-between gap-3 pt-2">
               <Button variant="outline" onClick={async () => {
