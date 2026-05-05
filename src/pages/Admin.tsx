@@ -493,38 +493,8 @@ const Admin = () => {
           </div>
         </div>
 
-        {/* Registration control */}
-        <Card className={`p-4 shadow-card border-2 ${regOpen ? "border-success/40 bg-success/5" : "border-destructive/40 bg-destructive/5"}`}>
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <div className="font-bold text-primary">{t("admin.registration_control")}</div>
-              <div className={`text-sm font-semibold ${regOpen ? "text-success" : "text-destructive"}`}>
-                {regOpen ? t("admin.registration_open") : t("admin.registration_closed")}
-              </div>
-            </div>
-            {regOpen ? (
-              <Button onClick={() => saveSettings(false)} variant="destructive" size="sm">
-                {t("admin.close_registration")}
-              </Button>
-            ) : (
-              <Button onClick={() => saveSettings(true)} className="bg-success text-success-foreground hover:bg-success/90" size="sm">
-                {t("admin.open_registration")}
-              </Button>
-            )}
-          </div>
-          {!regOpen && (
-            <div className="mt-3">
-              <Label className="text-xs">{t("admin.closed_reason")}</Label>
-              <div className="flex gap-2 mt-1">
-                <Textarea rows={2} value={closedReason} onChange={(e) => setClosedReason(e.target.value)}
-                  placeholder={t("admin.closed_reason_placeholder")} />
-                <Button onClick={() => saveSettings(false)} variant="outline" size="sm">{t("form.save")}</Button>
-              </div>
-            </div>
-          )}
-        </Card>
+        {/* Settings + PIN moved to /admin/settings */}
 
-        <ChangeAdminPinCard />
 
         {/* Stats */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-3">
