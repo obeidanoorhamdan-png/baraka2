@@ -54,8 +54,13 @@ const App = () => {
                 <Route path="/my-application" element={<MyApplication />} />
                 <Route path="/my-aid" element={<MyAid />} />
                 <Route path="/my-aid/:id" element={<MyAid />} />
-                <Route path="/admin" element={<AdminHub />} />
+                <Route path="/admin" element={<AdminDashboard />} />
                 <Route path="/admin/applications" element={<Admin />} />
+                <Route path="/admin/incomplete" element={<Incomplete />} />
+                <Route path="/admin/aid" element={<AidPage />} />
+                <Route path="/admin/managers" element={<Managers />} />
+                <Route path="/admin/audit" element={<AuditLog />} />
+                <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ConfirmProvider>
