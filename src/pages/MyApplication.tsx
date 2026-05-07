@@ -228,7 +228,7 @@ const MyApplication = () => {
       // Load head-of-family profile data so it can be edited inline.
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, national_id, birth_date, gender, is_war_injured, injury_report_url, chronic_diseases, health_notes")
+        .select("full_name, national_id, birth_date, gender, phone, alt_phone, is_war_injured, injury_report_url, chronic_diseases, chronic_disease_report_url, is_special_needs, special_needs_report_url, health_notes")
         .eq("id", user.id)
         .maybeSingle();
       if (profile) {
@@ -241,8 +241,13 @@ const MyApplication = () => {
           is_war_injured: !!profile.is_war_injured,
           injury_report_url: profile.injury_report_url || null,
           chronic_diseases: profile.chronic_diseases || "",
+          chronic_disease_report_url: (profile as any).chronic_disease_report_url || null,
+          is_special_needs: !!(profile as any).is_special_needs,
+          special_needs_report_url: (profile as any).special_needs_report_url || null,
           health_notes: profile.health_notes || "",
         }));
+        setHeadPhone(profile.phone || "");
+        setHeadAltPhone(profile.alt_phone || "");
       }
 
       const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
@@ -258,6 +263,8 @@ const MyApplication = () => {
           has_martyr: app.has_martyr,
           martyr_name: app.martyr_name || "",
           martyr_relationship: app.martyr_relationship || "",
+          martyr_death_certificate_url: (app as any).martyr_death_certificate_url || "",
+          is_female_breadwinner: !!(app as any).is_female_breadwinner,
           });
           setFamilySizeInput(String(app.family_size));
         setServerUpdatedAt(app.updated_at || null);
