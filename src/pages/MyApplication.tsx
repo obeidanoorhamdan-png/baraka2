@@ -329,6 +329,8 @@ const MyApplication = () => {
           has_martyr: app.has_martyr,
           martyr_name: app.martyr_name || "",
           martyr_relationship: app.martyr_relationship || "",
+          martyr_death_certificate_url: (app as any).martyr_death_certificate_url || "",
+          is_female_breadwinner: !!(app as any).is_female_breadwinner,
         }, members }));
       }
       setPageLoading(false);
