@@ -76,7 +76,12 @@ const MyApplication = () => {
     has_martyr: false,
     martyr_name: "",
     martyr_relationship: "",
+    martyr_death_certificate_url: "" as string | "",
+    is_female_breadwinner: false,
   });
+  const [headPhone, setHeadPhone] = useState("");
+  const [headAltPhone, setHeadAltPhone] = useState("");
+  const [uploadingDeathCert, setUploadingDeathCert] = useState(false);
 
   const [members, setMembers] = useState<Member[]>([]);
 
