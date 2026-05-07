@@ -27,8 +27,9 @@ import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } fr
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Fields locked on the head-of-family card — tied to the user's auth account.
-const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
+// Fields locked on the head-of-family card — only national_id is permanently
+// locked since it's the auth identity. The rest can be edited from the form.
+const HEAD_LOCKED_FIELDS = ["national_id", "relationship", "relationship_other"];
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
@@ -75,7 +76,12 @@ const MyApplication = () => {
     has_martyr: false,
     martyr_name: "",
     martyr_relationship: "",
+    martyr_death_certificate_url: "" as string | "",
+    is_female_breadwinner: false,
   });
+  const [headPhone, setHeadPhone] = useState("");
+  const [headAltPhone, setHeadAltPhone] = useState("");
+  const [uploadingDeathCert, setUploadingDeathCert] = useState(false);
 
   const [members, setMembers] = useState<Member[]>([]);
 
@@ -176,6 +182,8 @@ const MyApplication = () => {
           has_martyr: cached.app.has_martyr,
           martyr_name: cached.app.martyr_name || "",
           martyr_relationship: cached.app.martyr_relationship || "",
+          martyr_death_certificate_url: (cached.app as any).martyr_death_certificate_url || "",
+          is_female_breadwinner: !!(cached.app as any).is_female_breadwinner,
         });
         setFamilySizeInput(String(cached.app.family_size));
         if (Array.isArray(cached.members)) setMembers(cached.members);
@@ -189,6 +197,8 @@ const MyApplication = () => {
             has_martyr: cached.app.has_martyr,
             martyr_name: cached.app.martyr_name || "",
             martyr_relationship: cached.app.martyr_relationship || "",
+            martyr_death_certificate_url: (cached.app as any).martyr_death_certificate_url || "",
+            is_female_breadwinner: !!(cached.app as any).is_female_breadwinner,
           },
           members: cached.members || [],
         }));
@@ -220,7 +230,7 @@ const MyApplication = () => {
       // Load head-of-family profile data so it can be edited inline.
       const { data: profile } = await supabase
         .from("profiles")
-        .select("full_name, national_id, birth_date, gender, is_war_injured, injury_report_url, chronic_diseases, health_notes")
+        .select("full_name, national_id, birth_date, gender, phone, alt_phone, is_war_injured, injury_report_url, chronic_diseases, chronic_disease_report_url, is_special_needs, special_needs_report_url, health_notes")
         .eq("id", user.id)
         .maybeSingle();
       if (profile) {
@@ -233,8 +243,13 @@ const MyApplication = () => {
           is_war_injured: !!profile.is_war_injured,
           injury_report_url: profile.injury_report_url || null,
           chronic_diseases: profile.chronic_diseases || "",
+          chronic_disease_report_url: (profile as any).chronic_disease_report_url || null,
+          is_special_needs: !!(profile as any).is_special_needs,
+          special_needs_report_url: (profile as any).special_needs_report_url || null,
           health_notes: profile.health_notes || "",
         }));
+        setHeadPhone(profile.phone || "");
+        setHeadAltPhone(profile.alt_phone || "");
       }
 
       const { data: app } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
@@ -250,6 +265,8 @@ const MyApplication = () => {
           has_martyr: app.has_martyr,
           martyr_name: app.martyr_name || "",
           martyr_relationship: app.martyr_relationship || "",
+          martyr_death_certificate_url: (app as any).martyr_death_certificate_url || "",
+          is_female_breadwinner: !!(app as any).is_female_breadwinner,
           });
           setFamilySizeInput(String(app.family_size));
         setServerUpdatedAt(app.updated_at || null);
@@ -312,6 +329,8 @@ const MyApplication = () => {
           has_martyr: app.has_martyr,
           martyr_name: app.martyr_name || "",
           martyr_relationship: app.martyr_relationship || "",
+          martyr_death_certificate_url: (app as any).martyr_death_certificate_url || "",
+          is_female_breadwinner: !!(app as any).is_female_breadwinner,
         }, members }));
       }
       setPageLoading(false);

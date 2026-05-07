@@ -27,6 +27,9 @@ export type Member = {
   is_war_injured: boolean;
   injury_report_url?: string | null;
   chronic_diseases: string;
+  chronic_disease_report_url?: string | null;
+  is_special_needs?: boolean;
+  special_needs_report_url?: string | null;
   is_pregnant: boolean;
   is_breastfeeding: boolean;
   pregnancy_report_url?: string | null;
@@ -44,13 +47,16 @@ export const emptyMember = (): Member => ({
   is_war_injured: false,
   injury_report_url: null,
   chronic_diseases: "",
+  chronic_disease_report_url: null,
+  is_special_needs: false,
+  special_needs_report_url: null,
   is_pregnant: false,
   is_breastfeeding: false,
   pregnancy_report_url: null,
   health_notes: "",
 });
 
-type FieldKey = "injury_report_url" | "pregnancy_report_url";
+type FieldKey = "injury_report_url" | "pregnancy_report_url" | "chronic_disease_report_url" | "special_needs_report_url";
 
 export const MemberCard = ({
   index,
@@ -79,15 +85,15 @@ export const MemberCard = ({
   const { t } = useTranslation();
   const confirmAsk = useConfirm();
   const [uploading, setUploading] = useState<FieldKey | null>(null);
-  const [signedPreviews, setSignedPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "" });
-  const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "" });
+  const [signedPreviews, setSignedPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "", chronic_disease_report_url: "", special_needs_report_url: "" });
+  const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "", chronic_disease_report_url: "", special_needs_report_url: "" });
   const [dragOver, setDragOver] = useState<FieldKey | null>(null);
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
 
   useEffect(() => {
     let active = true;
-    (["injury_report_url", "pregnancy_report_url"] as FieldKey[]).forEach((field) => {
+    (["injury_report_url", "pregnancy_report_url", "chronic_disease_report_url", "special_needs_report_url"] as FieldKey[]).forEach((field) => {
       const path = member[field];
       if (path && !localPreviews[field]) {
         supabase.storage.from("medical-reports").createSignedUrl(path, 3600)
@@ -97,7 +103,7 @@ export const MemberCard = ({
       }
     });
     return () => { active = false; };
-  }, [member.injury_report_url, member.pregnancy_report_url]);
+  }, [member.injury_report_url, member.pregnancy_report_url, member.chronic_disease_report_url, member.special_needs_report_url]);
 
   const handleUpload = async (rawFile: File, field: FieldKey) => {
     if (!rawFile) return;
@@ -301,9 +307,69 @@ export const MemberCard = ({
           )}
         </div>
         <div>
-          <Label className="text-xs">{t("health.chronic")}</Label>
-          <Textarea rows={2} value={member.chronic_diseases}
+          <Label className="text-xs">الأمراض المزمنة</Label>
+          <Textarea rows={2} value={member.chronic_diseases} placeholder="مثل: ضغط، سكري، قلب..."
             onChange={(e) => onChange({ ...member, chronic_diseases: e.target.value })} />
+          {member.chronic_diseases?.trim() && (
+            <div className="mt-2">
+              <Label className="text-xs text-muted-foreground">رفع تقرير طبي للمرض المزمن (اختياري)</Label>
+              <UploadBlock
+                field="chronic_disease_report_url" index={index}
+                path={member.chronic_disease_report_url || ""}
+                uploading={uploading === "chronic_disease_report_url"}
+                dragOver={dragOver === "chronic_disease_report_url"}
+                localPreview={localPreviews.chronic_disease_report_url}
+                signedPreview={signedPreviews.chronic_disease_report_url}
+                onUpload={(f) => handleUpload(f, "chronic_disease_report_url")}
+                onRemove={() => handleRemoveFile("chronic_disease_report_url")}
+                setDragOver={(v) => setDragOver(v ? "chronic_disease_report_url" : null)}
+                onDrop={(e) => handleDrop(e, "chronic_disease_report_url")}
+                requiredText=""
+                uploadLabel="رفع تقرير المرض المزمن"
+                uploadingLabel={t("health.uploading")}
+                hintLabel={t("health.upload_hint")}
+                secureLabel={t("health.upload_secure")}
+                uploadedLabel="تم رفع تقرير المرض المزمن"
+                replaceLabel={t("health.replace")}
+                removeLabel={t("health.remove")}
+                error={errors.chronic_disease_report_url}
+              />
+            </div>
+          )}
+        </div>
+        <div>
+          <Label className="text-xs">من ذوي الاحتياجات الخاصة؟</Label>
+          <RadioGroup className="flex gap-4 mt-1" value={member.is_special_needs ? "yes" : "no"}
+            onValueChange={(v) => onChange({ ...member, is_special_needs: v === "yes", special_needs_report_url: v === "yes" ? member.special_needs_report_url : null })}>
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="yes" />نعم</label>
+            <label className="flex items-center gap-2 text-sm"><RadioGroupItem value="no" />لا</label>
+          </RadioGroup>
+          {member.is_special_needs && (
+            <div className="mt-2">
+              <Label className="text-xs text-muted-foreground">رفع تقرير ذوي الاحتياجات الخاصة (اختياري)</Label>
+              <UploadBlock
+                field="special_needs_report_url" index={index}
+                path={member.special_needs_report_url || ""}
+                uploading={uploading === "special_needs_report_url"}
+                dragOver={dragOver === "special_needs_report_url"}
+                localPreview={localPreviews.special_needs_report_url}
+                signedPreview={signedPreviews.special_needs_report_url}
+                onUpload={(f) => handleUpload(f, "special_needs_report_url")}
+                onRemove={() => handleRemoveFile("special_needs_report_url")}
+                setDragOver={(v) => setDragOver(v ? "special_needs_report_url" : null)}
+                onDrop={(e) => handleDrop(e, "special_needs_report_url")}
+                requiredText=""
+                uploadLabel="رفع التقرير"
+                uploadingLabel={t("health.uploading")}
+                hintLabel={t("health.upload_hint")}
+                secureLabel={t("health.upload_secure")}
+                uploadedLabel="تم رفع التقرير"
+                replaceLabel={t("health.replace")}
+                removeLabel={t("health.remove")}
+                error={errors.special_needs_report_url}
+              />
+            </div>
+          )}
         </div>
         {showFemaleHealth && (
           <div className="space-y-2">

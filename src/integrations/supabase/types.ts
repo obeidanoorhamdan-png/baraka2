@@ -94,6 +94,60 @@ export type Database = {
           },
         ]
       }
+      announcements: {
+        Row: {
+          active: boolean
+          body: string
+          created_at: string
+          created_by: string | null
+          event_at: string | null
+          id: string
+          kind: string
+          organizer: string | null
+          target_age_max: number | null
+          target_age_min: number | null
+          target_camp: string | null
+          target_gender: string | null
+          target_special: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          active?: boolean
+          body: string
+          created_at?: string
+          created_by?: string | null
+          event_at?: string | null
+          id?: string
+          kind?: string
+          organizer?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_camp?: string | null
+          target_gender?: string | null
+          target_special?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          active?: boolean
+          body?: string
+          created_at?: string
+          created_by?: string | null
+          event_at?: string | null
+          id?: string
+          kind?: string
+          organizer?: string | null
+          target_age_max?: number | null
+          target_age_min?: number | null
+          target_camp?: string | null
+          target_gender?: string | null
+          target_special?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       app_settings: {
         Row: {
           admin_pin: string
@@ -147,6 +201,8 @@ export type Database = {
           family_size: number
           has_martyr: boolean
           id: string
+          is_female_breadwinner: boolean
+          martyr_death_certificate_url: string | null
           martyr_name: string | null
           martyr_relationship: string | null
           original_landmark: string
@@ -166,6 +222,8 @@ export type Database = {
           family_size: number
           has_martyr?: boolean
           id?: string
+          is_female_breadwinner?: boolean
+          martyr_death_certificate_url?: string | null
           martyr_name?: string | null
           martyr_relationship?: string | null
           original_landmark: string
@@ -185,6 +243,8 @@ export type Database = {
           family_size?: number
           has_martyr?: boolean
           id?: string
+          is_female_breadwinner?: boolean
+          martyr_death_certificate_url?: string | null
           martyr_name?: string | null
           martyr_relationship?: string | null
           original_landmark?: string
@@ -203,6 +263,7 @@ export type Database = {
         Row: {
           application_id: string
           birth_date: string
+          chronic_disease_report_url: string | null
           chronic_diseases: string | null
           created_at: string
           full_name: string
@@ -213,15 +274,18 @@ export type Database = {
           is_breastfeeding: boolean
           is_head: boolean
           is_pregnant: boolean
+          is_special_needs: boolean
           is_war_injured: boolean
           national_id: string | null
           pregnancy_report_url: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other: string | null
+          special_needs_report_url: string | null
         }
         Insert: {
           application_id: string
           birth_date: string
+          chronic_disease_report_url?: string | null
           chronic_diseases?: string | null
           created_at?: string
           full_name: string
@@ -232,15 +296,18 @@ export type Database = {
           is_breastfeeding?: boolean
           is_head?: boolean
           is_pregnant?: boolean
+          is_special_needs?: boolean
           is_war_injured?: boolean
           national_id?: string | null
           pregnancy_report_url?: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
+          special_needs_report_url?: string | null
         }
         Update: {
           application_id?: string
           birth_date?: string
+          chronic_disease_report_url?: string | null
           chronic_diseases?: string | null
           created_at?: string
           full_name?: string
@@ -251,11 +318,13 @@ export type Database = {
           is_breastfeeding?: boolean
           is_head?: boolean
           is_pregnant?: boolean
+          is_special_needs?: boolean
           is_war_injured?: boolean
           national_id?: string | null
           pregnancy_report_url?: string | null
           relationship?: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
+          special_needs_report_url?: string | null
         }
         Relationships: [
           {
@@ -304,6 +373,7 @@ export type Database = {
         Row: {
           alt_phone: string | null
           birth_date: string
+          chronic_disease_report_url: string | null
           chronic_diseases: string | null
           created_at: string
           email: string | null
@@ -312,16 +382,19 @@ export type Database = {
           health_notes: string | null
           id: string
           injury_report_url: string | null
+          is_special_needs: boolean
           is_war_injured: boolean
           marital_status: Database["public"]["Enums"]["marital_status"]
           marital_status_other: string | null
           national_id: string
           phone: string
+          special_needs_report_url: string | null
           updated_at: string
         }
         Insert: {
           alt_phone?: string | null
           birth_date: string
+          chronic_disease_report_url?: string | null
           chronic_diseases?: string | null
           created_at?: string
           email?: string | null
@@ -330,16 +403,19 @@ export type Database = {
           health_notes?: string | null
           id: string
           injury_report_url?: string | null
+          is_special_needs?: boolean
           is_war_injured?: boolean
           marital_status: Database["public"]["Enums"]["marital_status"]
           marital_status_other?: string | null
           national_id: string
           phone: string
+          special_needs_report_url?: string | null
           updated_at?: string
         }
         Update: {
           alt_phone?: string | null
           birth_date?: string
+          chronic_disease_report_url?: string | null
           chronic_diseases?: string | null
           created_at?: string
           email?: string | null
@@ -348,11 +424,13 @@ export type Database = {
           health_notes?: string | null
           id?: string
           injury_report_url?: string | null
+          is_special_needs?: boolean
           is_war_injured?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"]
           marital_status_other?: string | null
           national_id?: string
           phone?: string
+          special_needs_report_url?: string | null
           updated_at?: string
         }
         Relationships: []
