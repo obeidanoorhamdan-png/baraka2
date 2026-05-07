@@ -27,8 +27,9 @@ import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } fr
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 
-// Fields locked on the head-of-family card — tied to the user's auth account.
-const HEAD_LOCKED_FIELDS = ["full_name", "national_id", "birth_date", "gender", "relationship", "relationship_other"];
+// Fields locked on the head-of-family card — only national_id is permanently
+// locked since it's the auth identity. The rest can be edited from the form.
+const HEAD_LOCKED_FIELDS = ["national_id", "relationship", "relationship_other"];
 
 const MyApplication = () => {
   const { t, i18n } = useTranslation();
