@@ -182,6 +182,8 @@ const MyApplication = () => {
           has_martyr: cached.app.has_martyr,
           martyr_name: cached.app.martyr_name || "",
           martyr_relationship: cached.app.martyr_relationship || "",
+          martyr_death_certificate_url: (cached.app as any).martyr_death_certificate_url || "",
+          is_female_breadwinner: !!(cached.app as any).is_female_breadwinner,
         });
         setFamilySizeInput(String(cached.app.family_size));
         if (Array.isArray(cached.members)) setMembers(cached.members);
