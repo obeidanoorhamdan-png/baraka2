@@ -93,7 +93,7 @@ export const MemberCard = ({
 
   useEffect(() => {
     let active = true;
-    (["injury_report_url", "pregnancy_report_url"] as FieldKey[]).forEach((field) => {
+    (["injury_report_url", "pregnancy_report_url", "chronic_disease_report_url", "special_needs_report_url"] as FieldKey[]).forEach((field) => {
       const path = member[field];
       if (path && !localPreviews[field]) {
         supabase.storage.from("medical-reports").createSignedUrl(path, 3600)
@@ -103,7 +103,7 @@ export const MemberCard = ({
       }
     });
     return () => { active = false; };
-  }, [member.injury_report_url, member.pregnancy_report_url]);
+  }, [member.injury_report_url, member.pregnancy_report_url, member.chronic_disease_report_url, member.special_needs_report_url]);
 
   const handleUpload = async (rawFile: File, field: FieldKey) => {
     if (!rawFile) return;
