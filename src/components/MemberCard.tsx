@@ -85,8 +85,8 @@ export const MemberCard = ({
   const { t } = useTranslation();
   const confirmAsk = useConfirm();
   const [uploading, setUploading] = useState<FieldKey | null>(null);
-  const [signedPreviews, setSignedPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "" });
-  const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "" });
+  const [signedPreviews, setSignedPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "", chronic_disease_report_url: "", special_needs_report_url: "" });
+  const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "", chronic_disease_report_url: "", special_needs_report_url: "" });
   const [dragOver, setDragOver] = useState<FieldKey | null>(null);
   const age = calculateAge(member.birth_date);
   const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
