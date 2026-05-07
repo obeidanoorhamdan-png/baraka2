@@ -27,6 +27,9 @@ export type Member = {
   is_war_injured: boolean;
   injury_report_url?: string | null;
   chronic_diseases: string;
+  chronic_disease_report_url?: string | null;
+  is_special_needs?: boolean;
+  special_needs_report_url?: string | null;
   is_pregnant: boolean;
   is_breastfeeding: boolean;
   pregnancy_report_url?: string | null;
@@ -44,13 +47,16 @@ export const emptyMember = (): Member => ({
   is_war_injured: false,
   injury_report_url: null,
   chronic_diseases: "",
+  chronic_disease_report_url: null,
+  is_special_needs: false,
+  special_needs_report_url: null,
   is_pregnant: false,
   is_breastfeeding: false,
   pregnancy_report_url: null,
   health_notes: "",
 });
 
-type FieldKey = "injury_report_url" | "pregnancy_report_url";
+type FieldKey = "injury_report_url" | "pregnancy_report_url" | "chronic_disease_report_url" | "special_needs_report_url";
 
 export const MemberCard = ({
   index,
