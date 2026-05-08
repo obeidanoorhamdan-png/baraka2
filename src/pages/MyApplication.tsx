@@ -599,6 +599,8 @@ const MyApplication = () => {
         has_martyr: residence.has_martyr,
         martyr_name: residence.has_martyr ? residence.martyr_name : null,
         martyr_relationship: residence.has_martyr ? residence.martyr_relationship : null,
+        martyr_death_certificate_url: residence.has_martyr ? (residence.martyr_death_certificate_url || null) : null,
+        is_female_breadwinner: !!residence.is_female_breadwinner,
         status: "pending" as const,
         rejection_reason: null,
       };
