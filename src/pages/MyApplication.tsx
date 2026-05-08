@@ -1068,6 +1068,42 @@ const MyApplication = () => {
                     <Input value={residence.martyr_relationship}
                       onChange={(e) => setResidence({ ...residence, martyr_relationship: e.target.value })} />
                   </div>
+                  <div className="md:col-span-2">
+                    <Label>شهادة الوفاة (اختياري — صورة أو PDF)</Label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      disabled={uploadingDeathCert}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f || !user) return;
+                        setUploadingDeathCert(true);
+                        try {
+                          const ext = f.type === "application/pdf" ? "pdf" : (f.name.split(".").pop() || "jpg");
+                          const path = `${user.id}/death-cert-${Date.now()}.${ext}`;
+                          const { error } = await supabase.storage.from("medical-reports").upload(path, f, { upsert: true, contentType: f.type });
+                          if (error) throw error;
+                          setResidence((r) => ({ ...r, martyr_death_certificate_url: path }));
+                          toast.success("تم رفع شهادة الوفاة");
+                        } catch (err: any) {
+                          toast.error(err?.message || "تعذّر الرفع");
+                        } finally {
+                          setUploadingDeathCert(false);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="block w-full text-sm file:me-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-accent file:text-accent-foreground"
+                    />
+                    {residence.martyr_death_certificate_url && (
+                      <p className="text-xs text-success mt-1 inline-flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> تم رفع الشهادة
+                        <button type="button" className="ms-2 text-destructive underline"
+                          onClick={() => setResidence((r) => ({ ...r, martyr_death_certificate_url: "" }))}>
+                          إزالة
+                        </button>
+                      </p>
+                    )}
+                  </div>
                 </div>
               )}
             </div>
