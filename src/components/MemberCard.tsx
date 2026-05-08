@@ -262,15 +262,9 @@ export const MemberCard = ({
           <Select value={member.relationship} disabled={isLocked("relationship")} onValueChange={(v) => onChange({ ...member, relationship: v as any })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="wife">{t("family.rel_wife")}</SelectItem>
-              <SelectItem value="husband">{t("family.rel_husband")}</SelectItem>
-              <SelectItem value="son">{t("family.rel_son")}</SelectItem>
-              <SelectItem value="daughter">{t("family.rel_daughter")}</SelectItem>
-              <SelectItem value="father">{t("family.rel_father")}</SelectItem>
-              <SelectItem value="mother">{t("family.rel_mother")}</SelectItem>
-              <SelectItem value="brother">{t("family.rel_brother")}</SelectItem>
-              <SelectItem value="sister">{t("family.rel_sister")}</SelectItem>
-              <SelectItem value="other">{t("family.rel_other")}</SelectItem>
+              {relationshipOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {member.relationship === "other" && (
