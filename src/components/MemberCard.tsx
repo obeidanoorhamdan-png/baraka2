@@ -89,7 +89,25 @@ export const MemberCard = ({
   const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "", chronic_disease_report_url: "", special_needs_report_url: "" });
   const [dragOver, setDragOver] = useState<FieldKey | null>(null);
   const age = calculateAge(member.birth_date);
-  const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
+  // Pregnancy/breastfeeding only relevant for wives (or female head of family)
+  const isWifeOrFemaleHead = member.gender === "female" && (member.is_head || member.relationship === "wife");
+  const showFemaleHealth = isWifeOrFemaleHead && age >= 12 && age <= 55;
+  // Relationship options filtered by gender (avoid impossible combinations)
+  const relationshipOptions = member.gender === "male"
+    ? [
+        { value: "husband", label: t("family.rel_husband") },
+        { value: "son", label: t("family.rel_son") },
+        { value: "father", label: t("family.rel_father") },
+        { value: "brother", label: t("family.rel_brother") },
+        { value: "other", label: t("family.rel_other") },
+      ]
+    : [
+        { value: "wife", label: t("family.rel_wife") },
+        { value: "daughter", label: t("family.rel_daughter") },
+        { value: "mother", label: t("family.rel_mother") },
+        { value: "sister", label: t("family.rel_sister") },
+        { value: "other", label: t("family.rel_other") },
+      ];
 
   useEffect(() => {
     let active = true;
@@ -231,7 +249,22 @@ export const MemberCard = ({
         </div>
         <div>
           <Label>{t("form.gender")}</Label>
-          <Select value={member.gender} disabled={isLocked("gender")} onValueChange={(v) => onChange({ ...member, gender: v as any })}>
+          <Select value={member.gender} disabled={isLocked("gender")} onValueChange={(v) => {
+            const newGender = v as "male" | "female";
+            const validRels = newGender === "male"
+              ? ["husband","son","father","brother","other"]
+              : ["wife","daughter","mother","sister","other"];
+            const nextRel = validRels.includes(member.relationship) ? member.relationship : (validRels[0] as any);
+            onChange({
+              ...member,
+              gender: newGender,
+              relationship: nextRel as any,
+              // Reset female-only flags when switching to male
+              is_pregnant: newGender === "female" ? member.is_pregnant : false,
+              is_breastfeeding: newGender === "female" ? member.is_breastfeeding : false,
+              pregnancy_report_url: newGender === "female" ? member.pregnancy_report_url : null,
+            });
+          }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="male">{t("form.male")}</SelectItem>
@@ -244,15 +277,9 @@ export const MemberCard = ({
           <Select value={member.relationship} disabled={isLocked("relationship")} onValueChange={(v) => onChange({ ...member, relationship: v as any })}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
-              <SelectItem value="wife">{t("family.rel_wife")}</SelectItem>
-              <SelectItem value="husband">{t("family.rel_husband")}</SelectItem>
-              <SelectItem value="son">{t("family.rel_son")}</SelectItem>
-              <SelectItem value="daughter">{t("family.rel_daughter")}</SelectItem>
-              <SelectItem value="father">{t("family.rel_father")}</SelectItem>
-              <SelectItem value="mother">{t("family.rel_mother")}</SelectItem>
-              <SelectItem value="brother">{t("family.rel_brother")}</SelectItem>
-              <SelectItem value="sister">{t("family.rel_sister")}</SelectItem>
-              <SelectItem value="other">{t("family.rel_other")}</SelectItem>
+              {relationshipOptions.map((opt) => (
+                <SelectItem key={opt.value} value={opt.value}>{opt.label}</SelectItem>
+              ))}
             </SelectContent>
           </Select>
           {member.relationship === "other" && (

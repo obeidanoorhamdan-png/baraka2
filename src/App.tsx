@@ -22,6 +22,8 @@ import AuditLog from "./pages/admin/AuditLog";
 import Managers from "./pages/admin/Managers";
 import AdminSettings from "./pages/admin/Settings";
 import AidPage from "./pages/admin/AidPage";
+import AnnouncementsAdmin from "./pages/admin/Announcements";
+import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
@@ -51,6 +53,7 @@ const App = () => {
                 <Route path="/admin-login" element={<AdminLogin />} />
                 <Route path="/dashboard" element={<Dashboard />} />
                 <Route path="/contact" element={<Contact />} />
+                <Route path="/announcements" element={<Announcements />} />
                 <Route path="/my-application" element={<MyApplication />} />
                 <Route path="/my-aid" element={<MyAid />} />
                 <Route path="/my-aid/:id" element={<MyAid />} />
@@ -58,6 +61,7 @@ const App = () => {
                 <Route path="/admin/applications" element={<Admin />} />
                 <Route path="/admin/incomplete" element={<Incomplete />} />
                 <Route path="/admin/aid" element={<AidPage />} />
+                <Route path="/admin/announcements" element={<AnnouncementsAdmin />} />
                 <Route path="/admin/managers" element={<Managers />} />
                 <Route path="/admin/audit" element={<AuditLog />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />

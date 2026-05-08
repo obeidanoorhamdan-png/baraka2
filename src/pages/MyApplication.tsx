@@ -509,6 +509,9 @@ const MyApplication = () => {
         is_war_injured: m.is_war_injured,
         injury_report_url: m.injury_report_url || null,
         chronic_diseases: m.chronic_diseases || null,
+        chronic_disease_report_url: (m as any).chronic_disease_report_url || null,
+        is_special_needs: !!(m as any).is_special_needs,
+        special_needs_report_url: (m as any).special_needs_report_url || null,
         is_pregnant: m.is_pregnant,
         is_breastfeeding: m.is_breastfeeding,
         pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
@@ -526,6 +529,8 @@ const MyApplication = () => {
         has_martyr: residence.has_martyr,
         martyr_name: residence.has_martyr ? residence.martyr_name : null,
         martyr_relationship: residence.has_martyr ? residence.martyr_relationship : null,
+        martyr_death_certificate_url: residence.has_martyr ? (residence.martyr_death_certificate_url || null) : null,
+        is_female_breadwinner: !!residence.is_female_breadwinner,
         status: "pending" as const,
         rejection_reason: null,
       };
@@ -597,6 +602,8 @@ const MyApplication = () => {
         has_martyr: residence.has_martyr,
         martyr_name: residence.has_martyr ? residence.martyr_name : null,
         martyr_relationship: residence.has_martyr ? residence.martyr_relationship : null,
+        martyr_death_certificate_url: residence.has_martyr ? (residence.martyr_death_certificate_url || null) : null,
+        is_female_breadwinner: !!residence.is_female_breadwinner,
         status: "pending" as const,
         rejection_reason: null,
       };
@@ -622,6 +629,9 @@ const MyApplication = () => {
         is_war_injured: m.is_war_injured,
         injury_report_url: m.injury_report_url || null,
         chronic_diseases: m.chronic_diseases || null,
+        chronic_disease_report_url: (m as any).chronic_disease_report_url || null,
+        is_special_needs: !!(m as any).is_special_needs,
+        special_needs_report_url: (m as any).special_needs_report_url || null,
         is_pregnant: m.is_pregnant,
         is_breastfeeding: m.is_breastfeeding,
         pregnancy_report_url: m.is_pregnant ? (m.pregnancy_report_url || null) : null,
@@ -638,9 +648,14 @@ const MyApplication = () => {
           national_id: head.national_id,
           birth_date: head.birth_date,
           gender: head.gender,
+          phone: headPhone || "",
+          alt_phone: headAltPhone || null,
           is_war_injured: head.is_war_injured,
           injury_report_url: head.injury_report_url || null,
           chronic_diseases: head.chronic_diseases || null,
+          chronic_disease_report_url: (head as any).chronic_disease_report_url || null,
+          is_special_needs: !!(head as any).is_special_needs,
+          special_needs_report_url: (head as any).special_needs_report_url || null,
           health_notes: head.health_notes || null,
         }).eq("id", user.id);
         if (pErr) throw pErr;
@@ -992,6 +1007,25 @@ const MyApplication = () => {
                 <Input value={residence.current_landmark}
                   onChange={(e) => setResidence({ ...residence, current_landmark: e.target.value })} />
               </div>
+              <div>
+                <Label>رقم جوال رب الأسرة <span className="text-destructive">*</span></Label>
+                <Input inputMode="tel" value={headPhone}
+                  onChange={(e) => setHeadPhone(e.target.value.replace(/[^\d+]/g, "").slice(0, 15))} />
+              </div>
+              <div>
+                <Label>جوال بديل (اختياري)</Label>
+                <Input inputMode="tel" value={headAltPhone}
+                  onChange={(e) => setHeadAltPhone(e.target.value.replace(/[^\d+]/g, "").slice(0, 15))} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>هل المرأة معيلة للأسرة؟</Label>
+                <RadioGroup className="flex gap-4 mt-1" value={residence.is_female_breadwinner ? "yes" : "no"}
+                  onValueChange={(v) => setResidence({ ...residence, is_female_breadwinner: v === "yes" })}>
+                  <label className="flex items-center gap-2"><RadioGroupItem value="yes" />{t("health.yes")}</label>
+                  <label className="flex items-center gap-2"><RadioGroupItem value="no" />{t("health.no")}</label>
+                </RadioGroup>
+                <p className="text-[11px] text-muted-foreground mt-1">يُحدَّد عند غياب الزوج/المعيل (وفاة، طلاق، غياب، أسر…)</p>
+              </div>
               <div className="md:col-span-2">
                 <Label>{t("residence.family_size")} <span className="text-muted-foreground text-xs">(شامل رب الأسرة)</span></Label>
                 <Select
@@ -1048,6 +1082,42 @@ const MyApplication = () => {
                     <Label>{t("family.martyr_relationship")}</Label>
                     <Input value={residence.martyr_relationship}
                       onChange={(e) => setResidence({ ...residence, martyr_relationship: e.target.value })} />
+                  </div>
+                  <div className="md:col-span-2">
+                    <Label>شهادة الوفاة (اختياري — صورة أو PDF)</Label>
+                    <input
+                      type="file"
+                      accept="image/*,application/pdf"
+                      disabled={uploadingDeathCert}
+                      onChange={async (e) => {
+                        const f = e.target.files?.[0];
+                        if (!f || !user) return;
+                        setUploadingDeathCert(true);
+                        try {
+                          const ext = f.type === "application/pdf" ? "pdf" : (f.name.split(".").pop() || "jpg");
+                          const path = `${user.id}/death-cert-${Date.now()}.${ext}`;
+                          const { error } = await supabase.storage.from("medical-reports").upload(path, f, { upsert: true, contentType: f.type });
+                          if (error) throw error;
+                          setResidence((r) => ({ ...r, martyr_death_certificate_url: path }));
+                          toast.success("تم رفع شهادة الوفاة");
+                        } catch (err: any) {
+                          toast.error(err?.message || "تعذّر الرفع");
+                        } finally {
+                          setUploadingDeathCert(false);
+                          e.target.value = "";
+                        }
+                      }}
+                      className="block w-full text-sm file:me-3 file:py-2 file:px-3 file:rounded-md file:border-0 file:bg-accent file:text-accent-foreground"
+                    />
+                    {residence.martyr_death_certificate_url && (
+                      <p className="text-xs text-success mt-1 inline-flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3" /> تم رفع الشهادة
+                        <button type="button" className="ms-2 text-destructive underline"
+                          onClick={() => setResidence((r) => ({ ...r, martyr_death_certificate_url: "" }))}>
+                          إزالة
+                        </button>
+                      </p>
+                    )}
                   </div>
                 </div>
               )}

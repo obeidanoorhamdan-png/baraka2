@@ -8,6 +8,7 @@ import {
   Settings,
   ShieldCheck,
   AlertTriangle,
+  Megaphone,
 } from "lucide-react";
 import {
   Sidebar,
@@ -28,6 +29,7 @@ const items = [
   { title: "الطلبات", url: "/admin/applications", icon: ClipboardList },
   { title: "غير المكتملة", url: "/admin/incomplete", icon: AlertTriangle },
   { title: "المساعدات", url: "/admin/aid", icon: PackageCheck },
+  { title: "الإعلانات", url: "/admin/announcements", icon: Megaphone },
   { title: "المشرفون", url: "/admin/managers", icon: Users2 },
   { title: "سجل النشاط", url: "/admin/audit", icon: ScrollText },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
