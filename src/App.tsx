@@ -22,6 +22,8 @@ import AuditLog from "./pages/admin/AuditLog";
 import Managers from "./pages/admin/Managers";
 import AdminSettings from "./pages/admin/Settings";
 import AidPage from "./pages/admin/AidPage";
+import AnnouncementsAdmin from "./pages/admin/Announcements";
+import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
