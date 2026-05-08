@@ -992,6 +992,25 @@ const MyApplication = () => {
                 <Input value={residence.current_landmark}
                   onChange={(e) => setResidence({ ...residence, current_landmark: e.target.value })} />
               </div>
+              <div>
+                <Label>رقم جوال رب الأسرة <span className="text-destructive">*</span></Label>
+                <Input inputMode="tel" value={headPhone}
+                  onChange={(e) => setHeadPhone(e.target.value.replace(/[^\d+]/g, "").slice(0, 15))} />
+              </div>
+              <div>
+                <Label>جوال بديل (اختياري)</Label>
+                <Input inputMode="tel" value={headAltPhone}
+                  onChange={(e) => setHeadAltPhone(e.target.value.replace(/[^\d+]/g, "").slice(0, 15))} />
+              </div>
+              <div className="md:col-span-2">
+                <Label>هل المرأة معيلة للأسرة؟</Label>
+                <RadioGroup className="flex gap-4 mt-1" value={residence.is_female_breadwinner ? "yes" : "no"}
+                  onValueChange={(v) => setResidence({ ...residence, is_female_breadwinner: v === "yes" })}>
+                  <label className="flex items-center gap-2"><RadioGroupItem value="yes" />{t("health.yes")}</label>
+                  <label className="flex items-center gap-2"><RadioGroupItem value="no" />{t("health.no")}</label>
+                </RadioGroup>
+                <p className="text-[11px] text-muted-foreground mt-1">يُحدَّد عند غياب الزوج/المعيل (وفاة، طلاق، غياب، أسر…)</p>
+              </div>
               <div className="md:col-span-2">
                 <Label>{t("residence.family_size")} <span className="text-muted-foreground text-xs">(شامل رب الأسرة)</span></Label>
                 <Select
