@@ -642,9 +642,14 @@ const MyApplication = () => {
           national_id: head.national_id,
           birth_date: head.birth_date,
           gender: head.gender,
+          phone: headPhone || "",
+          alt_phone: headAltPhone || null,
           is_war_injured: head.is_war_injured,
           injury_report_url: head.injury_report_url || null,
           chronic_diseases: head.chronic_diseases || null,
+          chronic_disease_report_url: (head as any).chronic_disease_report_url || null,
+          is_special_needs: !!(head as any).is_special_needs,
+          special_needs_report_url: (head as any).special_needs_report_url || null,
           health_notes: head.health_notes || null,
         }).eq("id", user.id);
         if (pErr) throw pErr;
