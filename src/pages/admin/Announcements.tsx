@@ -230,7 +230,7 @@ const AnnouncementsAdmin = () => {
                 </div>
                 <div className="md:col-span-3">
                   <Label className="text-xs">الفئة الخاصة</Label>
-                  <Select value={editing.target_special || ""} onValueChange={(v) => setEditing({ ...editing, target_special: v })}>
+                  <Select value={editing.target_special || "none"} onValueChange={(v) => setEditing({ ...editing, target_special: v === "none" ? "" : v })}>
                     <SelectTrigger><SelectValue placeholder="— لا تخصيص —" /></SelectTrigger>
                     <SelectContent>{SPECIALS.map((s) => <SelectItem key={s.v || "none"} value={s.v || "none"}>{s.l}</SelectItem>)}</SelectContent>
                   </Select>
