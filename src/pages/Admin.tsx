@@ -452,6 +452,70 @@ const Admin = () => {
     toast.success(t("toast.export_done"));
   };
 
+  // One-row-per-family export: every family fits on a single row with all
+  // members flattened into Member1_*, Member2_* columns. Useful for
+  // pivot/filter analysis where each family is a single record.
+  const exportFlat = () => {
+    const sorted = [...rows].sort((a, b) => {
+      const an = profiles[a.user_id]?.full_name || "";
+      const bn = profiles[b.user_id]?.full_name || "";
+      return an.localeCompare(bn, "ar");
+    });
+    const maxMembers = Math.max(0, ...sorted.map((r) => members[r.id]?.length || 0));
+    const wsData: any[] = sorted.map((r, idx) => {
+      const p = profiles[r.user_id] || {};
+      const fm = members[r.id] || [];
+      const row: Record<string, any> = {
+        "م": idx + 1,
+        "حالة الطلب": STATUS_AR[r.status] ?? r.status,
+        "تاريخ التقديم": r.submitted_at ? new Date(r.submitted_at).toLocaleString("ar-EG") : "",
+        "اسم رب الأسرة": p.full_name || "",
+        "رقم هوية رب الأسرة": p.national_id || "",
+        "تاريخ ميلاد رب الأسرة": p.birth_date || "",
+        "عمر رب الأسرة": calculateAge(p.birth_date),
+        "جنس رب الأسرة": GENDER_AR[p.gender] ?? "",
+        "الحالة الاجتماعية": p.marital_status_other || MARITAL_AR[p.marital_status] || "",
+        "رقم الجوال": p.phone || "",
+        "جوال بديل": p.alt_phone || "",
+        "مصاب حرب (رب الأسرة)": yn(p.is_war_injured),
+        "أمراض مزمنة (رب الأسرة)": p.chronic_diseases || "",
+        "ذوي احتياجات خاصة (رب الأسرة)": yn((p as any).is_special_needs),
+        "السكن الأصلي": r.original_residence || "",
+        "أقرب معلم (الأصلي)": r.original_landmark || "",
+        "أقرب معلم (الحالي)": r.current_landmark || "",
+        "عدد الأفراد (شامل رب الأسرة)": r.family_size || 0,
+        "المرأة معيلة": yn((r as any).is_female_breadwinner),
+        "يوجد شهيد": yn(r.has_martyr),
+        "اسم الشهيد": r.martyr_name || "",
+        "صلة القرابة بالشهيد": r.martyr_relationship || "",
+        "شهادة الوفاة": (r as any).martyr_death_certificate_url ? "نعم" : "لا",
+      };
+      for (let i = 0; i < maxMembers; i++) {
+        const m = fm[i] || ({} as any);
+        row[`فرد ${i + 1} - الاسم`] = m.full_name || "";
+        row[`فرد ${i + 1} - الهوية`] = m.national_id || "";
+        row[`فرد ${i + 1} - الميلاد`] = m.birth_date || "";
+        row[`فرد ${i + 1} - العمر`] = m.birth_date ? calculateAge(m.birth_date) : "";
+        row[`فرد ${i + 1} - الجنس`] = GENDER_AR[m.gender] ?? "";
+        row[`فرد ${i + 1} - صلة القرابة`] = m.relationship_other || REL_AR[m.relationship] || "";
+        row[`فرد ${i + 1} - مصاب حرب`] = m.gender ? yn(m.is_war_injured) : "";
+        row[`فرد ${i + 1} - أمراض مزمنة`] = m.chronic_diseases || "";
+        row[`فرد ${i + 1} - احتياجات خاصة`] = m.gender ? yn(m.is_special_needs) : "";
+        row[`فرد ${i + 1} - حامل`] = m.gender === "female" ? yn(m.is_pregnant) : "";
+        row[`فرد ${i + 1} - مرضعة`] = m.gender === "female" ? yn(m.is_breastfeeding) : "";
+        row[`فرد ${i + 1} - ملاحظات صحية`] = m.health_notes || "";
+      }
+      return row;
+    });
+    const ws = XLSX.utils.json_to_sheet(wsData);
+    styleSheet(ws);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, "العائلات (صف لكل عائلة)");
+    XLSX.utils.book_append_sheet(wb, buildStatsSheet(), "إحصائيات");
+    XLSX.writeFile(wb, `بركة2-عائلات-صف-واحد-${new Date().toISOString().slice(0, 10)}.xlsx`);
+    toast.success(t("toast.export_done"));
+  };
+
   const exportFamily = (r: Row) => {
     const wsData = buildRows([r]);
     const ws = XLSX.utils.json_to_sheet(wsData);
