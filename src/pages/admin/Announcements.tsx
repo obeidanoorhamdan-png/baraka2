@@ -83,7 +83,7 @@ const AnnouncementsAdmin = () => {
       target_age_max: editing.target_age_max === "" ? null : Number(editing.target_age_max),
       target_gender: editing.target_gender || null,
       target_camp: editing.target_camp?.trim() || null,
-      target_special: editing.target_special || null,
+      target_special: (editing.target_special && editing.target_special !== "none") ? editing.target_special : null,
       active: editing.active,
     };
     let error;
