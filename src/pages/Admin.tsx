@@ -547,12 +547,15 @@ const Admin = () => {
           <div className="space-y-1">
             <h1 className="text-2xl md:text-3xl text-primary">{t("admin.applications_page_title")}</h1>
           </div>
-          <div className="flex gap-2">
+          <div className="flex gap-2 flex-wrap">
             <Button variant="outline" size="sm" onClick={() => exportData("csv")} className="gap-1.5">
               <Download className="h-4 w-4" /> {t("admin.export_csv")}
             </Button>
             <Button variant="outline" size="sm" onClick={() => exportData("xlsx")} className="gap-1.5">
               <FileSpreadsheet className="h-4 w-4" /> {t("admin.export_xlsx")}
+            </Button>
+            <Button variant="outline" size="sm" onClick={exportFlat} className="gap-1.5 border-accent/50 text-accent hover:bg-accent-soft">
+              <FileSpreadsheet className="h-4 w-4" /> صف واحد لكل عائلة
             </Button>
           </div>
         </div>
