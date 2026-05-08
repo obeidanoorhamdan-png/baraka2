@@ -249,7 +249,22 @@ export const MemberCard = ({
         </div>
         <div>
           <Label>{t("form.gender")}</Label>
-          <Select value={member.gender} disabled={isLocked("gender")} onValueChange={(v) => onChange({ ...member, gender: v as any })}>
+          <Select value={member.gender} disabled={isLocked("gender")} onValueChange={(v) => {
+            const newGender = v as "male" | "female";
+            const validRels = newGender === "male"
+              ? ["husband","son","father","brother","other"]
+              : ["wife","daughter","mother","sister","other"];
+            const nextRel = validRels.includes(member.relationship) ? member.relationship : (validRels[0] as any);
+            onChange({
+              ...member,
+              gender: newGender,
+              relationship: nextRel as any,
+              // Reset female-only flags when switching to male
+              is_pregnant: newGender === "female" ? member.is_pregnant : false,
+              is_breastfeeding: newGender === "female" ? member.is_breastfeeding : false,
+              pregnancy_report_url: newGender === "female" ? member.pregnancy_report_url : null,
+            });
+          }}>
             <SelectTrigger><SelectValue /></SelectTrigger>
             <SelectContent>
               <SelectItem value="male">{t("form.male")}</SelectItem>
