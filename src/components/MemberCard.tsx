@@ -89,7 +89,25 @@ export const MemberCard = ({
   const [localPreviews, setLocalPreviews] = useState<Record<FieldKey, string>>({ injury_report_url: "", pregnancy_report_url: "", chronic_disease_report_url: "", special_needs_report_url: "" });
   const [dragOver, setDragOver] = useState<FieldKey | null>(null);
   const age = calculateAge(member.birth_date);
-  const showFemaleHealth = member.gender === "female" && age >= 12 && age <= 55;
+  // Pregnancy/breastfeeding only relevant for wives (or female head of family)
+  const isWifeOrFemaleHead = member.gender === "female" && (member.is_head || member.relationship === "wife");
+  const showFemaleHealth = isWifeOrFemaleHead && age >= 12 && age <= 55;
+  // Relationship options filtered by gender (avoid impossible combinations)
+  const relationshipOptions = member.gender === "male"
+    ? [
+        { value: "husband", label: t("family.rel_husband") },
+        { value: "son", label: t("family.rel_son") },
+        { value: "father", label: t("family.rel_father") },
+        { value: "brother", label: t("family.rel_brother") },
+        { value: "other", label: t("family.rel_other") },
+      ]
+    : [
+        { value: "wife", label: t("family.rel_wife") },
+        { value: "daughter", label: t("family.rel_daughter") },
+        { value: "mother", label: t("family.rel_mother") },
+        { value: "sister", label: t("family.rel_sister") },
+        { value: "other", label: t("family.rel_other") },
+      ];
 
   useEffect(() => {
     let active = true;
