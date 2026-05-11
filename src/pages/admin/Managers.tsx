@@ -238,7 +238,7 @@ const Managers = () => {
                         const active = !s.ended_at && !s.revoked;
                         return (
                           <TableRow key={s.id}>
-                            <TableCell className="text-xs">{s.profiles?.full_name || s.user_id?.slice(0, 8)}</TableCell>
+                            <TableCell className="text-xs">{s.profile?.full_name || s.user_id?.slice(0, 8)}</TableCell>
                             <TableCell className="text-xs">{s.device_label} <span className="text-muted-foreground block truncate max-w-[200px]">{s.user_agent}</span></TableCell>
                             <TableCell className="text-xs">{formatDateShort(s.started_at)}</TableCell>
                             <TableCell className="text-xs">{formatDateShort(s.last_seen_at)}</TableCell>
