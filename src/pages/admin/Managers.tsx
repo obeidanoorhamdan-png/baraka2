@@ -38,9 +38,17 @@ const Managers = () => {
     setRows((data as any[]) || []);
     if (isSuperAdmin) {
       const { data: s } = await supabase.from("admin_sessions")
-        .select("*, profiles!inner(full_name, national_id)" as any)
-        .order("started_at", { ascending: false }).limit(50);
-      setSessions((s as any[]) || []);
+        .select("*").order("started_at", { ascending: false }).limit(50);
+      const sList = (s as any[]) || [];
+      // Hydrate profile names
+      const ids = Array.from(new Set(sList.map((x) => x.user_id))).filter(Boolean);
+      if (ids.length) {
+        const { data: profs } = await supabase.from("profiles")
+          .select("id, full_name, national_id").in("id", ids);
+        const pmap = new Map((profs || []).map((p: any) => [p.id, p]));
+        sList.forEach((x: any) => { x.profile = pmap.get(x.user_id); });
+      }
+      setSessions(sList);
       const { data: a } = await supabase.from("admin_login_attempts")
         .select("*").order("attempted_at", { ascending: false }).limit(50);
       setAttempts((a as any[]) || []);
