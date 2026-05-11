@@ -18,6 +18,34 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title?: 
     if (!loading && (!user || !isAdmin)) navigate("/admin-login", { replace: true });
   }, [user, isAdmin, loading, navigate]);
 
+  // Track admin session: insert one on mount, update last_seen periodically, end on unmount.
+  useEffect(() => {
+    if (!user || !isAdmin) return;
+    let sessionId: string | null = null;
+    let interval: any;
+    (async () => {
+      const ua = navigator.userAgent;
+      const device = /Mobi|Android/i.test(ua) ? "Mobile" : /iPad|Tablet/i.test(ua) ? "Tablet" : "Desktop";
+      const { data } = await supabase.from("admin_sessions").insert({
+        user_id: user.id, user_agent: ua, device_label: device,
+      }).select("id").maybeSingle();
+      sessionId = (data as any)?.id || null;
+      if (sessionId) {
+        interval = setInterval(() => {
+          supabase.from("admin_sessions").update({ last_seen_at: new Date().toISOString() })
+            .eq("id", sessionId).then(() => {});
+        }, 60_000);
+      }
+    })();
+    return () => {
+      if (interval) clearInterval(interval);
+      if (sessionId) {
+        supabase.from("admin_sessions").update({ ended_at: new Date().toISOString() })
+          .eq("id", sessionId).then(() => {});
+      }
+    };
+  }, [user, isAdmin]);
+
   const onLogout = async () => {
     const ok = await confirmAsk({
       title: "تسجيل الخروج",
