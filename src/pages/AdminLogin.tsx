@@ -31,10 +31,20 @@ const AdminLogin = () => {
     }
     setBusy(true);
     try {
+      // Check lockout first
+      const { data: locked } = await supabase.rpc("is_admin_locked", { _nid: ADMIN_NID });
+      if (locked) {
+        setBusy(false);
+        toast.error("تم قفل الدخول مؤقتاً بسبب محاولات فاشلة متكررة. حاول بعد 15 دقيقة.");
+        return;
+      }
       const { data, error } = await supabase.functions.invoke("passwordless-signin", {
         body: { national_id: ADMIN_NID, answer: { kind: "admin_pin" as const, value: pin } },
       });
       if (error || !(data as any)?.ok) {
+        await supabase.from("admin_login_attempts").insert({
+          national_id: ADMIN_NID, success: false, reason: "wrong_pin",
+        });
         toast.error((data as any)?.error || error?.message || t("toast.wrong_answer"));
         setBusy(false);
         return;
@@ -44,11 +54,20 @@ const AdminLogin = () => {
         email: idToEmail(ADMIN_NID),
         password,
       });
-      setBusy(false);
       if (signInErr) {
+        await supabase.from("admin_login_attempts").insert({
+          national_id: ADMIN_NID, success: false, reason: "auth_failed",
+        });
+        setBusy(false);
         toast.error(t("toast.invalid_credentials"));
         return;
       }
+      // success — record attempt
+      const { data: u } = await supabase.auth.getUser();
+      await supabase.from("admin_login_attempts").insert({
+        national_id: ADMIN_NID, user_id: u.user?.id, success: true,
+      });
+      setBusy(false);
       toast.success(t("toast.signin_success"));
     } catch (e: any) {
       setBusy(false);
