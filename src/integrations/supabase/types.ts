@@ -50,6 +50,102 @@ export type Database = {
         }
         Relationships: []
       }
+      admin_login_attempts: {
+        Row: {
+          attempted_at: string
+          id: string
+          ip: string | null
+          national_id: string | null
+          reason: string | null
+          success: boolean
+          user_id: string | null
+        }
+        Insert: {
+          attempted_at?: string
+          id?: string
+          ip?: string | null
+          national_id?: string | null
+          reason?: string | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Update: {
+          attempted_at?: string
+          id?: string
+          ip?: string | null
+          national_id?: string | null
+          reason?: string | null
+          success?: boolean
+          user_id?: string | null
+        }
+        Relationships: []
+      }
+      admin_otp_codes: {
+        Row: {
+          code_hash: string
+          consumed_at: string | null
+          created_at: string
+          expires_at: string
+          id: string
+          purpose: string
+          user_id: string
+        }
+        Insert: {
+          code_hash: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at: string
+          id?: string
+          purpose?: string
+          user_id: string
+        }
+        Update: {
+          code_hash?: string
+          consumed_at?: string | null
+          created_at?: string
+          expires_at?: string
+          id?: string
+          purpose?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      admin_sessions: {
+        Row: {
+          device_label: string | null
+          ended_at: string | null
+          id: string
+          ip: string | null
+          last_seen_at: string
+          revoked: boolean
+          started_at: string
+          user_agent: string | null
+          user_id: string
+        }
+        Insert: {
+          device_label?: string | null
+          ended_at?: string | null
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          revoked?: boolean
+          started_at?: string
+          user_agent?: string | null
+          user_id: string
+        }
+        Update: {
+          device_label?: string | null
+          ended_at?: string | null
+          id?: string
+          ip?: string | null
+          last_seen_at?: string
+          revoked?: boolean
+          started_at?: string
+          user_agent?: string | null
+          user_id?: string
+        }
+        Relationships: []
+      }
       aid_distributions: {
         Row: {
           application_id: string
@@ -389,6 +485,7 @@ export type Database = {
           national_id: string
           phone: string
           special_needs_report_url: string | null
+          two_fa_enabled: boolean
           updated_at: string
         }
         Insert: {
@@ -410,6 +507,7 @@ export type Database = {
           national_id: string
           phone: string
           special_needs_report_url?: string | null
+          two_fa_enabled?: boolean
           updated_at?: string
         }
         Update: {
@@ -431,6 +529,7 @@ export type Database = {
           national_id?: string
           phone?: string
           special_needs_report_url?: string | null
+          two_fa_enabled?: boolean
           updated_at?: string
         }
         Relationships: []
@@ -458,6 +557,8 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      can_distribute_aid: { Args: { _user_id: string }; Returns: boolean }
+      can_review: { Args: { _user_id: string }; Returns: boolean }
       find_user_id_by_nid: { Args: { _nid: string }; Returns: string }
       get_phone_hint: { Args: { _nid: string }; Returns: string }
       get_random_security_question: {
@@ -477,6 +578,10 @@ export type Database = {
         }[]
       }
       grant_admin_by_nid: { Args: { _nid: string }; Returns: boolean }
+      grant_role_by_nid: {
+        Args: { _nid: string; _role: string }
+        Returns: boolean
+      }
       has_role: {
         Args: {
           _role: Database["public"]["Enums"]["app_role"]
@@ -485,6 +590,9 @@ export type Database = {
         Returns: boolean
       }
       head_account_exists: { Args: { _nid: string }; Returns: boolean }
+      is_admin_locked: { Args: { _nid: string }; Returns: boolean }
+      is_admin_tier: { Args: { _user_id: string }; Returns: boolean }
+      is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       list_admins: {
         Args: never
         Returns: {
@@ -492,6 +600,8 @@ export type Database = {
           full_name: string
           national_id: string
           phone: string
+          role: string
+          two_fa_enabled: boolean
           user_id: string
         }[]
       }
