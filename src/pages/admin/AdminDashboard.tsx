@@ -30,17 +30,20 @@ const StatCard = ({ icon: Icon, label, value, color, to }: any) => {
 
 const AdminDashboard = () => {
   const [rows, setRows] = useState<any[]>([]);
+  const [advanced, setAdvanced] = useState<any>(null);
   const [members, setMembers] = useState<Record<string, any[]>>({});
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [incompleteCount, setIncompleteCount] = useState(0);
 
   const load = async () => {
-    const [{ data: apps }, inc] = await Promise.all([
+    const [{ data: apps }, inc, adv] = await Promise.all([
       supabase.from("applications").select("*").order("submitted_at", { ascending: false }),
       supabase.rpc("list_incomplete_accounts"),
+      supabase.rpc("admin_advanced_stats"),
     ]);
     setRows(apps || []);
     setIncompleteCount((inc.data as any[])?.length || 0);
+    setAdvanced(adv.data || null);
     if (apps?.length) {
       const ids = apps.map((a) => a.id);
       const userIds = apps.map((a) => a.user_id);
@@ -220,7 +223,39 @@ const AdminDashboard = () => {
           </Card>
         </div>
 
-        {/* Quick links */}
+        {/* Advanced stats */}
+        {advanced && (
+          <Card className="p-4 shadow-card">
+            <h3 className="font-bold text-primary mb-3">إحصائيات متقدمة</h3>
+            <div className="grid grid-cols-2 md:grid-cols-5 gap-3 text-center">
+              <div className="p-3 rounded-lg bg-accent/10"><div className="text-2xl font-extrabold text-primary">{advanced.female_breadwinner ?? 0}</div><div className="text-[10px] text-muted-foreground">امرأة معيلة</div></div>
+              <div className="p-3 rounded-lg bg-destructive/10"><div className="text-2xl font-extrabold text-primary">{advanced.special_needs_total ?? 0}</div><div className="text-[10px] text-muted-foreground">ذوو إعاقة</div></div>
+              <div className="p-3 rounded-lg bg-warning/10"><div className="text-2xl font-extrabold text-primary">{advanced.chronic_total ?? 0}</div><div className="text-[10px] text-muted-foreground">أمراض مزمنة</div></div>
+              <div className="p-3 rounded-lg bg-success/10"><div className="text-2xl font-extrabold text-primary">{advanced.aid_count_30d ?? 0}</div><div className="text-[10px] text-muted-foreground">مساعدات (30 يوم)</div></div>
+              <div className="p-3 rounded-lg bg-primary/10"><div className="text-2xl font-extrabold text-primary">{advanced.breastfeeding ?? 0}</div><div className="text-[10px] text-muted-foreground">مرضعات</div></div>
+            </div>
+            {advanced.by_camp && (
+              <div className="mt-4">
+                <div className="text-xs font-bold text-muted-foreground mb-1">حسب المخيم</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(advanced.by_camp).map(([k, v]: any) => (
+                    <span key={k} className="text-xs px-2 py-1 rounded-full bg-muted">{k}: <b>{v}</b></span>
+                  ))}
+                </div>
+              </div>
+            )}
+            {advanced.by_origin && (
+              <div className="mt-3">
+                <div className="text-xs font-bold text-muted-foreground mb-1">أكثر الأسر الأصلية</div>
+                <div className="flex flex-wrap gap-2">
+                  {Object.entries(advanced.by_origin).slice(0, 12).map(([k, v]: any) => (
+                    <span key={k} className="text-xs px-2 py-1 rounded-full bg-accent/10">{k}: <b>{v}</b></span>
+                  ))}
+                </div>
+              </div>
+            )}
+          </Card>
+        )}
         <div className="grid gap-3 md:grid-cols-3">
           <Link to="/admin/applications" className="block">
             <Card className="p-4 shadow-card hover:shadow-elegant transition-all hover:-translate-y-0.5">

@@ -23,6 +23,7 @@ import Managers from "./pages/admin/Managers";
 import AdminSettings from "./pages/admin/Settings";
 import AidPage from "./pages/admin/AidPage";
 import AnnouncementsAdmin from "./pages/admin/Announcements";
+import PowerTools from "./pages/admin/PowerTools";
 import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
@@ -64,6 +65,7 @@ const App = () => {
                 <Route path="/admin/announcements" element={<AnnouncementsAdmin />} />
                 <Route path="/admin/managers" element={<Managers />} />
                 <Route path="/admin/audit" element={<AuditLog />} />
+                <Route path="/admin/power" element={<PowerTools />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
