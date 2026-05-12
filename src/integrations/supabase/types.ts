@@ -271,6 +271,33 @@ export type Database = {
         }
         Relationships: []
       }
+      application_comments: {
+        Row: {
+          application_id: string
+          author_id: string
+          author_name: string | null
+          body: string
+          created_at: string
+          id: string
+        }
+        Insert: {
+          application_id: string
+          author_id: string
+          author_name?: string | null
+          body: string
+          created_at?: string
+          id?: string
+        }
+        Update: {
+          application_id?: string
+          author_id?: string
+          author_name?: string | null
+          body?: string
+          created_at?: string
+          id?: string
+        }
+        Relationships: []
+      }
       application_drafts: {
         Row: {
           payload: Json
@@ -534,6 +561,33 @@ export type Database = {
         }
         Relationships: []
       }
+      saved_filters: {
+        Row: {
+          created_at: string
+          id: string
+          name: string
+          payload: Json
+          scope: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          id?: string
+          name: string
+          payload?: Json
+          scope?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          id?: string
+          name?: string
+          payload?: Json
+          scope?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       user_roles: {
         Row: {
           id: string
@@ -557,8 +611,23 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
+      admin_advanced_stats: { Args: never; Returns: Json }
+      bulk_update_application_status: {
+        Args: { _ids: string[]; _reason?: string; _status: string }
+        Returns: number
+      }
       can_distribute_aid: { Args: { _user_id: string }; Returns: boolean }
       can_review: { Args: { _user_id: string }; Returns: boolean }
+      find_duplicate_persons: {
+        Args: never
+        Returns: {
+          application_ids: string[]
+          match_kind: string
+          match_value: string
+          occurrences: number
+          person_names: string[]
+        }[]
+      }
       find_user_id_by_nid: { Args: { _nid: string }; Returns: string }
       get_phone_hint: { Args: { _nid: string }; Returns: string }
       get_random_security_question: {
