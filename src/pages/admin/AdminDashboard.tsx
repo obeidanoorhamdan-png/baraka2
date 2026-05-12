@@ -30,6 +30,7 @@ const StatCard = ({ icon: Icon, label, value, color, to }: any) => {
 
 const AdminDashboard = () => {
   const [rows, setRows] = useState<any[]>([]);
+  const [advanced, setAdvanced] = useState<any>(null);
   const [members, setMembers] = useState<Record<string, any[]>>({});
   const [profiles, setProfiles] = useState<Record<string, any>>({});
   const [incompleteCount, setIncompleteCount] = useState(0);
