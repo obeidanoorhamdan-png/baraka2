@@ -9,6 +9,7 @@ import {
   ShieldCheck,
   AlertTriangle,
   Megaphone,
+  Wand2,
 } from "lucide-react";
 import {
   Sidebar,
