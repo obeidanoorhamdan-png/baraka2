@@ -23,6 +23,7 @@ import Managers from "./pages/admin/Managers";
 import AdminSettings from "./pages/admin/Settings";
 import AidPage from "./pages/admin/AidPage";
 import AnnouncementsAdmin from "./pages/admin/Announcements";
+import PowerTools from "./pages/admin/PowerTools";
 import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
