@@ -36,12 +36,14 @@ const AdminDashboard = () => {
   const [incompleteCount, setIncompleteCount] = useState(0);
 
   const load = async () => {
-    const [{ data: apps }, inc] = await Promise.all([
+    const [{ data: apps }, inc, adv] = await Promise.all([
       supabase.from("applications").select("*").order("submitted_at", { ascending: false }),
       supabase.rpc("list_incomplete_accounts"),
+      supabase.rpc("admin_advanced_stats"),
     ]);
     setRows(apps || []);
     setIncompleteCount((inc.data as any[])?.length || 0);
+    setAdvanced(adv.data || null);
     if (apps?.length) {
       const ids = apps.map((a) => a.id);
       const userIds = apps.map((a) => a.user_id);
