@@ -59,6 +59,8 @@ const Auth = () => {
   const [nid, setNid] = useState("");
   const [stage, setStage] = useState<Stage>("id");
   const [busy, setBusy] = useState(false);
+  const [nidErr, setNidErr] = useState("");
+  const [answerErr, setAnswerErr] = useState("");
 
   // Question state (existing user)
   const [question, setQuestion] = useState<{
