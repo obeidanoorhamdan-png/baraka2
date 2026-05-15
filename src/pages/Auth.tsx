@@ -218,12 +218,16 @@ const Auth = () => {
       const { data, error } = await supabase.functions.invoke("passwordless-signin", { body: payload });
       if (error || !(data as any)?.ok) {
         const reason = (data as any)?.error || error?.message;
-        toast.error(reason || t("toast.wrong_answer"), {
+        const m = reason || "كلمة المرور / الإجابة غير صحيحة";
+        setAnswerErr(m);
+        toast.error(m, {
+          duration: 5000,
           description: !isAdminFlow ? t("toast.try_another_question") : undefined,
         });
         setBusy(false);
         return;
       }
+      setAnswerErr("");
       toast.success(t("toast.answer_verified"));
       const password = (data as any).password as string;
       const { error: signInErr } = await supabase.auth.signInWithPassword({
@@ -232,13 +236,17 @@ const Auth = () => {
       });
       setBusy(false);
       if (signInErr) {
-        toast.error(t("toast.invalid_credentials"));
+        const m = "بيانات الدخول غير صحيحة — تحقق وحاول مرة أخرى";
+        setAnswerErr(m);
+        toast.error(m, { duration: 5000 });
         return;
       }
       toast.success(t("toast.signin_success"));
     } catch (e: any) {
       setBusy(false);
-      toast.error(e?.message || t("toast.error"));
+      const m = e?.message || t("toast.error");
+      setAnswerErr(m);
+      toast.error(m, { duration: 5000 });
     }
   };
 
