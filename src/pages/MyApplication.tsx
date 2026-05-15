@@ -260,6 +260,14 @@ const MyApplication = () => {
         setAppId(app.id);
         setAppStatus(app.status);
         setRejection(app.rejection_reason);
+        if (app.status === "rejected") {
+          setShowRejectBanner(true);
+          setTimeout(() => setShowRejectBanner(false), 5000);
+          if ((app as any).reviewed_by) {
+            supabase.from("profiles").select("full_name").eq("id", (app as any).reviewed_by).maybeSingle()
+              .then(({ data }) => setReviewerName((data as any)?.full_name || ""));
+          }
+        }
         setResidence({
           original_residence: app.original_residence,
           original_landmark: app.original_landmark,
