@@ -26,6 +26,7 @@ import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } from "@/lib/offlineOutbox";
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { LocationCascade, parseLocation, formatLocation } from "@/components/LocationCascade";
 
 // Fields locked on the head-of-family card — only national_id is permanently
 // locked since it's the auth identity. The rest can be edited from the form.
