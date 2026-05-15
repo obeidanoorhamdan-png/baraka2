@@ -876,11 +876,12 @@ const Admin = () => {
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t("admin.reject_reason_label")}</DialogTitle></DialogHeader>
-          <Textarea rows={4} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+          <DialogHeader><DialogTitle>سبب الحذف / الرفض</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">سيظهر هذا السبب للأسرة عند فتح طلبهم.</p>
+          <Textarea rows={4} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="مثلاً: عدم اكتمال البيانات، الأسرة مسجلة في موقع آخر..." />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectOpen(false)}>{t("admin.all")}</Button>
-            <Button onClick={reject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t("admin.reject")}</Button>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>إلغاء</Button>
+            <Button onClick={reject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف مع السبب</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
