@@ -987,7 +987,6 @@ const MyApplication = () => {
         {step === 1 && (
           <Card className="p-5 md:p-6 shadow-elegant space-y-4">
             <h2 className="text-xl font-bold text-primary">{t("form.step2")}</h2>
-            <div className="grid gap-4 md:grid-cols-2">
             <div className="space-y-4">
               <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
                 <h3 className="text-sm font-bold text-primary mb-2">مكان السكن الأصلي قبل الحرب <span className="text-destructive">*</span></h3>
