@@ -26,17 +26,19 @@ const AdminLogin = () => {
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
+    setErrMsg("");
     if (!PIN_RE.test(pin)) {
-      toast.error(t("form.invalid_pin"));
+      setErrMsg("رمز غير صالح — يجب أن يكون 4 إلى 6 أرقام");
+      toast.error(t("form.invalid_pin"), { duration: 5000 });
       return;
     }
     setBusy(true);
     try {
-      // Check lockout first
       const { data: locked } = await supabase.rpc("is_admin_locked", { _nid: ADMIN_NID });
       if (locked) {
         setBusy(false);
-        toast.error("تم قفل الدخول مؤقتاً بسبب محاولات فاشلة متكررة. حاول بعد 15 دقيقة.");
+        const m = "تم قفل الدخول مؤقتاً بسبب محاولات فاشلة متكررة. حاول بعد 15 دقيقة.";
+        setErrMsg(m); toast.error(m, { duration: 6000 });
         return;
       }
       const { data, error } = await supabase.functions.invoke("passwordless-signin", {
@@ -46,7 +48,8 @@ const AdminLogin = () => {
         await supabase.from("admin_login_attempts").insert({
           national_id: ADMIN_NID, success: false, reason: "wrong_pin",
         });
-        toast.error((data as any)?.error || error?.message || t("toast.wrong_answer"));
+        const m = (data as any)?.error || "كلمة المرور خاطئة — تحقق من الرمز وحاول مجدداً";
+        setErrMsg(m); toast.error(m, { duration: 5000 });
         setBusy(false);
         return;
       }
@@ -60,10 +63,10 @@ const AdminLogin = () => {
           national_id: ADMIN_NID, success: false, reason: "auth_failed",
         });
         setBusy(false);
-        toast.error(t("toast.invalid_credentials"));
+        const m = "بيانات الدخول غير صحيحة";
+        setErrMsg(m); toast.error(m, { duration: 5000 });
         return;
       }
-      // success — record attempt
       const { data: u } = await supabase.auth.getUser();
       await supabase.from("admin_login_attempts").insert({
         national_id: ADMIN_NID, user_id: u.user?.id, success: true,
@@ -72,7 +75,8 @@ const AdminLogin = () => {
       toast.success(t("toast.signin_success"));
     } catch (e: any) {
       setBusy(false);
-      toast.error(e?.message || t("toast.error"));
+      const m = e?.message || "خطأ — حاول مجدداً";
+      setErrMsg(m); toast.error(m, { duration: 5000 });
     }
   };
 
