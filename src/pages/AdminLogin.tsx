@@ -103,10 +103,15 @@ const AdminLogin = () => {
                 inputMode="numeric"
                 autoFocus
                 value={pin}
-                onChange={(e) => setPin(e.target.value.replace(/\D/g, "").slice(0, 6))}
+                onChange={(e) => { setErrMsg(""); setPin(e.target.value.replace(/\D/g, "").slice(0, 6)); }}
                 placeholder="••••"
-                className="text-center text-lg tracking-[0.5em] font-bold"
+                className={`text-center text-lg tracking-[0.5em] font-bold ${errMsg ? "border-destructive focus-visible:ring-destructive" : ""}`}
               />
+              {errMsg && (
+                <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
+                  {errMsg}
+                </div>
+              )}
             </div>
             <Button type="submit" disabled={busy} className="w-full brand-gradient text-primary-foreground">
               {busy ? "..." : "دخول"}
