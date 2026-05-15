@@ -804,10 +804,27 @@ const MyApplication = () => {
               appStatus === "rejected" ? "bg-destructive/15 text-destructive" :
               "bg-warning/20 text-warning-foreground"
             }`}>{t(`status.${appStatus}`)}</span>
-            {rejection && (
-              <div className="w-full text-sm text-destructive mt-2"><strong>{t("my_app.rejection_reason")}:</strong> {rejection}</div>
+            {appStatus === "rejected" && (
+              <div className="w-full text-sm mt-2">
+                <strong className="text-destructive">{t("my_app.rejection_reason")}:</strong>{" "}
+                <span className="text-destructive">
+                  {rejection || `الرجاء مراجعة مندوبك${reviewerName ? ` (${reviewerName})` : ""} لمعرفة سبب الرفض`}
+                </span>
+              </div>
             )}
           </Card>
+        )}
+
+        {/* 5-second rejection toast/banner overlay */}
+        {showRejectBanner && appStatus === "rejected" && (
+          <div className="fixed top-20 inset-x-0 z-50 flex justify-center px-4 pointer-events-none animate-fade-in">
+            <div className="max-w-lg w-full rounded-xl bg-destructive text-destructive-foreground shadow-elegant p-4 pointer-events-auto">
+              <div className="font-bold mb-1">طلبك بحاجة لمراجعة</div>
+              <div className="text-sm">
+                {rejection || `الرجاء مراجعة مندوبك${reviewerName ? ` (${reviewerName})` : ""} لمعرفة سبب الرفض`}
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Retry banner — appears whenever a submit/update op is queued. */}
