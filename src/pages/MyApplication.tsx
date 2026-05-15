@@ -988,27 +988,44 @@ const MyApplication = () => {
           <Card className="p-5 md:p-6 shadow-elegant space-y-4">
             <h2 className="text-xl font-bold text-primary">{t("form.step2")}</h2>
             <div className="grid gap-4 md:grid-cols-2">
-              <div>
-                <Label>{t("residence.original_residence")}</Label>
-                <Input value={residence.original_residence}
-                  onChange={(e) => setResidence({ ...residence, original_residence: e.target.value })} />
+            <div className="space-y-4">
+              <div className="rounded-lg border border-accent/30 bg-accent/5 p-3">
+                <h3 className="text-sm font-bold text-primary mb-2">مكان السكن الأصلي قبل الحرب <span className="text-destructive">*</span></h3>
+                <LocationCascade
+                  required
+                  showErrors={!!residence.original_residence || origParts.length > 0 && origParts.length < 4}
+                  value={parseLocation(residence.original_residence)}
+                  onChange={(v) => setResidence({
+                    ...residence,
+                    original_residence: formatLocation(v),
+                  })}
+                />
               </div>
-              <div>
-                <Label>{t("residence.original_landmark")}</Label>
-                <Input value={residence.original_landmark}
-                  onChange={(e) => setResidence({ ...residence, original_landmark: e.target.value })} />
-              </div>
-              <div>
-                <Label>{t("residence.current_camp")}</Label>
-                <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/50 text-sm font-semibold text-primary">
-                  <Lock className="h-3.5 w-3.5 text-accent" /> {t("app.name")} (Baraka 2)
+              <div className="grid gap-4 md:grid-cols-2">
+                <div>
+                  <Label>أقرب معلم في السكن الأصلي <span className="text-destructive">*</span></Label>
+                  <Input value={residence.original_landmark}
+                    onChange={(e) => setResidence({ ...residence, original_landmark: e.target.value })} />
+                  {!residence.original_landmark && <p className="text-xs text-destructive mt-1">يلزم إدخال أقرب معلم</p>}
+                </div>
+                <div>
+                  <Label>{t("residence.current_camp")} (مكان الإيواء)</Label>
+                  <div className="flex items-center gap-2 h-10 px-3 rounded-md border border-input bg-muted/50 text-sm font-semibold text-primary">
+                    <Lock className="h-3.5 w-3.5 text-accent" /> {t("app.name")} (Baraka 2)
+                  </div>
+                </div>
+                <div className="md:col-span-2">
+                  <Label>أقرب معلم في مكان الإيواء <span className="text-destructive">*</span></Label>
+                  <Input value={residence.current_landmark}
+                    onChange={(e) => setResidence({ ...residence, current_landmark: e.target.value })}
+                    placeholder="مثلاً: بجانب مسجد..."
+                  />
+                  {!residence.current_landmark && <p className="text-xs text-destructive mt-1">مكان الإيواء إجباري لإكمال التسجيل</p>}
                 </div>
               </div>
-              <div>
-                <Label>{t("residence.current_landmark")}</Label>
-                <Input value={residence.current_landmark}
-                  onChange={(e) => setResidence({ ...residence, current_landmark: e.target.value })} />
-              </div>
+            </div>
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* phones below */}
               <div>
                 <Label>رقم جوال رب الأسرة <span className="text-destructive">*</span></Label>
                 <Input inputMode="tel" value={headPhone}
