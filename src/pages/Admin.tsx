@@ -644,10 +644,14 @@ const Admin = () => {
                             <div className="flex gap-1 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
                               {r.status !== "approved" && (
-                                <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10" title="قبول">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
                               )}
                               {r.status !== "rejected" && (
-                                <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10"><XCircle className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10" title="حذف مع سبب">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               )}
                             </div>
                           </TableCell>
