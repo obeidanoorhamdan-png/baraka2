@@ -490,7 +490,7 @@ const Auth = () => {
                     autoFocus
                     placeholder="••••"
                     value={adminPin}
-                    onChange={(e) => setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    onChange={(e) => { setAnswerErr(""); setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
                   />
                 </div>
               ) : (
