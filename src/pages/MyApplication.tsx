@@ -856,8 +856,10 @@ const MyApplication = () => {
         {/* Stepper — labeled, with progress bar and manual save. */}
         {(() => {
           const expectedMembers = Math.max(0, residence.family_size - 1);
+          // Original residence must be a full 4-level path (محافظة / مدينة / منطقة / حي)
+          const origParts = (residence.original_residence || "").split(" / ").filter(Boolean);
           const residenceFilled =
-            !!residence.original_residence && !!residence.original_landmark && !!residence.current_landmark;
+            origParts.length === 4 && !!residence.original_landmark && !!residence.current_landmark;
           const residencePct = residenceFilled ? 50 : 0;
           const memberPct = expectedMembers === 0 ? 50 : Math.min(50, Math.round((members.length / expectedMembers) * 50));
           const totalPct = residencePct + memberPct;
