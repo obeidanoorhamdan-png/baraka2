@@ -428,10 +428,15 @@ const Auth = () => {
                     autoFocus
                     value={nid}
                     placeholder={t("form.id_or_admin_placeholder")}
-                    className="ps-9 text-lg tracking-wider"
-                    onChange={(e) => setNid(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    className={`ps-9 text-lg tracking-wider ${nidErr ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    onChange={(e) => { setNidErr(""); setNid(e.target.value.replace(/\D/g, "").slice(0, 9)); }}
                   />
                 </div>
+                {nidErr && (
+                  <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold">
+                    {nidErr}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-2">
                   {t("auth.unified_intro")}
                 </p>
