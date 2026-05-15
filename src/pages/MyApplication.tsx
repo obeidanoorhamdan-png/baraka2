@@ -46,6 +46,8 @@ const MyApplication = () => {
   const [appId, setAppId] = useState<string | null>(null);
   const [appStatus, setAppStatus] = useState<string | null>(null);
   const [rejection, setRejection] = useState<string | null>(null);
+  const [reviewerName, setReviewerName] = useState<string>("");
+  const [showRejectBanner, setShowRejectBanner] = useState(false);
   const [busy, setBusy] = useState(false);
   const [pageLoading, setPageLoading] = useState(true);
   const [memberErrors, setMemberErrors] = useState<Record<number, Record<string, string>>>({});
