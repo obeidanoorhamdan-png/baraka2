@@ -18,6 +18,7 @@ const AdminLogin = () => {
   const { user, isAdmin, loading } = useAuth();
   const [pin, setPin] = useState("");
   const [busy, setBusy] = useState(false);
+  const [errMsg, setErrMsg] = useState("");
 
   useEffect(() => {
     if (!loading && user && isAdmin) navigate("/admin", { replace: true });
