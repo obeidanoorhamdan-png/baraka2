@@ -993,7 +993,7 @@ const MyApplication = () => {
                 <h3 className="text-sm font-bold text-primary mb-2">مكان السكن الأصلي قبل الحرب <span className="text-destructive">*</span></h3>
                 <LocationCascade
                   required
-                  showErrors={!!residence.original_residence || origParts.length > 0 && origParts.length < 4}
+                  showErrors={(residence.original_residence || "").split(" / ").filter(Boolean).length > 0 && (residence.original_residence || "").split(" / ").filter(Boolean).length < 4}
                   value={parseLocation(residence.original_residence)}
                   onChange={(v) => setResidence({
                     ...residence,
