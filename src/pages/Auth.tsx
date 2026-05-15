@@ -136,8 +136,13 @@ const Auth = () => {
   };
 
   const handleLookup = async () => {
+    setNidErr("");
     if (!SIGNIN_ID_RE.test(nid)) {
-      toast.error(t("form.invalid_id"));
+      const m = nid.length === 0
+        ? "يرجى إدخال رقم الهوية"
+        : `رقم الهوية يجب أن يكون 9 أرقام بالضبط (أدخلت ${nid.length} رقم)`;
+      setNidErr(m);
+      toast.error(m, { duration: 5000 });
       return;
     }
     setBusy(true);
