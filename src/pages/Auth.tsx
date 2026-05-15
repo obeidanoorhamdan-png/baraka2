@@ -511,7 +511,7 @@ const Auth = () => {
                         inputMode="numeric"
                         maxLength={9}
                         value={answer}
-                        onChange={(e) => setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                        onChange={(e) => { setAnswerErr(""); setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9)); }}
                       />
                     ) : (
                       <>
