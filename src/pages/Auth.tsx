@@ -550,6 +550,12 @@ const Auth = () => {
                 </>
               )}
 
+              {answerErr && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
+                  {answerErr}
+                </div>
+              )}
+
               <div className="flex gap-2">
                 <Button
                   type="button"
