@@ -644,10 +644,14 @@ const Admin = () => {
                             <div className="flex gap-1 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
                               {r.status !== "approved" && (
-                                <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10"><CheckCircle2 className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10" title="قبول">
+                                  <CheckCircle2 className="h-4 w-4" />
+                                </Button>
                               )}
                               {r.status !== "rejected" && (
-                                <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10"><XCircle className="h-4 w-4" /></Button>
+                                <Button size="sm" variant="ghost" onClick={() => { setRejectTarget(r); setRejectOpen(true); }} className="text-destructive hover:bg-destructive/10" title="حذف مع سبب">
+                                  <Trash2 className="h-4 w-4" />
+                                </Button>
                               )}
                             </div>
                           </TableCell>
@@ -872,11 +876,12 @@ const Admin = () => {
 
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
-          <DialogHeader><DialogTitle>{t("admin.reject_reason_label")}</DialogTitle></DialogHeader>
-          <Textarea rows={4} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} />
+          <DialogHeader><DialogTitle>سبب الحذف / الرفض</DialogTitle></DialogHeader>
+          <p className="text-xs text-muted-foreground">سيظهر هذا السبب للأسرة عند فتح طلبهم.</p>
+          <Textarea rows={4} value={rejectReason} onChange={(e) => setRejectReason(e.target.value)} placeholder="مثلاً: عدم اكتمال البيانات، الأسرة مسجلة في موقع آخر..." />
           <DialogFooter>
-            <Button variant="outline" onClick={() => setRejectOpen(false)}>{t("admin.all")}</Button>
-            <Button onClick={reject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">{t("admin.reject")}</Button>
+            <Button variant="outline" onClick={() => setRejectOpen(false)}>إلغاء</Button>
+            <Button onClick={reject} className="bg-destructive text-destructive-foreground hover:bg-destructive/90">حذف مع السبب</Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>

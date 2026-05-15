@@ -59,6 +59,8 @@ const Auth = () => {
   const [nid, setNid] = useState("");
   const [stage, setStage] = useState<Stage>("id");
   const [busy, setBusy] = useState(false);
+  const [nidErr, setNidErr] = useState("");
+  const [answerErr, setAnswerErr] = useState("");
 
   // Question state (existing user)
   const [question, setQuestion] = useState<{
@@ -134,8 +136,13 @@ const Auth = () => {
   };
 
   const handleLookup = async () => {
+    setNidErr("");
     if (!SIGNIN_ID_RE.test(nid)) {
-      toast.error(t("form.invalid_id"));
+      const m = nid.length === 0
+        ? "يرجى إدخال رقم الهوية"
+        : `رقم الهوية يجب أن يكون 9 أرقام بالضبط (أدخلت ${nid.length} رقم)`;
+      setNidErr(m);
+      toast.error(m, { duration: 5000 });
       return;
     }
     setBusy(true);
@@ -211,12 +218,16 @@ const Auth = () => {
       const { data, error } = await supabase.functions.invoke("passwordless-signin", { body: payload });
       if (error || !(data as any)?.ok) {
         const reason = (data as any)?.error || error?.message;
-        toast.error(reason || t("toast.wrong_answer"), {
+        const m = reason || "كلمة المرور / الإجابة غير صحيحة";
+        setAnswerErr(m);
+        toast.error(m, {
+          duration: 5000,
           description: !isAdminFlow ? t("toast.try_another_question") : undefined,
         });
         setBusy(false);
         return;
       }
+      setAnswerErr("");
       toast.success(t("toast.answer_verified"));
       const password = (data as any).password as string;
       const { error: signInErr } = await supabase.auth.signInWithPassword({
@@ -225,13 +236,17 @@ const Auth = () => {
       });
       setBusy(false);
       if (signInErr) {
-        toast.error(t("toast.invalid_credentials"));
+        const m = "بيانات الدخول غير صحيحة — تحقق وحاول مرة أخرى";
+        setAnswerErr(m);
+        toast.error(m, { duration: 5000 });
         return;
       }
       toast.success(t("toast.signin_success"));
     } catch (e: any) {
       setBusy(false);
-      toast.error(e?.message || t("toast.error"));
+      const m = e?.message || t("toast.error");
+      setAnswerErr(m);
+      toast.error(m, { duration: 5000 });
     }
   };
 
@@ -413,10 +428,15 @@ const Auth = () => {
                     autoFocus
                     value={nid}
                     placeholder={t("form.id_or_admin_placeholder")}
-                    className="ps-9 text-lg tracking-wider"
-                    onChange={(e) => setNid(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                    className={`ps-9 text-lg tracking-wider ${nidErr ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                    onChange={(e) => { setNidErr(""); setNid(e.target.value.replace(/\D/g, "").slice(0, 9)); }}
                   />
                 </div>
+                {nidErr && (
+                  <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold">
+                    {nidErr}
+                  </div>
+                )}
                 <p className="text-xs text-muted-foreground mt-2">
                   {t("auth.unified_intro")}
                 </p>
@@ -470,7 +490,7 @@ const Auth = () => {
                     autoFocus
                     placeholder="••••"
                     value={adminPin}
-                    onChange={(e) => setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4))}
+                    onChange={(e) => { setAnswerErr(""); setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
                   />
                 </div>
               ) : (
@@ -491,7 +511,7 @@ const Auth = () => {
                         inputMode="numeric"
                         maxLength={9}
                         value={answer}
-                        onChange={(e) => setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9))}
+                        onChange={(e) => { setAnswerErr(""); setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9)); }}
                       />
                     ) : (
                       <>
@@ -528,6 +548,12 @@ const Auth = () => {
                     </button>
                   </div>
                 </>
+              )}
+
+              {answerErr && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
+                  {answerErr}
+                </div>
               )}
 
               <div className="flex gap-2">
