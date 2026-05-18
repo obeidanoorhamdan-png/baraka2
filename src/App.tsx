@@ -24,6 +24,7 @@ import AdminSettings from "./pages/admin/Settings";
 import AidPage from "./pages/admin/AidPage";
 import AnnouncementsAdmin from "./pages/admin/Announcements";
 import PowerTools from "./pages/admin/PowerTools";
+import ExcelExport from "./pages/admin/ExcelExport";
 import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
