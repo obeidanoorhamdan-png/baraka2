@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Megaphone,
   Wand2,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   Sidebar,
