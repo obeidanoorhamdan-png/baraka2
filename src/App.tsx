@@ -67,6 +67,7 @@ const App = () => {
                 <Route path="/admin/managers" element={<Managers />} />
                 <Route path="/admin/audit" element={<AuditLog />} />
                 <Route path="/admin/power" element={<PowerTools />} />
+                <Route path="/admin/excel" element={<ExcelExport />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
