@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Megaphone,
   Wand2,
+  FileSpreadsheet,
 } from "lucide-react";
 import {
   Sidebar,
@@ -33,6 +34,7 @@ const items = [
   { title: "الإعلانات", url: "/admin/announcements", icon: Megaphone },
   { title: "المشرفون", url: "/admin/managers", icon: Users2 },
   { title: "أدوات متقدمة", url: "/admin/power", icon: Wand2 },
+  { title: "تصدير اكسل", url: "/admin/excel", icon: FileSpreadsheet },
   { title: "سجل النشاط", url: "/admin/audit", icon: ScrollText },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];

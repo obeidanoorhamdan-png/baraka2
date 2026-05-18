@@ -24,6 +24,7 @@ import AdminSettings from "./pages/admin/Settings";
 import AidPage from "./pages/admin/AidPage";
 import AnnouncementsAdmin from "./pages/admin/Announcements";
 import PowerTools from "./pages/admin/PowerTools";
+import ExcelExport from "./pages/admin/ExcelExport";
 import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
@@ -66,6 +67,7 @@ const App = () => {
                 <Route path="/admin/managers" element={<Managers />} />
                 <Route path="/admin/audit" element={<AuditLog />} />
                 <Route path="/admin/power" element={<PowerTools />} />
+                <Route path="/admin/excel" element={<ExcelExport />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
