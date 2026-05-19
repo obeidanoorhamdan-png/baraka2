@@ -10,6 +10,7 @@ import {
   AlertTriangle,
   Megaphone,
   Wand2,
+  FileSpreadsheet,
   Truck,
   CheckSquare,
 } from "lucide-react";
