@@ -25,6 +25,10 @@ import AidPage from "./pages/admin/AidPage";
 import AnnouncementsAdmin from "./pages/admin/Announcements";
 import PowerTools from "./pages/admin/PowerTools";
 import ExcelExport from "./pages/admin/ExcelExport";
+import AdminCampaigns from "./pages/admin/AdminCampaigns";
+import AdminApprovals from "./pages/admin/AdminApprovals";
+import DistributorLogin from "./pages/DistributorLogin";
+import DistributorWorkspace from "./pages/DistributorWorkspace";
 import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
@@ -68,7 +72,11 @@ const App = () => {
                 <Route path="/admin/audit" element={<AuditLog />} />
                 <Route path="/admin/power" element={<PowerTools />} />
                 <Route path="/admin/excel" element={<ExcelExport />} />
+                <Route path="/admin/campaigns" element={<AdminCampaigns />} />
+                <Route path="/admin/approvals" element={<AdminApprovals />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/distributor-login" element={<DistributorLogin />} />
+                <Route path="/distributor" element={<DistributorWorkspace />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ConfirmProvider>

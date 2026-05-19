@@ -1,5 +1,6 @@
-// Idempotent admin bootstrap. Creates the admin account if it doesn't exist.
-// Admin login: national_id "2026", PIN "1234". Synthetic email: 2026@baraka2.local
+// Idempotent bootstrap. Creates default accounts:
+//   - Super Admin: national_id "2026", PIN "1234"
+//   - Aid Distributor: national_id "2008", PIN "2004"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
@@ -7,14 +8,24 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
-const ADMIN_NID = "2026";
-const ADMIN_PIN = "1234";
-const ADMIN_EMAIL = `${ADMIN_NID}@baraka2.local`;
 const PIN_AUTH_PREFIX = "Baraka2-PampPIN";
 const pinToAuthPassword = (pin: string) => {
   const clean = pin.replace(/\D/g, "").slice(0, 4);
   return `${PIN_AUTH_PREFIX}-${clean}-${clean.split("").reverse().join("")}`;
 };
+
+type Seed = {
+  nid: string;
+  pin: string;
+  role: "admin" | "aid_distributor";
+  fullName: string;
+  phone: string;
+};
+
+const SEEDS: Seed[] = [
+  { nid: "2026", pin: "1234", role: "admin", fullName: "إدارة مخيم بركة 2", phone: "0599999999" },
+  { nid: "2008", pin: "2004", role: "aid_distributor", fullName: "مندوب توزيع المساعدات", phone: "0598888888" },
+];
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -22,55 +33,50 @@ Deno.serve(async (req) => {
     const supabaseUrl = Deno.env.get("SUPABASE_URL")!;
     const serviceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const admin = createClient(supabaseUrl, serviceKey);
+    const results: any[] = [];
 
-    // Check if profile already exists for the admin NID
-    const { data: existing } = await admin
-      .from("profiles")
-      .select("id")
-      .eq("national_id", ADMIN_NID)
-      .maybeSingle();
+    for (const s of SEEDS) {
+      const email = `${s.nid}@baraka2.local`;
+      const { data: existing } = await admin
+        .from("profiles")
+        .select("id")
+        .eq("national_id", s.nid)
+        .maybeSingle();
 
-    if (existing?.id) {
-      await admin.auth.admin.updateUserById(existing.id, { password: pinToAuthPassword(ADMIN_PIN) });
-      // Make sure it has admin role (idempotent)
-      await admin.from("user_roles").upsert(
-        { user_id: existing.id, role: "admin" },
-        { onConflict: "user_id,role", ignoreDuplicates: true },
-      );
-      // Notify admin that credentials were refreshed
-      await admin.from("notifications").insert({
-        user_id: existing.id,
-        title: "تم تحديث بيانات الإدارة",
-        body: `تم تحديث كلمة المرور بنجاح. اسم المستخدم: ${ADMIN_NID} — كلمة المرور: ${ADMIN_PIN}`,
-        kind: "system",
-        link: "/admin",
+      if (existing?.id) {
+        await admin.auth.admin.updateUserById(existing.id, { password: pinToAuthPassword(s.pin) });
+        await admin.from("user_roles").upsert(
+          { user_id: existing.id, role: s.role },
+          { onConflict: "user_id,role", ignoreDuplicates: true },
+        );
+        results.push({ nid: s.nid, status: "exists" });
+        continue;
+      }
+
+      const { data: created, error } = await admin.auth.admin.createUser({
+        email,
+        password: pinToAuthPassword(s.pin),
+        email_confirm: true,
+        user_metadata: {
+          national_id: s.nid,
+          full_name: s.fullName,
+          phone: s.phone,
+          birth_date: "1990-01-01",
+          gender: "male",
+          marital_status: "single",
+        },
       });
-      return json({ ok: true, status: "exists" });
+      if (error) { results.push({ nid: s.nid, error: error.message }); continue; }
+      if (created?.user?.id) {
+        await admin.from("user_roles").upsert(
+          { user_id: created.user.id, role: s.role },
+          { onConflict: "user_id,role", ignoreDuplicates: true },
+        );
+      }
+      results.push({ nid: s.nid, status: "created" });
     }
 
-    const { data: created, error } = await admin.auth.admin.createUser({
-      email: ADMIN_EMAIL,
-      password: pinToAuthPassword(ADMIN_PIN),
-      email_confirm: true,
-      user_metadata: {
-        national_id: ADMIN_NID,
-        full_name: "إدارة مخيم بركة 2",
-        phone: "0599999999",
-        birth_date: "1990-01-01",
-        gender: "male",
-        marital_status: "single",
-      },
-    });
-    if (error) return json({ error: error.message }, 400);
-
-    // Trigger should auto-promote, but ensure it explicitly
-    if (created?.user?.id) {
-      await admin.from("user_roles").upsert(
-        { user_id: created.user.id, role: "admin" },
-        { onConflict: "user_id,role", ignoreDuplicates: true },
-      );
-    }
-    return json({ ok: true, status: "created" });
+    return json({ ok: true, results });
   } catch (e) {
     return json({ error: (e as Error).message }, 500);
   }

@@ -11,6 +11,8 @@ import {
   Megaphone,
   Wand2,
   FileSpreadsheet,
+  Truck,
+  CheckSquare,
 } from "lucide-react";
 import {
   Sidebar,
@@ -31,6 +33,8 @@ const items = [
   { title: "الطلبات", url: "/admin/applications", icon: ClipboardList },
   { title: "غير المكتملة", url: "/admin/incomplete", icon: AlertTriangle },
   { title: "المساعدات", url: "/admin/aid", icon: PackageCheck },
+  { title: "حملات التوزيع", url: "/admin/campaigns", icon: Truck },
+  { title: "الموافقات", url: "/admin/approvals", icon: CheckSquare },
   { title: "الإعلانات", url: "/admin/announcements", icon: Megaphone },
   { title: "المشرفون", url: "/admin/managers", icon: Users2 },
   { title: "أدوات متقدمة", url: "/admin/power", icon: Wand2 },

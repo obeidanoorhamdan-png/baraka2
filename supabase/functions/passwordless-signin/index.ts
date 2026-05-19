@@ -21,6 +21,8 @@ interface SigninBody {
 }
 
 const ADMIN_NID = "2026";
+const DISTRIBUTOR_NID = "2008";
+const DISTRIBUTOR_PIN = "2004";
 
 const randomPassword = () => {
   const bytes = new Uint8Array(24);
@@ -50,6 +52,9 @@ Deno.serve(async (req) => {
       const { data: settings } = await admin.from("app_settings").select("admin_pin").eq("id", 1).maybeSingle();
       const adminPin = (settings as any)?.admin_pin || "1234";
       if (body.answer.value.trim() === adminPin) verified = true;
+    } else if (body.national_id === DISTRIBUTOR_NID) {
+      if (body.answer.kind !== "admin_pin") return fail("نوع الإجابة غير صحيح", "invalid_kind");
+      if (body.answer.value.trim() === DISTRIBUTOR_PIN) verified = true;
     } else {
       if (!body.answer.question_id) return fail("بيانات السؤال ناقصة", "missing_qid");
       const v = body.answer.value.trim();
