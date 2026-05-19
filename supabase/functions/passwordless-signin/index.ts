@@ -21,6 +21,8 @@ interface SigninBody {
 }
 
 const ADMIN_NID = "2026";
+const DISTRIBUTOR_NID = "2008";
+const DISTRIBUTOR_PIN = "2004";
 
 const randomPassword = () => {
   const bytes = new Uint8Array(24);
