@@ -146,6 +146,107 @@ export type Database = {
         }
         Relationships: []
       }
+      aid_campaign_recipients: {
+        Row: {
+          application_id: string
+          campaign_id: string
+          created_at: string
+          delivered: boolean
+          delivered_at: string | null
+          delivered_by: string | null
+          delivered_by_name: string | null
+          id: string
+          notes: string | null
+          received_by_name: string | null
+          received_by_national_id: string | null
+          received_by_relation: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id: string
+          campaign_id: string
+          created_at?: string
+          delivered?: boolean
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivered_by_name?: string | null
+          id?: string
+          notes?: string | null
+          received_by_name?: string | null
+          received_by_national_id?: string | null
+          received_by_relation?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string
+          campaign_id?: string
+          created_at?: string
+          delivered?: boolean
+          delivered_at?: string | null
+          delivered_by?: string | null
+          delivered_by_name?: string | null
+          id?: string
+          notes?: string | null
+          received_by_name?: string | null
+          received_by_national_id?: string | null
+          received_by_relation?: string | null
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aid_campaign_recipients_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "aid_campaigns"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aid_campaigns: {
+        Row: {
+          aid_type: string | null
+          contents: string | null
+          created_at: string
+          created_by: string | null
+          id: string
+          is_active: boolean
+          notes: string | null
+          quota: number
+          scheduled_date: string
+          target_camp: string | null
+          title: string
+          updated_at: string
+        }
+        Insert: {
+          aid_type?: string | null
+          contents?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          quota?: number
+          scheduled_date?: string
+          target_camp?: string | null
+          title: string
+          updated_at?: string
+        }
+        Update: {
+          aid_type?: string | null
+          contents?: string | null
+          created_at?: string
+          created_by?: string | null
+          id?: string
+          is_active?: boolean
+          notes?: string | null
+          quota?: number
+          scheduled_date?: string
+          target_camp?: string | null
+          title?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       aid_distributions: {
         Row: {
           application_id: string
@@ -186,6 +287,59 @@ export type Database = {
             columns: ["application_id"]
             isOneToOne: false
             referencedRelation: "applications"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      aid_supplement_requests: {
+        Row: {
+          applicant_name: string | null
+          applicant_national_id: string | null
+          application_id: string | null
+          campaign_id: string | null
+          created_at: string
+          id: string
+          reason: string | null
+          requested_by: string
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+        }
+        Insert: {
+          applicant_name?: string | null
+          applicant_national_id?: string | null
+          application_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          requested_by: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+        }
+        Update: {
+          applicant_name?: string | null
+          applicant_national_id?: string | null
+          application_id?: string | null
+          campaign_id?: string | null
+          created_at?: string
+          id?: string
+          reason?: string | null
+          requested_by?: string
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "aid_supplement_requests_campaign_id_fkey"
+            columns: ["campaign_id"]
+            isOneToOne: false
+            referencedRelation: "aid_campaigns"
             referencedColumns: ["id"]
           },
         ]
@@ -492,6 +646,51 @@ export type Database = {
         }
         Relationships: []
       }
+      pending_edits: {
+        Row: {
+          application_id: string
+          changes: Json
+          created_at: string
+          id: string
+          reason: string | null
+          reviewed_at: string | null
+          reviewed_by: string | null
+          reviewer_notes: string | null
+          status: string
+          target_id: string | null
+          target_kind: string
+          user_id: string
+        }
+        Insert: {
+          application_id: string
+          changes: Json
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          target_id?: string | null
+          target_kind: string
+          user_id: string
+        }
+        Update: {
+          application_id?: string
+          changes?: Json
+          created_at?: string
+          id?: string
+          reason?: string | null
+          reviewed_at?: string | null
+          reviewed_by?: string | null
+          reviewer_notes?: string | null
+          status?: string
+          target_id?: string | null
+          target_kind?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
       profiles: {
         Row: {
           alt_phone: string | null
@@ -612,12 +811,27 @@ export type Database = {
     }
     Functions: {
       admin_advanced_stats: { Args: never; Returns: Json }
+      apply_pending_edit: {
+        Args: { _edit_id: string; _notes?: string }
+        Returns: boolean
+      }
       bulk_update_application_status: {
         Args: { _ids: string[]; _reason?: string; _status: string }
         Returns: number
       }
       can_distribute_aid: { Args: { _user_id: string }; Returns: boolean }
       can_review: { Args: { _user_id: string }; Returns: boolean }
+      distributor_lookup_family: {
+        Args: { _nid: string }
+        Returns: {
+          application_id: string
+          current_camp: string
+          family_size: number
+          head_name: string
+          head_national_id: string
+          status: string
+        }[]
+      }
       find_duplicate_persons: {
         Args: never
         Returns: {
@@ -702,6 +916,10 @@ export type Database = {
       }
       national_id_used_by_others: {
         Args: { _exclude_member?: string; _exclude_user?: string; _nid: string }
+        Returns: boolean
+      }
+      reject_pending_edit: {
+        Args: { _edit_id: string; _notes?: string }
         Returns: boolean
       }
       revoke_admin: { Args: { _uid: string }; Returns: boolean }
