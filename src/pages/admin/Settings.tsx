@@ -43,13 +43,13 @@ const Settings = () => {
   const savePin = async () => {
     if (!/^\d{4}$/.test(current) || !/^\d{4}$/.test(next)) { toast.error("PIN غير صالح"); return; }
     if (next !== next2) { toast.error("لا تتطابق التأكيدات"); return; }
-    const { data } = await supabase.from("app_settings").select("admin_pin").eq("id", 1).maybeSingle();
+    const { data } = await supabase.from("admin_secrets").select("admin_pin").eq("id", 1).maybeSingle();
     const actual = (data as any)?.admin_pin || "1234";
     if (current !== actual) { toast.error("الرمز الحالي غير صحيح"); return; }
     if (next === actual) { toast.error("الرمز الجديد مطابق للحالي"); return; }
     if (!(await confirmAsk({ title: "تغيير رمز الإدارة", description: "متابعة؟", confirmText: "تأكيد", variant: "warning" }))) return;
     setBusy(true);
-    const { error } = await supabase.from("app_settings").update({ admin_pin: next }).eq("id", 1);
+    const { error } = await supabase.from("admin_secrets").update({ admin_pin: next, updated_at: new Date().toISOString(), updated_by: user?.id }).eq("id", 1);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     await supabase.rpc("log_admin_action", { _action: "change_pin", _target_type: "settings" });
