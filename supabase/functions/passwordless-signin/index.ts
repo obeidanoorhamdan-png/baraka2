@@ -49,7 +49,7 @@ Deno.serve(async (req) => {
 
     if (body.national_id === ADMIN_NID) {
       if (body.answer.kind !== "admin_pin") return fail("نوع الإجابة غير صحيح", "invalid_kind");
-      const { data: settings } = await admin.from("app_settings").select("admin_pin").eq("id", 1).maybeSingle();
+      const { data: settings } = await admin.from("admin_secrets").select("admin_pin").eq("id", 1).maybeSingle();
       const adminPin = (settings as any)?.admin_pin || "1234";
       if (body.answer.value.trim() === adminPin) verified = true;
     } else if (body.national_id === DISTRIBUTOR_NID) {
