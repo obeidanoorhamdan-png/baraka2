@@ -906,7 +906,7 @@ const ChangeAdminPinCard = () => {
     if (next !== next2) { toast.error(t("toast.password_mismatch")); return; }
 
     // Verify current PIN
-    const { data } = await supabase.from("app_settings").select("admin_pin").eq("id", 1).maybeSingle();
+    const { data } = await supabase.from("admin_secrets").select("admin_pin").eq("id", 1).maybeSingle();
     const actual = (data as any)?.admin_pin || "1234";
     if (current !== actual) { toast.error(t("toast.wrong_current_pin")); return; }
     if (next === actual) { toast.error(t("toast.pin_same_as_current")); return; }
@@ -919,7 +919,7 @@ const ChangeAdminPinCard = () => {
     }))) return;
 
     setBusy(true);
-    const { error } = await supabase.from("app_settings").update({ admin_pin: next }).eq("id", 1);
+    const { error } = await supabase.from("admin_secrets").update({ admin_pin: next, updated_at: new Date().toISOString() }).eq("id", 1);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("auth.admin_pin_saved"));
