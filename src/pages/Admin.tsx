@@ -919,7 +919,7 @@ const ChangeAdminPinCard = () => {
     }))) return;
 
     setBusy(true);
-    const { error } = await supabase.from("admin_secrets").update({ admin_pin: next, updated_at: new Date().toISOString(), updated_by: user?.id }).eq("id", 1);
+    const { error } = await supabase.from("admin_secrets").update({ admin_pin: next, updated_at: new Date().toISOString() }).eq("id", 1);
     setBusy(false);
     if (error) { toast.error(error.message); return; }
     toast.success(t("auth.admin_pin_saved"));
