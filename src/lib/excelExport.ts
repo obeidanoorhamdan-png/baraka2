@@ -389,3 +389,482 @@ export async function exportSpecialNeeds() {
   applyRowStyles(ws, 3, headers.length);
   await saveWorkbook(wb, `ذوو_الهمم_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
+
+/* ============================================================================
+ *  محرك التصدير الذكي (Excel Wizard Engine)
+ *  بناء قوالب ديناميكية: أعمدة قابلة للاختيار + أعمدة حسابية + فلاتر متقدمة.
+ * ==========================================================================*/
+
+export interface Dataset {
+  apps: Application[];
+  profiles: Profile[];
+  members: FamilyMember[];
+}
+
+/** جلب جميع البيانات (كل الحالات) مع تخزين محلي للعمل دون اتصال. */
+export async function fetchDataset(): Promise<Dataset> {
+  const cacheKey = "excel:full-dataset";
+  try {
+    const [{ data: apps, error: e1 }, { data: profiles, error: e2 }, { data: members, error: e3 }] =
+      await Promise.all([
+        supabase.from("applications").select("*"),
+        supabase.from("profiles").select("*"),
+        supabase.from("family_members").select("*"),
+      ]);
+    if (e1 || e2 || e3) throw e1 || e2 || e3;
+    const dataset: Dataset = {
+      apps: (apps || []) as Application[],
+      profiles: (profiles || []) as Profile[],
+      members: (members || []) as FamilyMember[],
+    };
+    await cacheSet(cacheKey, dataset);
+    return dataset;
+  } catch (e) {
+    const cached = await cacheGet<Dataset>(cacheKey);
+    if (cached) return cached;
+    throw e;
+  }
+}
+
+/* ---------- قواميس الترجمة ---------- */
+const G = (g?: string | null) => (g === "male" ? "ذكر" : g === "female" ? "أنثى" : NA);
+
+const MARITAL_AR: Record<string, string> = {
+  single: "أعزب/عزباء",
+  married: "متزوج/ة",
+  divorced: "مطلق/ة",
+  widow: "أرمل/ة",
+  widowed: "أرمل/ة",
+  separated: "منفصل/ة",
+};
+const maritalAr = (s?: string | null) => (s ? MARITAL_AR[s] || s : NA);
+
+const REL_AR: Record<string, string> = {
+  son: "ابن",
+  daughter: "ابنة",
+  wife: "زوجة",
+  husband: "زوج",
+  brother: "أخ",
+  sister: "أخت",
+  father: "أب",
+  mother: "أم",
+  grandfather: "جد",
+  grandmother: "جدة",
+  other: "أخرى",
+};
+const relAr = (s?: string | null) => (s ? REL_AR[s] || s : NA);
+
+const isWidow = (head?: Profile | null) =>
+  !!head && (head.marital_status === "widow" || head.marital_status === "widowed");
+
+function isOrphan(m: FamilyMember, app: Application): boolean {
+  if (!app.has_martyr) return false;
+  if (m.relationship === "wife" || m.relationship === "husband") return false;
+  const age = calcAge(m.birth_date);
+  return typeof age === "number" && age < 18;
+}
+
+/* ---------- كتالوج الأعمدة ---------- */
+export interface ColDef {
+  key: string;
+  label: string;
+}
+
+type FamilyCtx = { app: Application; head: Profile; spouse: FamilyMember | null; fam: FamilyMember[] };
+type MemberCtx = { m: FamilyMember; app: Application; head: Profile };
+
+const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
+  head_name: (c) => v(c.head.full_name),
+  national_id: (c) => v(c.head.national_id),
+  head_gender: (c) => G(c.head.gender),
+  head_age: (c) => calcAge(c.head.birth_date),
+  head_birth: (c) => v(c.head.birth_date),
+  marital_status: (c) => maritalAr(c.head.marital_status),
+  phone: (c) => v(c.head.phone),
+  alt_phone: (c) => v(c.head.alt_phone),
+  chronic: (c) => v(c.head.chronic_diseases),
+  war_injured: (c) => bool(c.head.is_war_injured),
+  special_needs: (c) => bool(c.head.is_special_needs),
+  spouse_name: (c) => (c.spouse ? v(c.spouse.full_name) : NA),
+  spouse_nid: (c) => (c.spouse ? v(c.spouse.national_id) : NA),
+  spouse_age: (c) => (c.spouse ? calcAge(c.spouse.birth_date) : NA),
+  spouse_preg: (c) => (c.spouse ? pregBreast(c.spouse) : NA),
+  family_size: (c) => c.app.family_size ?? ZERO,
+  children_count: (c) =>
+    c.fam.filter((m) => m.relationship !== "wife" && m.relationship !== "husband").length,
+  original_residence: (c) => v(c.app.original_residence),
+  original_landmark: (c) => v(c.app.original_landmark),
+  current_camp: (c) => v(c.app.current_camp),
+  current_landmark: (c) => v(c.app.current_landmark),
+  has_martyr: (c) => bool(c.app.has_martyr),
+  martyr_name: (c) => v(c.app.martyr_name),
+  status: (c) => statusAr(c.app.status),
+};
+
+export const FAMILY_COLS: ColDef[] = [
+  { key: "head_name", label: "اسم رب الأسرة" },
+  { key: "national_id", label: "رقم هوية رب الأسرة" },
+  { key: "head_gender", label: "الجنس" },
+  { key: "head_age", label: "العمر" },
+  { key: "head_birth", label: "تاريخ الميلاد" },
+  { key: "marital_status", label: "الحالة الاجتماعية" },
+  { key: "phone", label: "الجوال" },
+  { key: "alt_phone", label: "الجوال البديل" },
+  { key: "chronic", label: "أمراض مزمنة" },
+  { key: "war_injured", label: "مصاب حرب" },
+  { key: "special_needs", label: "ذوي همم" },
+  { key: "spouse_name", label: "اسم الزوج/ة" },
+  { key: "spouse_nid", label: "هوية الزوج/ة" },
+  { key: "spouse_age", label: "عمر الزوج/ة" },
+  { key: "spouse_preg", label: "حامل/مرضعة (الزوجة)" },
+  { key: "family_size", label: "عدد الأفراد" },
+  { key: "children_count", label: "عدد الأبناء" },
+  { key: "original_residence", label: "السكن الأصلي" },
+  { key: "original_landmark", label: "أقرب معلم أصلي" },
+  { key: "current_camp", label: "المخيم/مكان الإيواء" },
+  { key: "current_landmark", label: "المعلم الحالي" },
+  { key: "has_martyr", label: "يوجد شهيد" },
+  { key: "martyr_name", label: "اسم الشهيد" },
+  { key: "status", label: "حالة الطلب" },
+];
+
+const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
+  member_name: (c) => v(c.m.full_name),
+  national_id: (c) => v(c.m.national_id),
+  gender: (c) => G(c.m.gender),
+  age: (c) => calcAge(c.m.birth_date),
+  birth: (c) => v(c.m.birth_date),
+  relationship: (c) => relAr(c.m.relationship),
+  chronic: (c) => v(c.m.chronic_diseases),
+  war_injured: (c) => bool(c.m.is_war_injured),
+  special_needs: (c) => bool(c.m.is_special_needs),
+  preg_breast: (c) => pregBreast(c.m),
+  orphan: (c) => bool(isOrphan(c.m, c.app)),
+  father_martyr: (c) => bool(c.app.has_martyr),
+  martyr_name: (c) => v(c.app.martyr_name),
+  head_name: (c) => v(c.head.full_name),
+  head_nid: (c) => v(c.head.national_id),
+  head_phone: (c) => v(c.head.phone),
+  current_camp: (c) => v(c.app.current_camp),
+  current_landmark: (c) => v(c.app.current_landmark),
+};
+
+export const MEMBER_COLS: ColDef[] = [
+  { key: "member_name", label: "اسم الفرد" },
+  { key: "national_id", label: "رقم الهوية" },
+  { key: "gender", label: "الجنس" },
+  { key: "age", label: "العمر" },
+  { key: "birth", label: "تاريخ الميلاد" },
+  { key: "relationship", label: "صلة القرابة" },
+  { key: "chronic", label: "أمراض مزمنة" },
+  { key: "war_injured", label: "مصاب" },
+  { key: "special_needs", label: "ذوي همم" },
+  { key: "preg_breast", label: "حامل/مرضعة" },
+  { key: "orphan", label: "يتيم" },
+  { key: "father_martyr", label: "استشهاد الأب" },
+  { key: "martyr_name", label: "اسم الشهيد" },
+  { key: "head_name", label: "اسم المعيل" },
+  { key: "head_nid", label: "هوية المعيل" },
+  { key: "head_phone", label: "جوال المعيل" },
+  { key: "current_camp", label: "المخيم/مكان الإيواء" },
+  { key: "current_landmark", label: "المعلم الحالي" },
+];
+
+const STATUS_AR: Record<string, string> = {
+  approved: "مقبول",
+  pending: "قيد المراجعة",
+  rejected: "مرفوض",
+};
+const statusAr = (s?: string | null) => (s ? STATUS_AR[s] || s : NA);
+
+/* ---------- الأعمدة الحسابية ---------- */
+export type PersonFlag = "pregnant" | "breastfeeding" | "war_injured" | "chronic" | "special_needs";
+export interface ComputedCol {
+  id: string;
+  label: string;
+  gender?: "all" | "male" | "female";
+  ageMin?: number | null;
+  ageMax?: number | null;
+  flags?: PersonFlag[];
+}
+
+export const COMPUTED_PRESETS: ComputedCol[] = [
+  { id: "kids_0_5", label: "أطفال (0-5)", gender: "all", ageMin: 0, ageMax: 5 },
+  { id: "kids_6_12", label: "أطفال (6-12)", gender: "all", ageMin: 6, ageMax: 12 },
+  { id: "students_6_18", label: "طلاب (6-18)", gender: "all", ageMin: 6, ageMax: 18 },
+  { id: "adult_male", label: "ذكور بالغون", gender: "male", ageMin: 18, ageMax: null },
+  { id: "adult_female", label: "إناث بالغات", gender: "female", ageMin: 18, ageMax: null },
+  { id: "pregnant", label: "عدد الحوامل", gender: "female", flags: ["pregnant"] },
+  { id: "breastfeeding", label: "عدد المرضعات", gender: "female", flags: ["breastfeeding"] },
+  { id: "injured", label: "عدد المصابين", flags: ["war_injured"] },
+  { id: "chronic", label: "أصحاب الأمراض المزمنة", flags: ["chronic"] },
+  { id: "special", label: "ذوو الهمم", flags: ["special_needs"] },
+];
+
+interface Person {
+  gender?: string | null;
+  birth_date?: string | null;
+  is_pregnant?: boolean;
+  is_breastfeeding?: boolean;
+  is_war_injured?: boolean;
+  chronic_diseases?: string | null;
+  is_special_needs?: boolean;
+}
+
+function matchPerson(p: Person, cc: ComputedCol): boolean {
+  if (cc.gender && cc.gender !== "all" && p.gender !== cc.gender) return false;
+  const age = calcAge(p.birth_date);
+  if (cc.ageMin != null && (typeof age !== "number" || age < cc.ageMin)) return false;
+  if (cc.ageMax != null && (typeof age !== "number" || age > cc.ageMax)) return false;
+  for (const f of cc.flags || []) {
+    if (f === "pregnant" && !p.is_pregnant) return false;
+    if (f === "breastfeeding" && !p.is_breastfeeding) return false;
+    if (f === "war_injured" && !p.is_war_injured) return false;
+    if (f === "special_needs" && !p.is_special_needs) return false;
+    if (f === "chronic" && !(p.chronic_diseases && p.chronic_diseases !== "")) return false;
+  }
+  return true;
+}
+
+/* ---------- إعدادات التصدير ---------- */
+export type Entity = "family" | "member";
+export type MemberKind = "orphan" | "injured" | "chronic" | "preg_breast" | "special_needs";
+
+export interface ExportConfig {
+  title: string;
+  entity: Entity;
+  columns: string[];
+  computed: ComputedCol[];
+  filters: {
+    camp?: string | null;
+    status?: "approved" | "pending" | "rejected" | "all";
+    ageMin?: number | null;
+    ageMax?: number | null;
+    maritalWidow?: boolean;
+    femaleBreadwinner?: boolean;
+    hasMartyr?: boolean;
+    memberKinds?: MemberKind[];
+  };
+}
+
+export function listCamps(ds: Dataset): string[] {
+  const set = new Set<string>();
+  for (const a of ds.apps) if (a.current_camp) set.add(a.current_camp);
+  return Array.from(set).sort();
+}
+
+/** بناء الرؤوس والصفوف وفق الإعدادات. */
+export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]; rows: any[][] } {
+  const { apps, profiles, members } = ds;
+  const f = cfg.filters;
+
+  let pool = apps.slice();
+  if (f.status && f.status !== "all") pool = pool.filter((a) => a.status === f.status);
+  if (f.camp) pool = pool.filter((a) => a.current_camp === f.camp);
+  if (f.hasMartyr) pool = pool.filter((a) => a.has_martyr);
+  if (f.femaleBreadwinner || f.maritalWidow) {
+    pool = pool.filter((a) => {
+      const head = profiles.find((p) => p.id === a.user_id);
+      return (f.femaleBreadwinner && a.is_female_breadwinner) || (f.maritalWidow && isWidow(head));
+    });
+  }
+
+  if (cfg.entity === "family") {
+    const colDefs = cfg.columns
+      .map((k) => FAMILY_COLS.find((c) => c.key === k))
+      .filter(Boolean) as ColDef[];
+    const headers = ["م", ...colDefs.map((c) => c.label), ...cfg.computed.map((c) => c.label)];
+    const rows: any[][] = [];
+    let i = 1;
+    for (const app of pool) {
+      const head = profiles.find((p) => p.id === app.user_id);
+      if (!head) continue;
+      const spouse = findSpouse(app.id, members);
+      const fam = members.filter((m) => m.application_id === app.id);
+      const ctx: FamilyCtx = { app, head, spouse, fam };
+      const people: Person[] = [
+        {
+          gender: head.gender,
+          birth_date: head.birth_date,
+          is_war_injured: head.is_war_injured,
+          chronic_diseases: head.chronic_diseases,
+          is_special_needs: head.is_special_needs,
+        },
+        ...fam,
+      ];
+      const row: any[] = [i++, ...colDefs.map((c) => FAMILY_GETTERS[c.key](ctx))];
+      for (const cc of cfg.computed) row.push(people.filter((p) => matchPerson(p, cc)).length);
+      rows.push(row);
+    }
+    return { headers, rows };
+  }
+
+  // entity === "member"
+  const colDefs = cfg.columns
+    .map((k) => MEMBER_COLS.find((c) => c.key === k))
+    .filter(Boolean) as ColDef[];
+  const headers = ["م", ...colDefs.map((c) => c.label)];
+  const rows: any[][] = [];
+  let i = 1;
+  const kinds = f.memberKinds || [];
+  for (const app of pool) {
+    const head = profiles.find((p) => p.id === app.user_id);
+    if (!head) continue;
+    const fam = members.filter((m) => m.application_id === app.id);
+    for (const m of fam) {
+      const age = calcAge(m.birth_date);
+      if (f.ageMin != null && (typeof age !== "number" || age < f.ageMin)) continue;
+      if (f.ageMax != null && (typeof age !== "number" || age > f.ageMax)) continue;
+      if (kinds.length) {
+        const ok = kinds.some((k) => {
+          if (k === "orphan") return isOrphan(m, app);
+          if (k === "injured") return !!m.is_war_injured;
+          if (k === "chronic") return !!(m.chronic_diseases && m.chronic_diseases !== "");
+          if (k === "preg_breast") return !!(m.is_pregnant || m.is_breastfeeding);
+          if (k === "special_needs") return !!m.is_special_needs;
+          return false;
+        });
+        if (!ok) continue;
+      }
+      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head }))]);
+    }
+  }
+  return { headers, rows };
+}
+
+/** توليد ملف XLSX منسق احترافياً من نتيجة البناء. */
+export async function generateWorkbook(title: string, headers: string[], rows: any[][]) {
+  const wb = new ExcelJS.Workbook();
+  wb.creator = "Baraka 2";
+  wb.created = new Date();
+  const ws = wb.addWorksheet(title.slice(0, 30) || "تقرير");
+  styleSheet(ws, headers);
+  for (const r of rows) ws.addRow(r);
+  applyRowStyles(ws, 3, headers.length);
+  await saveWorkbook(wb, `${title.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
+}
+
+/** تشغيل التصدير الكامل: جلب + بناء + تنزيل. */
+export async function runWizardExport(cfg: ExportConfig) {
+  const ds = await fetchDataset();
+  const { headers, rows } = buildExport(ds, cfg);
+  if (!rows.length) throw new Error("لا توجد بيانات مطابقة للفلاتر المحددة");
+  await generateWorkbook(cfg.title, headers, rows);
+  return rows.length;
+}
+
+/* ---------- القوالب الجاهزة ---------- */
+export interface Preset {
+  id: string;
+  label: string;
+  emoji: string;
+  desc: string;
+  config: ExportConfig;
+}
+
+export const PRESETS: Preset[] = [
+  {
+    id: "aid",
+    label: "توزيع المساعدات",
+    emoji: "📦",
+    desc: "الاسم، الهوية، الجوال، عدد الأفراد، المخيم",
+    config: {
+      title: "كشف توزيع المساعدات",
+      entity: "family",
+      columns: ["head_name", "national_id", "phone", "family_size", "current_camp"],
+      computed: [],
+      filters: { status: "approved" },
+    },
+  },
+  {
+    id: "widows",
+    label: "الأرامل وأسرهن",
+    emoji: "🤲",
+    desc: "العائلات التي يعيلها أرمل/أرملة",
+    config: {
+      title: "كشف الأرامل والمعيلات",
+      entity: "family",
+      columns: ["head_name", "national_id", "head_age", "phone", "family_size", "children_count", "current_camp"],
+      computed: [{ id: "kids_0_5", label: "أطفال (0-5)", gender: "all", ageMin: 0, ageMax: 5 }],
+      filters: { status: "approved", maritalWidow: true, femaleBreadwinner: true },
+    },
+  },
+  {
+    id: "orphans",
+    label: "الأيتام التفصيلي",
+    emoji: "👶",
+    desc: "الأطفال الأيتام مع المعيل والمخيم",
+    config: {
+      title: "كشف الأيتام",
+      entity: "member",
+      columns: ["member_name", "national_id", "gender", "age", "martyr_name", "head_name", "head_phone", "current_camp"],
+      computed: [],
+      filters: { status: "approved", hasMartyr: true, memberKinds: ["orphan"] },
+    },
+  },
+  {
+    id: "medical",
+    label: "الحالات الطبية والمصابين",
+    emoji: "🏥",
+    desc: "الجرحى وأصحاب الأمراض والتواصل",
+    config: {
+      title: "كشف الحالات الطبية",
+      entity: "member",
+      columns: ["member_name", "national_id", "age", "relationship", "war_injured", "chronic", "head_phone", "current_camp"],
+      computed: [],
+      filters: { status: "approved", memberKinds: ["injured", "chronic"] },
+    },
+  },
+  {
+    id: "maternity",
+    label: "الحوامل والمرضعات",
+    emoji: "🤰",
+    desc: "النساء بحاجة لرعاية أمومة",
+    config: {
+      title: "كشف الحوامل والمرضعات",
+      entity: "member",
+      columns: ["member_name", "national_id", "age", "preg_breast", "head_name", "head_phone", "current_camp"],
+      computed: [],
+      filters: { status: "approved", memberKinds: ["preg_breast"] },
+    },
+  },
+  {
+    id: "clothes",
+    label: "ملابس الأطفال",
+    emoji: "🧒",
+    desc: "الأعمار من 0 إلى 12",
+    config: {
+      title: "كشف ملابس الأطفال",
+      entity: "member",
+      columns: ["member_name", "gender", "age", "relationship", "head_name", "head_phone", "current_camp"],
+      computed: [],
+      filters: { status: "approved", ageMin: 0, ageMax: 12 },
+    },
+  },
+  {
+    id: "students",
+    label: "طلاب المدارس",
+    emoji: "🎒",
+    desc: "الأعمار من 6 إلى 18",
+    config: {
+      title: "كشف طلاب المدارس",
+      entity: "member",
+      columns: ["member_name", "gender", "age", "relationship", "head_name", "head_phone", "current_camp"],
+      computed: [],
+      filters: { status: "approved", ageMin: 6, ageMax: 18 },
+    },
+  },
+  {
+    id: "martyrs",
+    label: "أسر الشهداء",
+    emoji: "🕊️",
+    desc: "العائلات التي بها شهيد",
+    config: {
+      title: "كشف أسر الشهداء",
+      entity: "family",
+      columns: ["head_name", "national_id", "phone", "martyr_name", "family_size", "children_count", "current_camp"],
+      computed: [],
+      filters: { status: "approved", hasMartyr: true },
+    },
+  },
+];
