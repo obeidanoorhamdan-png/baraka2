@@ -101,7 +101,7 @@ function blankConfig(entity: Entity): ExportConfig {
   };
 }
 
-export function ExcelWizard({ open, onOpenChange }: Props) {
+export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   const [step, setStep] = useState(1);
   const [cfg, setCfg] = useState<ExportConfig>(blankConfig("family"));
   const [ds, setDs] = useState<Dataset | null>(null);
@@ -117,6 +117,10 @@ export function ExcelWizard({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (!open) return;
     setStep(1);
+    // تطبيق الفلاتر المبدئية القادمة من واجهة الأدمن (إن وجدت)
+    setCfg((c) =>
+      initialFilters ? { ...c, filters: { ...c.filters, ...initialFilters } } : c,
+    );
     setLoading(true);
     fetchDataset()
       .then(setDs)
