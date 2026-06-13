@@ -196,6 +196,13 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   }
 
   async function doExport(config = cfg) {
+    const problems = validateConfig(config);
+    if (problems.length) {
+      toast.error("تعذّر التصدير — يرجى تصحيح التالي:", {
+        description: problems.join("\n"),
+      });
+      return;
+    }
     setExporting(true);
     try {
       const n = await runWizardExport(config);
