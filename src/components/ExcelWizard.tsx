@@ -50,6 +50,7 @@ import {
   listCamps,
   buildExport,
   runWizardExport,
+  validateConfig,
   type Dataset,
   type Entity,
   type ExportConfig,
@@ -61,6 +62,8 @@ import {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** فلاتر مبدئية قادمة من واجهة بيانات الأدمن (مخيم، حالة، نطاق عمر). */
+  initialFilters?: Partial<ExportConfig["filters"]>;
 }
 
 const STEPS = [
