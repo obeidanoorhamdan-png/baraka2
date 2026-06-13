@@ -751,6 +751,50 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
   return { headers, rows };
 }
 
+/** التحقق من إعدادات التصدير قبل التنفيذ. يُعيد قائمة بالمشاكل (فارغة = سليم). */
+export function validateConfig(cfg: ExportConfig): string[] {
+  const errors: string[] = [];
+  // 1) يجب اختيار عمود واحد على الأقل
+  if (!cfg.columns || cfg.columns.length === 0) {
+    errors.push("لم يتم اختيار أي عمود للتصدير — اختر عموداً واحداً على الأقل.");
+  }
+  // 2) التأكد أن الأعمدة المختارة معرّفة فعلاً ضمن الكيان الحالي
+  const catalog = cfg.entity === "family" ? FAMILY_COLS : MEMBER_COLS;
+  const known = new Set(catalog.map((c) => c.key));
+  const unknown = cfg.columns.filter((k) => !known.has(k));
+  if (unknown.length) {
+    errors.push(`أعمدة غير صالحة لنوع التقرير الحالي: ${unknown.join("، ")}`);
+  }
+  // 3) الأعمدة الحسابية متاحة فقط لتقارير العائلات
+  if (cfg.entity !== "family" && cfg.computed.length > 0) {
+    errors.push("الأعمدة الحسابية متاحة فقط في تقرير العائلات — أزلها أو بدّل نوع التقرير.");
+  }
+  // 4) كشف تعارض الأعمدة الحسابية (تكرار نفس التسمية أو نفس الشرط)
+  const seenLabels = new Set<string>();
+  const seenSig = new Set<string>();
+  for (const cc of cfg.computed) {
+    if (seenLabels.has(cc.label)) {
+      errors.push(`عمود حسابي مكرّر بنفس الاسم: «${cc.label}»`);
+    }
+    seenLabels.add(cc.label);
+    const sig = `${cc.gender || "all"}|${cc.ageMin ?? ""}|${cc.ageMax ?? ""}|${(cc.flags || []).slice().sort().join(",")}`;
+    if (seenSig.has(sig)) {
+      errors.push(`عمودان حسابيان بنفس الشرط (تعارض): «${cc.label}»`);
+    }
+    seenSig.add(sig);
+    // نطاق عمري غير منطقي
+    if (cc.ageMin != null && cc.ageMax != null && cc.ageMin > cc.ageMax) {
+      errors.push(`نطاق عمري غير صحيح في «${cc.label}» (الحد الأدنى أكبر من الأقصى).`);
+    }
+  }
+  // 5) نطاق الفلتر العمري
+  const { ageMin, ageMax } = cfg.filters;
+  if (ageMin != null && ageMax != null && ageMin > ageMax) {
+    errors.push("نطاق العمر في الفلاتر غير صحيح (الحد الأدنى أكبر من الأقصى).");
+  }
+  return errors;
+}
+
 /** توليد ملف XLSX منسق احترافياً من نتيجة البناء. */
 export async function generateWorkbook(title: string, headers: string[], rows: any[][]) {
   const wb = new ExcelJS.Workbook();
@@ -758,13 +802,34 @@ export async function generateWorkbook(title: string, headers: string[], rows: a
   wb.created = new Date();
   const ws = wb.addWorksheet(title.slice(0, 30) || "تقرير");
   styleSheet(ws, headers);
-  for (const r of rows) ws.addRow(r);
+
+  // الأعمدة التي تمثل تواريخ (لتنسيقها بصيغة عربية RTL: يوم/شهر/سنة)
+  const dateCols = headers
+    .map((h, i) => (h.includes("تاريخ") || h.includes("ميلاد") ? i + 1 : -1))
+    .filter((i) => i > 0);
+
+  for (const r of rows) {
+    const added = ws.addRow(r);
+    for (const ci of dateCols) {
+      const cell = added.getCell(ci);
+      const raw = cell.value;
+      if (typeof raw === "string" && /^\d{4}-\d{2}-\d{2}/.test(raw)) {
+        const d = new Date(raw);
+        if (!isNaN(d.getTime())) {
+          cell.value = d;
+          cell.numFmt = "dd/mm/yyyy";
+        }
+      }
+    }
+  }
   applyRowStyles(ws, 3, headers.length);
   await saveWorkbook(wb, `${title.replace(/\s+/g, "_")}_${new Date().toISOString().slice(0, 10)}.xlsx`);
 }
 
-/** تشغيل التصدير الكامل: جلب + بناء + تنزيل. */
+/** تشغيل التصدير الكامل: تحقق + جلب + بناء + تنزيل. */
 export async function runWizardExport(cfg: ExportConfig) {
+  const problems = validateConfig(cfg);
+  if (problems.length) throw new Error(problems.join("\n"));
   const ds = await fetchDataset();
   const { headers, rows } = buildExport(ds, cfg);
   if (!rows.length) throw new Error("لا توجد بيانات مطابقة للفلاتر المحددة");
