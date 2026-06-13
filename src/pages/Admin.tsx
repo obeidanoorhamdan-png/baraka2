@@ -54,6 +54,7 @@ const Admin = () => {
   const [pAgeMax, setPAgeMax] = useState<string>("");
   const [pSearch, setPSearch] = useState<string>("");
   const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [incomplete, setIncomplete] = useState<any[]>([]);
 
   const loadIncomplete = async () => {
