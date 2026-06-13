@@ -22,7 +22,8 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { BulkAidDistributor } from "@/components/BulkAidDistributor";
-import { PackageCheck, Trash2 } from "lucide-react";
+import { ExcelWizard } from "@/components/ExcelWizard";
+import { PackageCheck, Trash2, Wand2 } from "lucide-react";
 
 type Row = any;
 
@@ -53,6 +54,7 @@ const Admin = () => {
   const [pAgeMax, setPAgeMax] = useState<string>("");
   const [pSearch, setPSearch] = useState<string>("");
   const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
+  const [wizardOpen, setWizardOpen] = useState(false);
   const [incomplete, setIncomplete] = useState<any[]>([]);
 
   const loadIncomplete = async () => {
@@ -603,7 +605,16 @@ const Admin = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <Button
+                  variant="default"
+                  className="gap-1.5 font-bold"
+                  onClick={() => setWizardOpen(true)}
+                  title="تصدير إكسل ذكي بالفلاتر الحالية"
+                >
+                  <Wand2 className="h-4 w-4" /> ساحر تصدير إكسل
+                </Button>
               </div>
+
 
               <div className="overflow-x-auto">
                 <Table>
@@ -885,6 +896,16 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ExcelWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initialFilters={{
+          status: (statusFilter === "all" ? "all" : statusFilter) as any,
+          ageMin: pAgeMin === "" ? null : parseInt(pAgeMin),
+          ageMax: pAgeMax === "" ? null : parseInt(pAgeMax),
+        }}
+      />
     </AdminLayout>
   );
 };

@@ -50,6 +50,7 @@ import {
   listCamps,
   buildExport,
   runWizardExport,
+  validateConfig,
   type Dataset,
   type Entity,
   type ExportConfig,
@@ -61,6 +62,8 @@ import {
 interface Props {
   open: boolean;
   onOpenChange: (v: boolean) => void;
+  /** فلاتر مبدئية قادمة من واجهة بيانات الأدمن (مخيم، حالة، نطاق عمر). */
+  initialFilters?: Partial<ExportConfig["filters"]>;
 }
 
 const STEPS = [
@@ -98,7 +101,7 @@ function blankConfig(entity: Entity): ExportConfig {
   };
 }
 
-export function ExcelWizard({ open, onOpenChange }: Props) {
+export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   const [step, setStep] = useState(1);
   const [cfg, setCfg] = useState<ExportConfig>(blankConfig("family"));
   const [ds, setDs] = useState<Dataset | null>(null);
@@ -114,6 +117,10 @@ export function ExcelWizard({ open, onOpenChange }: Props) {
   useEffect(() => {
     if (!open) return;
     setStep(1);
+    // تطبيق الفلاتر المبدئية القادمة من واجهة الأدمن (إن وجدت)
+    setCfg((c) =>
+      initialFilters ? { ...c, filters: { ...c.filters, ...initialFilters } } : c,
+    );
     setLoading(true);
     fetchDataset()
       .then(setDs)
@@ -137,6 +144,8 @@ export function ExcelWizard({ open, onOpenChange }: Props) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
     const next = JSON.parse(JSON.stringify(p.config)) as ExportConfig;
+    // دمج الفلاتر المبدئية من واجهة الأدمن مع فلاتر القالب
+    if (initialFilters) next.filters = { ...next.filters, ...initialFilters };
     setCfg(next);
     if (andExport) {
       doExport(next);
@@ -189,6 +198,13 @@ export function ExcelWizard({ open, onOpenChange }: Props) {
   }
 
   async function doExport(config = cfg) {
+    const problems = validateConfig(config);
+    if (problems.length) {
+      toast.error("تعذّر التصدير — يرجى تصحيح التالي:", {
+        description: problems.join("\n"),
+      });
+      return;
+    }
     setExporting(true);
     try {
       const n = await runWizardExport(config);
