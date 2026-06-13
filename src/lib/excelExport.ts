@@ -589,11 +589,30 @@ export interface ComputedCol {
 }
 
 export const COMPUTED_PRESETS: ComputedCol[] = [
-  { id: "kids_0_5", label: "أطفال (0-5)", gender: "all", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12", label: "أطفال (6-12)", gender: "all", ageMin: 6, ageMax: 12 },
-  { id: "students_6_18", label: "طلاب (6-18)", gender: "all", ageMin: 6, ageMax: 18 },
-  { id: "adult_male", label: "ذكور بالغون", gender: "male", ageMin: 18, ageMax: null },
-  { id: "adult_female", label: "إناث بالغات", gender: "female", ageMin: 18, ageMax: null },
+  // ---- الفئات العمرية (الجنسان معاً) ----
+  { id: "kids_0_2_all", label: "رُضّع (0-2) — الكل", gender: "all", ageMin: 0, ageMax: 2 },
+  { id: "kids_0_5_all", label: "أطفال (0-5) — الكل", gender: "all", ageMin: 0, ageMax: 5 },
+  { id: "kids_6_12_all", label: "أطفال (6-12) — الكل", gender: "all", ageMin: 6, ageMax: 12 },
+  { id: "teens_13_17_all", label: "مراهقون (13-17) — الكل", gender: "all", ageMin: 13, ageMax: 17 },
+  { id: "students_6_18_all", label: "طلاب (6-18) — الكل", gender: "all", ageMin: 6, ageMax: 18 },
+  { id: "adults_18_59_all", label: "بالغون (18-59) — الكل", gender: "all", ageMin: 18, ageMax: 59 },
+  { id: "elderly_60_all", label: "كبار السن (60+) — الكل", gender: "all", ageMin: 60, ageMax: null },
+  // ---- الذكور حسب الفئات العمرية ----
+  { id: "kids_0_5_m", label: "ذكور (0-5)", gender: "male", ageMin: 0, ageMax: 5 },
+  { id: "kids_6_12_m", label: "ذكور (6-12)", gender: "male", ageMin: 6, ageMax: 12 },
+  { id: "teens_13_17_m", label: "ذكور (13-17)", gender: "male", ageMin: 13, ageMax: 17 },
+  { id: "adult_male", label: "ذكور بالغون (18+)", gender: "male", ageMin: 18, ageMax: null },
+  { id: "elderly_male", label: "ذكور كبار السن (60+)", gender: "male", ageMin: 60, ageMax: null },
+  // ---- الإناث حسب الفئات العمرية ----
+  { id: "kids_0_5_f", label: "إناث (0-5)", gender: "female", ageMin: 0, ageMax: 5 },
+  { id: "kids_6_12_f", label: "إناث (6-12)", gender: "female", ageMin: 6, ageMax: 12 },
+  { id: "teens_13_17_f", label: "إناث (13-17)", gender: "female", ageMin: 13, ageMax: 17 },
+  { id: "adult_female", label: "إناث بالغات (18+)", gender: "female", ageMin: 18, ageMax: null },
+  { id: "elderly_female", label: "إناث كبار السن (60+)", gender: "female", ageMin: 60, ageMax: null },
+  // ---- الإجمالي حسب الجنس ----
+  { id: "total_male", label: "إجمالي الذكور", gender: "male" },
+  { id: "total_female", label: "إجمالي الإناث", gender: "female" },
+  // ---- الحالات الصحية والخاصة ----
   { id: "pregnant", label: "عدد الحوامل", gender: "female", flags: ["pregnant"] },
   { id: "breastfeeding", label: "عدد المرضعات", gender: "female", flags: ["breastfeeding"] },
   { id: "injured", label: "عدد المصابين", flags: ["war_injured"] },
