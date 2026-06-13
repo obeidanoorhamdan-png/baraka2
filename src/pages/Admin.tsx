@@ -605,7 +605,16 @@ const Admin = () => {
                     </SelectContent>
                   </Select>
                 </div>
+                <Button
+                  variant="default"
+                  className="gap-1.5 font-bold"
+                  onClick={() => setWizardOpen(true)}
+                  title="تصدير إكسل ذكي بالفلاتر الحالية"
+                >
+                  <Wand2 className="h-4 w-4" /> ساحر تصدير إكسل
+                </Button>
               </div>
+
 
               <div className="overflow-x-auto">
                 <Table>
