@@ -896,6 +896,16 @@ const Admin = () => {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+
+      <ExcelWizard
+        open={wizardOpen}
+        onOpenChange={setWizardOpen}
+        initialFilters={{
+          status: (statusFilter === "all" ? "all" : statusFilter) as any,
+          ageMin: pAgeMin === "" ? null : parseInt(pAgeMin),
+          ageMax: pAgeMax === "" ? null : parseInt(pAgeMax),
+        }}
+      />
     </AdminLayout>
   );
 };
