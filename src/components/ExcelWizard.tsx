@@ -144,6 +144,8 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
     const next = JSON.parse(JSON.stringify(p.config)) as ExportConfig;
+    // دمج الفلاتر المبدئية من واجهة الأدمن مع فلاتر القالب
+    if (initialFilters) next.filters = { ...next.filters, ...initialFilters };
     setCfg(next);
     if (andExport) {
       doExport(next);
