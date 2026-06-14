@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   Truck,
   CheckSquare,
+  Lock,
 } from "lucide-react";
 import {
   Sidebar,
