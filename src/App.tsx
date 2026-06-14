@@ -27,6 +27,7 @@ import PowerTools from "./pages/admin/PowerTools";
 import ExcelExport from "./pages/admin/ExcelExport";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
 import AdminApprovals from "./pages/admin/AdminApprovals";
+import CampRoster from "./pages/admin/CampRoster";
 import DistributorLogin from "./pages/DistributorLogin";
 import DistributorWorkspace from "./pages/DistributorWorkspace";
 import Announcements from "./pages/Announcements";
@@ -74,6 +75,7 @@ const App = () => {
                 <Route path="/admin/excel" element={<ExcelExport />} />
                 <Route path="/admin/campaigns" element={<AdminCampaigns />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
+                <Route path="/admin/camp-roster" element={<CampRoster />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/distributor-login" element={<DistributorLogin />} />
                 <Route path="/distributor" element={<DistributorWorkspace />} />

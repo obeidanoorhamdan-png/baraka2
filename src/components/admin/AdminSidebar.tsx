@@ -13,6 +13,7 @@ import {
   FileSpreadsheet,
   Truck,
   CheckSquare,
+  Lock,
 } from "lucide-react";
 import {
   Sidebar,
@@ -35,6 +36,7 @@ const items = [
   { title: "المساعدات", url: "/admin/aid", icon: PackageCheck },
   { title: "حملات التوزيع", url: "/admin/campaigns", icon: Truck },
   { title: "الموافقات", url: "/admin/approvals", icon: CheckSquare },
+  { title: "قائمة الاعتماد", url: "/admin/camp-roster", icon: Lock },
   { title: "الإعلانات", url: "/admin/announcements", icon: Megaphone },
   { title: "المشرفون", url: "/admin/managers", icon: Users2 },
   { title: "أدوات متقدمة", url: "/admin/power", icon: Wand2 },

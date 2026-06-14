@@ -68,6 +68,7 @@ const MyApplication = () => {
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [conflictData, setConflictData] = useState<{ residence: any; members: Member[]; updatedAt: string } | null>(null);
   const [hasPendingSubmit, setHasPendingSubmit] = useState(false);
+  const [updateReqs, setUpdateReqs] = useState<{ id: string; fields: string[]; message: string | null }[]>([]);
   const [pendingSubmitProgress, setPendingSubmitProgress] = useState<number>(0);
   const [pendingSubmitSyncing, setPendingSubmitSyncing] = useState(false);
 
@@ -367,6 +368,15 @@ const MyApplication = () => {
     return () => { off1(); off2(); };
   }, []);
 
+  // Load open data-update requests targeted at this user.
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("data_update_requests").select("id, fields, message")
+      .eq("target_user_id", user.id).eq("status", "open")
+      .then(({ data }) => setUpdateReqs((data || []) as any));
+  }, [user]);
+
+
   // Auto-save draft (local + server) while the user is filling members or
   // residence (only before submission). Debounced 1.2 s to avoid spamming
   // the network on every keystroke.
@@ -499,6 +509,21 @@ const MyApplication = () => {
 
   const submit = async () => {
     if (!user) return;
+    // Camp lock — when enabled by admins, only national IDs pre-approved on
+    // the camp roster may register a NEW family. Existing applications are
+    // never blocked. Best-effort: when offline we skip and let the next
+    // online save re-check.
+    if (!appId && typeof navigator !== "undefined" && navigator.onLine) {
+      try {
+        const { data: allowed } = await supabase.rpc("camp_id_allowed", { _nid: head.national_id });
+        if (allowed === false) {
+          toast.error("الرجاء مراجعة مسؤول المخيم لاعتماد الأسرة ضمن المخيم", {
+            description: "رقم الهوية غير مُعتمد ضمن هذا المخيم بعد.",
+          });
+          return;
+        }
+      } catch { /* fail-open on RPC error */ }
+    }
     setSummaryOpen(false);
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
@@ -731,6 +756,27 @@ const MyApplication = () => {
         {(appId || settings.registration_open || settingsLoading) && (
         <>
         <h1 className="text-2xl md:text-3xl text-primary mb-2">{t("my_app.title")}</h1>
+
+        {/* Data-update request banner — admin asked this family to update data. */}
+        {updateReqs.length > 0 && (
+          <Card className="p-4 mb-4 border-warning/50 bg-gradient-to-br from-warning/15 via-background to-background animate-fade-in">
+            <div className="flex items-start gap-3 flex-wrap">
+              <div className="rounded-full bg-warning/20 p-2 shrink-0">
+                <AlertTriangle className="h-5 w-5 text-warning-foreground" />
+              </div>
+              <div className="flex-1 min-w-0">
+                <div className="font-bold text-primary">مطلوب تحديث بياناتك</div>
+                {updateReqs.map((r) => (
+                  <p key={r.id} className="text-xs text-muted-foreground mt-1">
+                    {r.message || "الرجاء مراجعة بياناتك وتحديثها."}
+                    {r.fields?.length > 0 && <span className="block font-semibold text-foreground/80">الحقول: {r.fields.join("، ")}</span>}
+                  </p>
+                ))}
+              </div>
+            </div>
+          </Card>
+        )}
+
 
         {/* Resume draft banner — shown when an in-progress draft exists. */}
         {pendingDraft && !appId && (

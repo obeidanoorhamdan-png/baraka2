@@ -421,6 +421,7 @@ export type Database = {
       }
       app_settings: {
         Row: {
+          camp_lock_enabled: boolean
           closed_reason: string | null
           id: number
           registration_open: boolean
@@ -428,6 +429,7 @@ export type Database = {
           updated_by: string | null
         }
         Insert: {
+          camp_lock_enabled?: boolean
           closed_reason?: string | null
           id?: number
           registration_open?: boolean
@@ -435,6 +437,7 @@ export type Database = {
           updated_by?: string | null
         }
         Update: {
+          camp_lock_enabled?: boolean
           closed_reason?: string | null
           id?: number
           registration_open?: boolean
@@ -551,6 +554,81 @@ export type Database = {
           submitted_at?: string
           updated_at?: string
           user_id?: string
+        }
+        Relationships: []
+      }
+      camp_roster: {
+        Row: {
+          added_by: string | null
+          camp: string | null
+          created_at: string
+          head_name: string | null
+          id: string
+          national_id: string
+          note: string | null
+          status: string
+          updated_at: string
+        }
+        Insert: {
+          added_by?: string | null
+          camp?: string | null
+          created_at?: string
+          head_name?: string | null
+          id?: string
+          national_id: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Update: {
+          added_by?: string | null
+          camp?: string | null
+          created_at?: string
+          head_name?: string | null
+          id?: string
+          national_id?: string
+          note?: string | null
+          status?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
+      data_update_requests: {
+        Row: {
+          application_id: string | null
+          created_at: string
+          fields: string[]
+          id: string
+          message: string | null
+          requested_by: string | null
+          status: string
+          target_national_id: string | null
+          target_user_id: string | null
+          updated_at: string
+        }
+        Insert: {
+          application_id?: string | null
+          created_at?: string
+          fields?: string[]
+          id?: string
+          message?: string | null
+          requested_by?: string | null
+          status?: string
+          target_national_id?: string | null
+          target_user_id?: string | null
+          updated_at?: string
+        }
+        Update: {
+          application_id?: string | null
+          created_at?: string
+          fields?: string[]
+          id?: string
+          message?: string | null
+          requested_by?: string | null
+          status?: string
+          target_national_id?: string | null
+          target_user_id?: string | null
+          updated_at?: string
         }
         Relationships: []
       }
@@ -837,6 +915,8 @@ export type Database = {
         Args: { _ids: string[]; _reason?: string; _status: string }
         Returns: number
       }
+      camp_id_allowed: { Args: { _nid: string }; Returns: boolean }
+      camp_id_removed: { Args: { _nid: string }; Returns: boolean }
       can_distribute_aid: { Args: { _user_id: string }; Returns: boolean }
       can_review: { Args: { _user_id: string }; Returns: boolean }
       distributor_lookup_family: {

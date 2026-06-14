@@ -5,7 +5,9 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
-import { KeyRound, Settings as SettingsIcon } from "lucide-react";
+import { KeyRound, Settings as SettingsIcon, Lock, ShieldCheck } from "lucide-react";
+import { Link } from "react-router-dom";
+import { Switch } from "@/components/ui/switch";
 import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -16,6 +18,7 @@ const Settings = () => {
   const confirmAsk = useConfirm();
   const [regOpen, setRegOpen] = useState(true);
   const [closedReason, setClosedReason] = useState("");
+  const [campLock, setCampLock] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [next2, setNext2] = useState("");
@@ -23,9 +26,25 @@ const Settings = () => {
 
   const load = async () => {
     const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
-    if (data) { setRegOpen(data.registration_open); setClosedReason(data.closed_reason || ""); }
+    if (data) {
+      setRegOpen(data.registration_open);
+      setClosedReason(data.closed_reason || "");
+      setCampLock(!!(data as any).camp_lock_enabled);
+    }
   };
   useEffect(() => { load(); }, []);
+
+  const saveCampLock = async (enabled: boolean) => {
+    const { error } = await supabase.from("app_settings").update({
+      camp_lock_enabled: enabled,
+      updated_at: new Date().toISOString(),
+      updated_by: user!.id,
+    } as any).eq("id", 1);
+    if (error) { toast.error(error.message); return; }
+    setCampLock(enabled);
+    await supabase.rpc("log_admin_action", { _action: "update_settings", _target_type: "settings", _target_label: enabled ? "تفعيل قفل المخيم" : "إلغاء قفل المخيم" });
+    toast.success("تم الحفظ");
+  };
 
   const saveSettings = async (open: boolean) => {
     const { error } = await supabase.from("app_settings").update({
@@ -84,6 +103,30 @@ const Settings = () => {
             </div>
           )}
         </Card>
+
+        <Card className={`p-4 shadow-card border-2 ${campLock ? "border-warning/40 bg-warning/5" : "border-border"}`}>
+          <div className="flex items-center gap-2 text-primary font-bold mb-3">
+            <Lock className="h-5 w-5" /> قفل المخيم (الاعتماد المسبق)
+          </div>
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div className="text-sm text-muted-foreground max-w-md">
+              عند التفعيل، لا يستطيع تسجيل أسرة جديدة إلا من كان رقم هويته معتمداً ضمن المخيم. غير ذلك تظهر له رسالة «الرجاء مراجعة مسؤول المخيم لاعتماد الأسرة».
+            </div>
+            <div className="flex items-center gap-2">
+              <span className={`text-sm font-semibold ${campLock ? "text-warning" : "text-muted-foreground"}`}>
+                {campLock ? "مفعّل" : "متوقف"}
+              </span>
+              <Switch checked={campLock} onCheckedChange={saveCampLock} />
+            </div>
+          </div>
+          <div className="mt-3">
+            <Button asChild variant="outline" size="sm" className="gap-2">
+              <Link to="/admin/camp-roster"><ShieldCheck className="h-4 w-4" /> إدارة قائمة الاعتماد</Link>
+            </Button>
+          </div>
+        </Card>
+
+
 
         <Card className="p-4 shadow-card">
           <div className="flex items-center gap-2 text-primary font-bold mb-3">
