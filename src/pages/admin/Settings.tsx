@@ -16,6 +16,7 @@ const Settings = () => {
   const confirmAsk = useConfirm();
   const [regOpen, setRegOpen] = useState(true);
   const [closedReason, setClosedReason] = useState("");
+  const [campLock, setCampLock] = useState(false);
   const [current, setCurrent] = useState("");
   const [next, setNext] = useState("");
   const [next2, setNext2] = useState("");
@@ -23,9 +24,25 @@ const Settings = () => {
 
   const load = async () => {
     const { data } = await supabase.from("app_settings").select("*").eq("id", 1).maybeSingle();
-    if (data) { setRegOpen(data.registration_open); setClosedReason(data.closed_reason || ""); }
+    if (data) {
+      setRegOpen(data.registration_open);
+      setClosedReason(data.closed_reason || "");
+      setCampLock(!!(data as any).camp_lock_enabled);
+    }
   };
   useEffect(() => { load(); }, []);
+
+  const saveCampLock = async (enabled: boolean) => {
+    const { error } = await supabase.from("app_settings").update({
+      camp_lock_enabled: enabled,
+      updated_at: new Date().toISOString(),
+      updated_by: user!.id,
+    } as any).eq("id", 1);
+    if (error) { toast.error(error.message); return; }
+    setCampLock(enabled);
+    await supabase.rpc("log_admin_action", { _action: "update_settings", _target_type: "settings", _target_label: enabled ? "تفعيل قفل المخيم" : "إلغاء قفل المخيم" });
+    toast.success("تم الحفظ");
+  };
 
   const saveSettings = async (open: boolean) => {
     const { error } = await supabase.from("app_settings").update({
