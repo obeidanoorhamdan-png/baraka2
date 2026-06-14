@@ -75,6 +75,7 @@ const App = () => {
                 <Route path="/admin/excel" element={<ExcelExport />} />
                 <Route path="/admin/campaigns" element={<AdminCampaigns />} />
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
+                <Route path="/admin/camp-roster" element={<CampRoster />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/distributor-login" element={<DistributorLogin />} />
                 <Route path="/distributor" element={<DistributorWorkspace />} />
