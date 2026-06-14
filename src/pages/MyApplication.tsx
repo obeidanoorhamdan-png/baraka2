@@ -368,6 +368,15 @@ const MyApplication = () => {
     return () => { off1(); off2(); };
   }, []);
 
+  // Load open data-update requests targeted at this user.
+  useEffect(() => {
+    if (!user) return;
+    supabase.from("data_update_requests").select("id, fields, message")
+      .eq("target_user_id", user.id).eq("status", "open")
+      .then(({ data }) => setUpdateReqs((data || []) as any));
+  }, [user]);
+
+
   // Auto-save draft (local + server) while the user is filling members or
   // residence (only before submission). Debounced 1.2 s to avoid spamming
   // the network on every keystroke.
