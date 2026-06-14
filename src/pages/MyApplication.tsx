@@ -499,6 +499,21 @@ const MyApplication = () => {
 
   const submit = async () => {
     if (!user) return;
+    // Camp lock — when enabled by admins, only national IDs pre-approved on
+    // the camp roster may register a NEW family. Existing applications are
+    // never blocked. Best-effort: when offline we skip and let the next
+    // online save re-check.
+    if (!appId && typeof navigator !== "undefined" && navigator.onLine) {
+      try {
+        const { data: allowed } = await supabase.rpc("camp_id_allowed", { _nid: head.national_id });
+        if (allowed === false) {
+          toast.error("الرجاء مراجعة مسؤول المخيم لاعتماد الأسرة ضمن المخيم", {
+            description: "رقم الهوية غير مُعتمد ضمن هذا المخيم بعد.",
+          });
+          return;
+        }
+      } catch { /* fail-open on RPC error */ }
+    }
     setSummaryOpen(false);
     if (!(await confirmAsk({
       title: appId ? t("confirm.save_changes_title") : t("confirm.submit_app_title"),
