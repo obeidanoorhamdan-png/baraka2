@@ -27,6 +27,7 @@ import PowerTools from "./pages/admin/PowerTools";
 import ExcelExport from "./pages/admin/ExcelExport";
 import AdminCampaigns from "./pages/admin/AdminCampaigns";
 import AdminApprovals from "./pages/admin/AdminApprovals";
+import CampRoster from "./pages/admin/CampRoster";
 import DistributorLogin from "./pages/DistributorLogin";
 import DistributorWorkspace from "./pages/DistributorWorkspace";
 import Announcements from "./pages/Announcements";
