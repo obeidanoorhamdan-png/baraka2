@@ -68,6 +68,7 @@ const MyApplication = () => {
   const [serverUpdatedAt, setServerUpdatedAt] = useState<string | null>(null);
   const [conflictData, setConflictData] = useState<{ residence: any; members: Member[]; updatedAt: string } | null>(null);
   const [hasPendingSubmit, setHasPendingSubmit] = useState(false);
+  const [updateReqs, setUpdateReqs] = useState<{ id: string; fields: string[]; message: string | null }[]>([]);
   const [pendingSubmitProgress, setPendingSubmitProgress] = useState<number>(0);
   const [pendingSubmitSyncing, setPendingSubmitSyncing] = useState(false);
 
