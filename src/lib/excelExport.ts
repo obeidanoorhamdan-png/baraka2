@@ -405,17 +405,24 @@ export interface Dataset {
 export async function fetchDataset(): Promise<Dataset> {
   const cacheKey = "excel:full-dataset";
   try {
-    const [{ data: apps, error: e1 }, { data: profiles, error: e2 }, { data: members, error: e3 }] =
+    const [{ data: apps, error: e1 }, { data: profiles, error: e2 }, { data: members, error: e3 }, { data: roster }] =
       await Promise.all([
         supabase.from("applications").select("*"),
         supabase.from("profiles").select("*"),
         supabase.from("family_members").select("*"),
+        supabase.from("camp_roster").select("national_id, status").eq("status", "removed"),
       ]);
     if (e1 || e2 || e3) throw e1 || e2 || e3;
+    // Exclude families whose head national_id was removed from the camp roster.
+    const removed = new Set((roster || []).map((r: any) => r.national_id));
+    const profileNid = new Map((profiles || []).map((p: any) => [p.id, p.national_id]));
+    const excludedAppIds = new Set(
+      (apps || []).filter((a: any) => removed.has(profileNid.get(a.user_id))).map((a: any) => a.id),
+    );
     const dataset: Dataset = {
-      apps: (apps || []) as Application[],
+      apps: ((apps || []) as Application[]).filter((a) => !excludedAppIds.has(a.id)),
       profiles: (profiles || []) as Profile[],
-      members: (members || []) as FamilyMember[],
+      members: ((members || []) as FamilyMember[]).filter((m) => !excludedAppIds.has((m as any).application_id)),
     };
     await cacheSet(cacheKey, dataset);
     return dataset;
@@ -425,6 +432,7 @@ export async function fetchDataset(): Promise<Dataset> {
     throw e;
   }
 }
+
 
 /* ---------- قواميس الترجمة ---------- */
 const G = (g?: string | null) => (g === "male" ? "ذكر" : g === "female" ? "أنثى" : NA);
