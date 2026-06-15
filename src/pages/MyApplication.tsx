@@ -517,8 +517,9 @@ const MyApplication = () => {
       try {
         const { data: allowed } = await supabase.rpc("camp_id_allowed", { _nid: head.national_id });
         if (allowed === false) {
-          toast.error("الرجاء مراجعة مسؤول المخيم لاعتماد الأسرة ضمن المخيم", {
-            description: "رقم الهوية غير مُعتمد ضمن هذا المخيم بعد.",
+          toast.error("عذراً، أنت غير معتمد داخل المخيم", {
+            description: "رقم الهوية غير مُدرج ضمن قائمة الأسر المعتمدة. يُرجى التوجّه إلى إدارة المخيم لاعتماد أسرتك. وشكراً لتفهمكم.",
+            duration: 8000,
           });
           return;
         }
