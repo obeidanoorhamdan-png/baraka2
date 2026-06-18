@@ -52,6 +52,16 @@
     --shadow-elegant: 0 10px 40px -12px hsl(220 50% 18% / 0.25);
     --shadow-gold: 0 8px 30px -8px hsl(41 55% 52% / 0.4);
     --shadow-card: 0 2px 12px -4px hsl(220 45% 15% / 0.08);
+
+    /* Sidebar — solid deep-navy surface (fixes transparent sidebar) */
+    --sidebar-background: 220 50% 15%;
+    --sidebar-foreground: 40 40% 94%;
+    --sidebar-primary: 41 55% 52%;
+    --sidebar-primary-foreground: 220 50% 12%;
+    --sidebar-accent: 220 42% 24%;
+    --sidebar-accent-foreground: 40 40% 98%;
+    --sidebar-border: 220 38% 26%;
+    --sidebar-ring: 41 55% 52%;
   }
 
   html[lang="ar"] body { font-family: 'Cairo', system-ui, sans-serif; }
