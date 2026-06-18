@@ -23,7 +23,8 @@ import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { BulkAidDistributor } from "@/components/BulkAidDistributor";
 import { ExcelWizard } from "@/components/ExcelWizard";
-import { PackageCheck, Trash2, Wand2 } from "lucide-react";
+import { FamilyEditDialog } from "@/components/admin/FamilyEditDialog";
+import { PackageCheck, Trash2, Wand2, Pencil } from "lucide-react";
 
 type Row = any;
 
