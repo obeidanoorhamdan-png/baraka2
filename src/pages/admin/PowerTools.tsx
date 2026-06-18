@@ -17,8 +17,12 @@ import { Copy, Trash2, AlertTriangle, Save, MessageSquare, Send, Wand2, ChevronD
 
 const PowerTools = () => {
   const { user, canReview, isAdmin } = useAuth();
+  const confirmAsk = useConfirm();
   const [dups, setDups] = useState<any[]>([]);
   const [loadingDups, setLoadingDups] = useState(false);
+  const [expandedNid, setExpandedNid] = useState<string | null>(null);
+  const [occ, setOcc] = useState<any[]>([]);
+  const [occBusy, setOccBusy] = useState(false);
 
   // Bulk status
   const [bulkIds, setBulkIds] = useState("");
