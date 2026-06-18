@@ -907,6 +907,24 @@ export type Database = {
     }
     Functions: {
       admin_advanced_stats: { Args: never; Returns: Json }
+      admin_duplicate_occurrences: {
+        Args: { _nid: string }
+        Returns: {
+          application_id: string
+          current_camp: string
+          full_name: string
+          head_name: string
+          kind: string
+          member_id: string
+          person_id: string
+          relationship: string
+          status: string
+        }[]
+      }
+      admin_remove_family_member: {
+        Args: { _member_id: string }
+        Returns: boolean
+      }
       apply_pending_edit: {
         Args: { _edit_id: string; _notes?: string }
         Returns: boolean
