@@ -654,8 +654,10 @@ const Admin = () => {
                             }`}>{t(`status.${r.status}`)}</span>
                           </TableCell>
                           <TableCell className="text-end">
-                            <div className="flex gap-1 justify-end">
-                              <Button size="sm" variant="ghost" onClick={() => openDetails(r)}><Eye className="h-4 w-4" /></Button>
+                            <div class
+Name="flex gap-1 justify-end">
+                              <Button size="sm" variant="ghost" onClick={() => openDetails(r)} title="عرض التفاصيل"><Eye className="h-4 w-4" /></Button>
+                              <Button size="sm" variant="ghost" onClick={() => setEditRow(r)} className="text-primary hover:bg-primary/10" title="تعديل بيانات الأسرة"><Pencil className="h-4 w-4" /></Button>
                               {r.status !== "approved" && (
                                 <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10" title="قبول">
                                   <CheckCircle2 className="h-4 w-4" />
