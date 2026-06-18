@@ -502,7 +502,12 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   special_needs: (c) => bool(c.head.is_special_needs),
   spouse_name: (c) => (c.spouse ? v(c.spouse.full_name) : NA),
   spouse_nid: (c) => (c.spouse ? v(c.spouse.national_id) : NA),
+  spouse_gender: (c) => (c.spouse ? G(c.spouse.gender) : NA),
   spouse_age: (c) => (c.spouse ? calcAge(c.spouse.birth_date) : NA),
+  spouse_birth: (c) => (c.spouse ? v(c.spouse.birth_date) : NA),
+  spouse_chronic: (c) => (c.spouse ? v(c.spouse.chronic_diseases) : NA),
+  spouse_war_injured: (c) => (c.spouse ? bool(c.spouse.is_war_injured) : NA),
+  spouse_special_needs: (c) => (c.spouse ? bool(c.spouse.is_special_needs) : NA),
   spouse_preg: (c) => (c.spouse ? pregBreast(c.spouse) : NA),
   family_size: (c) => c.app.family_size ?? ZERO,
   children_count: (c) =>
