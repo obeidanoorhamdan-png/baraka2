@@ -925,6 +925,20 @@ export type Database = {
         Args: { _member_id: string }
         Returns: boolean
       }
+      admin_update_head: {
+        Args: {
+          _alt_phone?: string
+          _birth_date?: string
+          _chronic_diseases?: string
+          _full_name?: string
+          _gender?: Database["public"]["Enums"]["gender"]
+          _marital_status?: Database["public"]["Enums"]["marital_status"]
+          _national_id?: string
+          _phone?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       apply_pending_edit: {
         Args: { _edit_id: string; _notes?: string }
         Returns: boolean
