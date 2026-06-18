@@ -171,31 +171,69 @@ const PowerTools = () => {
               {dups.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">لا توجد تكرارات 🎉</p>
               ) : (
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>النوع</TableHead><TableHead>القيمة</TableHead>
-                    <TableHead>التكرار</TableHead><TableHead>الأسماء</TableHead>
-                    <TableHead>الطلبات</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {dups.map((d, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Badge variant={d.match_kind === "national_id" ? "destructive" : "secondary"}>
-                          {d.match_kind === "national_id" ? "هوية" : "اسم+ميلاد"}
-                        </Badge></TableCell>
-                        <TableCell className="font-mono text-xs">{d.match_value}</TableCell>
-                        <TableCell><Badge>{d.occurrences}</Badge></TableCell>
-                        <TableCell className="text-xs">{(d.person_names || []).join("، ")}</TableCell>
-                        <TableCell className="text-xs">
-                          <Button size="sm" variant="ghost" onClick={() => {
-                            navigator.clipboard.writeText((d.application_ids || []).join(","));
-                            toast.success("تم نسخ المعرّفات");
-                          }}><Copy className="h-3 w-3 ml-1" />نسخ</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 flex items-start gap-2">
+                    <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-warning" />
+                    اضغط على رقم الهوية لعرض جميع الأماكن التي ظهر فيها. يمكنك حذف الفرد المكرّر من إحدى الأسر (سيُنقص عددها تلقائياً) مع الإبقاء عليه في الأسرة الأخرى. رب الأسرة لا يمكن تكراره.
+                  </p>
+                  {dups.map((d, i) => {
+                    const isNid = d.match_kind === "national_id";
+                    const expanded = expandedNid === d.match_value;
+                    return (
+                      <div key={i} className="border rounded-lg overflow-hidden">
+                        <button
+                          type="button"
+                          disabled={!isNid}
+                          onClick={() => isNid && toggleOccurrences(d.match_value)}
+                          className={`w-full flex flex-wrap items-center justify-between gap-2 p-2.5 text-right ${isNid ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge variant={isNid ? "destructive" : "secondary"}>
+                              {isNid ? "هوية مكررة" : "اسم+ميلاد"}
+                            </Badge>
+                            <span className="font-mono text-sm font-bold">{d.match_value}</span>
+                            <Badge variant="outline">{d.occurrences} مرات</Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="hidden sm:inline truncate max-w-[240px]">{(d.person_names || []).join("، ")}</span>
+                            {isNid && (expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                          </div>
+                        </button>
+
+                        {isNid && expanded && (
+                          <div className="border-t bg-muted/20 p-2 space-y-2">
+                            {occBusy && <p className="text-xs text-muted-foreground text-center py-2">جارٍ التحميل...</p>}
+                            {!occBusy && occ.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">لا توجد بيانات</p>}
+                            {!occBusy && occ.map((o, j) => (
+                              <div key={j} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-2">
+                                <div className="min-w-0">
+                                  <div className="font-bold text-sm flex items-center gap-2">
+                                    {o.full_name}
+                                    {o.kind === "head"
+                                      ? <Badge className="bg-primary text-primary-foreground text-[10px]">رب أسرة</Badge>
+                                      : <Badge variant="secondary" className="text-[10px]">فرد</Badge>}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground">
+                                    أسرة: {o.head_name || "—"} • {o.current_camp || "—"}
+                                  </div>
+                                </div>
+                                {o.kind === "head" ? (
+                                  <span className="text-[11px] text-muted-foreground italic">لا يمكن حذف رب الأسرة</span>
+                                ) : (
+                                  <Button size="sm" variant="destructive" className="h-8 gap-1"
+                                    disabled={!canReview}
+                                    onClick={() => deleteOccurrence(o, d.match_value)}>
+                                    <UserX className="h-4 w-4" /> حذف من هذه الأسرة
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </Card>
           </TabsContent>
