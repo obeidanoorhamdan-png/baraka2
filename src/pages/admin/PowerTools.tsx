@@ -12,7 +12,8 @@ import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Copy, Trash2, AlertTriangle, Save, MessageSquare, Send, Wand2 } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { Copy, Trash2, AlertTriangle, Save, MessageSquare, Send, Wand2, ChevronDown, ChevronUp, UserX, ShieldAlert } from "lucide-react";
 
 const PowerTools = () => {
   const { user, canReview, isAdmin } = useAuth();
