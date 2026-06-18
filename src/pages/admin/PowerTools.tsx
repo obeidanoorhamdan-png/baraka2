@@ -49,6 +49,43 @@ const PowerTools = () => {
     setDups((data as any[]) || []);
   };
 
+  const toggleOccurrences = async (nid: string) => {
+    if (expandedNid === nid) { setExpandedNid(null); setOcc([]); return; }
+    setExpandedNid(nid);
+    setOcc([]);
+    setOccBusy(true);
+    const { data, error } = await supabase.rpc("admin_duplicate_occurrences", { _nid: nid });
+    setOccBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setOcc((data as any[]) || []);
+  };
+
+  const deleteOccurrence = async (o: any, nid: string) => {
+    if (o.kind === "head") {
+      toast.error("لا يمكن حذف رب الأسرة من هنا", {
+        description: "رب الأسرة لا يمكن أن يتكرر. لمعالجة حساب رب أسرة مكرّر استخدم إدارة الحسابات أو احذف الحساب بالكامل.",
+        duration: 7000,
+      });
+      return;
+    }
+    if (!(await confirmAsk({
+      title: "حذف الفرد المكرّر",
+      description: `سيُحذف «${o.full_name}» من أسرة «${o.head_name || "—"}» وسيُنقص عدد أفراد تلك الأسرة تلقائياً. سيبقى مسجلاً في الأسرة الأخرى. متابعة؟`,
+      confirmText: "حذف من هذه الأسرة",
+      variant: "danger",
+    }))) return;
+    const { error } = await supabase.rpc("admin_remove_family_member", { _member_id: o.member_id });
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم حذف الفرد وتحديث عدد أفراد الأسرة");
+    await toggleOccurrences(nid); // refresh
+    setExpandedNid(nid);
+    setOccBusy(true);
+    const { data } = await supabase.rpc("admin_duplicate_occurrences", { _nid: nid });
+    setOccBusy(false);
+    setOcc((data as any[]) || []);
+    loadDuplicates();
+  };
+
   const loadFilters = async () => {
     const { data } = await supabase.from("saved_filters").select("*").order("created_at", { ascending: false });
     setFilters((data as any[]) || []);
