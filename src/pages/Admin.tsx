@@ -888,6 +888,15 @@ const Admin = () => {
 
       <ImagePreviewDialog open={!!previewUrl} onClose={() => setPreviewUrl("")} url={previewUrl} title={previewTitle} downloadName={previewDownloadName} />
 
+      <FamilyEditDialog
+        open={!!editRow}
+        onOpenChange={(o) => !o && setEditRow(null)}
+        app={editRow}
+        head={editRow ? profiles[editRow.user_id] : null}
+        members={editRow ? (members[editRow.id] || []) : []}
+        onSaved={load}
+      />
+
       <Dialog open={rejectOpen} onOpenChange={setRejectOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>سبب الحذف / الرفض</DialogTitle></DialogHeader>
