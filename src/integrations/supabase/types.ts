@@ -907,6 +907,38 @@ export type Database = {
     }
     Functions: {
       admin_advanced_stats: { Args: never; Returns: Json }
+      admin_duplicate_occurrences: {
+        Args: { _nid: string }
+        Returns: {
+          application_id: string
+          current_camp: string
+          full_name: string
+          head_name: string
+          kind: string
+          member_id: string
+          person_id: string
+          relationship: string
+          status: string
+        }[]
+      }
+      admin_remove_family_member: {
+        Args: { _member_id: string }
+        Returns: boolean
+      }
+      admin_update_head: {
+        Args: {
+          _alt_phone?: string
+          _birth_date?: string
+          _chronic_diseases?: string
+          _full_name?: string
+          _gender?: Database["public"]["Enums"]["gender"]
+          _marital_status?: Database["public"]["Enums"]["marital_status"]
+          _national_id?: string
+          _phone?: string
+          _user_id: string
+        }
+        Returns: boolean
+      }
       apply_pending_edit: {
         Args: { _edit_id: string; _notes?: string }
         Returns: boolean

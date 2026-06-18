@@ -6,18 +6,23 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Tabs, TabsList, TabsTrigger, TabsContent } from "@/components/ui/tabs";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
+
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { Copy, Trash2, AlertTriangle, Save, MessageSquare, Send, Wand2 } from "lucide-react";
+import { useConfirm } from "@/components/ConfirmDialog";
+import { Trash2, AlertTriangle, Save, MessageSquare, Send, Wand2, ChevronDown, ChevronUp, UserX, ShieldAlert } from "lucide-react";
 
 const PowerTools = () => {
   const { user, canReview, isAdmin } = useAuth();
+  const confirmAsk = useConfirm();
   const [dups, setDups] = useState<any[]>([]);
   const [loadingDups, setLoadingDups] = useState(false);
+  const [expandedNid, setExpandedNid] = useState<string | null>(null);
+  const [occ, setOcc] = useState<any[]>([]);
+  const [occBusy, setOccBusy] = useState(false);
 
   // Bulk status
   const [bulkIds, setBulkIds] = useState("");
@@ -42,6 +47,43 @@ const PowerTools = () => {
     setLoadingDups(false);
     if (error) { toast.error(error.message); return; }
     setDups((data as any[]) || []);
+  };
+
+  const toggleOccurrences = async (nid: string) => {
+    if (expandedNid === nid) { setExpandedNid(null); setOcc([]); return; }
+    setExpandedNid(nid);
+    setOcc([]);
+    setOccBusy(true);
+    const { data, error } = await supabase.rpc("admin_duplicate_occurrences", { _nid: nid });
+    setOccBusy(false);
+    if (error) { toast.error(error.message); return; }
+    setOcc((data as any[]) || []);
+  };
+
+  const deleteOccurrence = async (o: any, nid: string) => {
+    if (o.kind === "head") {
+      toast.error("لا يمكن حذف رب الأسرة من هنا", {
+        description: "رب الأسرة لا يمكن أن يتكرر. لمعالجة حساب رب أسرة مكرّر استخدم إدارة الحسابات أو احذف الحساب بالكامل.",
+        duration: 7000,
+      });
+      return;
+    }
+    if (!(await confirmAsk({
+      title: "حذف الفرد المكرّر",
+      description: `سيُحذف «${o.full_name}» من أسرة «${o.head_name || "—"}» وسيُنقص عدد أفراد تلك الأسرة تلقائياً. سيبقى مسجلاً في الأسرة الأخرى. متابعة؟`,
+      confirmText: "حذف من هذه الأسرة",
+      variant: "danger",
+    }))) return;
+    const { error } = await supabase.rpc("admin_remove_family_member", { _member_id: o.member_id });
+    if (error) { toast.error(error.message); return; }
+    toast.success("تم حذف الفرد وتحديث عدد أفراد الأسرة");
+    await toggleOccurrences(nid); // refresh
+    setExpandedNid(nid);
+    setOccBusy(true);
+    const { data } = await supabase.rpc("admin_duplicate_occurrences", { _nid: nid });
+    setOccBusy(false);
+    setOcc((data as any[]) || []);
+    loadDuplicates();
   };
 
   const loadFilters = async () => {
@@ -129,31 +171,69 @@ const PowerTools = () => {
               {dups.length === 0 ? (
                 <p className="text-sm text-muted-foreground py-6 text-center">لا توجد تكرارات 🎉</p>
               ) : (
-                <Table>
-                  <TableHeader><TableRow>
-                    <TableHead>النوع</TableHead><TableHead>القيمة</TableHead>
-                    <TableHead>التكرار</TableHead><TableHead>الأسماء</TableHead>
-                    <TableHead>الطلبات</TableHead>
-                  </TableRow></TableHeader>
-                  <TableBody>
-                    {dups.map((d, i) => (
-                      <TableRow key={i}>
-                        <TableCell><Badge variant={d.match_kind === "national_id" ? "destructive" : "secondary"}>
-                          {d.match_kind === "national_id" ? "هوية" : "اسم+ميلاد"}
-                        </Badge></TableCell>
-                        <TableCell className="font-mono text-xs">{d.match_value}</TableCell>
-                        <TableCell><Badge>{d.occurrences}</Badge></TableCell>
-                        <TableCell className="text-xs">{(d.person_names || []).join("، ")}</TableCell>
-                        <TableCell className="text-xs">
-                          <Button size="sm" variant="ghost" onClick={() => {
-                            navigator.clipboard.writeText((d.application_ids || []).join(","));
-                            toast.success("تم نسخ المعرّفات");
-                          }}><Copy className="h-3 w-3 ml-1" />نسخ</Button>
-                        </TableCell>
-                      </TableRow>
-                    ))}
-                  </TableBody>
-                </Table>
+                <div className="space-y-2">
+                  <p className="text-xs text-muted-foreground bg-muted/40 rounded-lg p-2 flex items-start gap-2">
+                    <ShieldAlert className="h-4 w-4 shrink-0 mt-0.5 text-warning" />
+                    اضغط على رقم الهوية لعرض جميع الأماكن التي ظهر فيها. يمكنك حذف الفرد المكرّر من إحدى الأسر (سيُنقص عددها تلقائياً) مع الإبقاء عليه في الأسرة الأخرى. رب الأسرة لا يمكن تكراره.
+                  </p>
+                  {dups.map((d, i) => {
+                    const isNid = d.match_kind === "national_id";
+                    const expanded = expandedNid === d.match_value;
+                    return (
+                      <div key={i} className="border rounded-lg overflow-hidden">
+                        <button
+                          type="button"
+                          disabled={!isNid}
+                          onClick={() => isNid && toggleOccurrences(d.match_value)}
+                          className={`w-full flex flex-wrap items-center justify-between gap-2 p-2.5 text-right ${isNid ? "hover:bg-muted/50 cursor-pointer" : "cursor-default"}`}
+                        >
+                          <div className="flex items-center gap-2 min-w-0">
+                            <Badge variant={isNid ? "destructive" : "secondary"}>
+                              {isNid ? "هوية مكررة" : "اسم+ميلاد"}
+                            </Badge>
+                            <span className="font-mono text-sm font-bold">{d.match_value}</span>
+                            <Badge variant="outline">{d.occurrences} مرات</Badge>
+                          </div>
+                          <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                            <span className="hidden sm:inline truncate max-w-[240px]">{(d.person_names || []).join("، ")}</span>
+                            {isNid && (expanded ? <ChevronUp className="h-4 w-4" /> : <ChevronDown className="h-4 w-4" />)}
+                          </div>
+                        </button>
+
+                        {isNid && expanded && (
+                          <div className="border-t bg-muted/20 p-2 space-y-2">
+                            {occBusy && <p className="text-xs text-muted-foreground text-center py-2">جارٍ التحميل...</p>}
+                            {!occBusy && occ.length === 0 && <p className="text-xs text-muted-foreground text-center py-2">لا توجد بيانات</p>}
+                            {!occBusy && occ.map((o, j) => (
+                              <div key={j} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-card p-2">
+                                <div className="min-w-0">
+                                  <div className="font-bold text-sm flex items-center gap-2">
+                                    {o.full_name}
+                                    {o.kind === "head"
+                                      ? <Badge className="bg-primary text-primary-foreground text-[10px]">رب أسرة</Badge>
+                                      : <Badge variant="secondary" className="text-[10px]">فرد</Badge>}
+                                  </div>
+                                  <div className="text-[11px] text-muted-foreground">
+                                    أسرة: {o.head_name || "—"} • {o.current_camp || "—"}
+                                  </div>
+                                </div>
+                                {o.kind === "head" ? (
+                                  <span className="text-[11px] text-muted-foreground italic">لا يمكن حذف رب الأسرة</span>
+                                ) : (
+                                  <Button size="sm" variant="destructive" className="h-8 gap-1"
+                                    disabled={!canReview}
+                                    onClick={() => deleteOccurrence(o, d.match_value)}>
+                                    <UserX className="h-4 w-4" /> حذف من هذه الأسرة
+                                  </Button>
+                                )}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
               )}
             </Card>
           </TabsContent>
