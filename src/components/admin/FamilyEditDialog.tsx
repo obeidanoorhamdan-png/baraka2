@@ -206,7 +206,7 @@ export const FamilyEditDialog = ({ open, onOpenChange, app, head, members, onSav
             {a.has_martyr && (
               <>
                 <div>
-                  <Label className="text-xs">اسm الشهيد</Label>
+                  <Label className="text-xs">اسم الشهيد</Label>
                   <Input value={a.martyr_name || ""} onChange={(e) => setA({ ...a, martyr_name: e.target.value })} />
                 </div>
                 <div>
