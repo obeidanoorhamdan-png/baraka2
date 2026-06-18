@@ -56,6 +56,7 @@ const Admin = () => {
   const [pSearch, setPSearch] = useState<string>("");
   const [familyOpen, setFamilyOpen] = useState<Row | null>(null);
   const [wizardOpen, setWizardOpen] = useState(false);
+  const [editRow, setEditRow] = useState<Row | null>(null);
   const [incomplete, setIncomplete] = useState<any[]>([]);
 
   const loadIncomplete = async () => {
