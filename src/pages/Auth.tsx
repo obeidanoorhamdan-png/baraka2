@@ -172,10 +172,20 @@ const Auth = () => {
       setAnswer("");
       setStage("question");
     } else {
-      // New user — proceed to signup with prefilled NID.
+      // New user — check camp approval BEFORE letting them into signup.
       if (!settingsLoading && !settings.registration_open) {
         toast.error(t("toast.registration_closed_now"));
         setBusy(false);
+        return;
+      }
+      const { data: allowed } = await supabase.rpc("camp_id_allowed", { _nid: nid });
+      if (allowed === false) {
+        setBusy(false);
+        setNidErr("رقم الهوية غير مُعتمد داخل المخيم");
+        toast.error("عذراً، أنت غير معتمد داخل المخيم", {
+          description: "رقم الهوية غير مُدرج ضمن قائمة الأسر المعتمدة. يُرجى التوجّه إلى إدارة المخيم لاعتماد أسرتك. وشكراً لتفهمكم.",
+          duration: 8000,
+        });
         return;
       }
       setSu((p) => ({ ...p, national_id: nid }));
@@ -352,21 +362,6 @@ const Auth = () => {
       setErrors((p) => ({ ...p, national_id: t("field_errors.id_duplicate") }));
       toast.error(t("toast.id_exists_with_data", { id: su.national_id }));
       return;
-    }
-    // Camp lock — check approval BEFORE creating the account so the user
-    // sees the "not approved" message right after entering the national ID,
-    // not after filling the whole application.
-    if (su.national_id !== ADMIN_NID) {
-      const { data: allowed } = await supabase.rpc("camp_id_allowed", { _nid: su.national_id });
-      if (allowed === false) {
-        setSuBusy(false);
-        setErrors((p) => ({ ...p, national_id: "رقم الهوية غير مُعتمد داخل المخيم" }));
-        toast.error("عذراً، أنت غير معتمد داخل المخيم", {
-          description: "رقم الهوية غير مُدرج ضمن قائمة الأسر المعتمدة. يُرجى التوجّه إلى إدارة المخيم لاعتماد أسرتك. وشكراً لتفهمكم.",
-          duration: 8000,
-        });
-        return;
-      }
     }
     const { error } = await supabase.auth.signUp({
       email: idToEmail(su.national_id),
