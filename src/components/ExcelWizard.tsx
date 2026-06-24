@@ -26,6 +26,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { cn } from "@/lib/utils";
+import { formatDateShort } from "@/lib/formatDate";
 import { toast } from "sonner";
 import {
   Sparkles,
@@ -114,9 +115,13 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   const [ccMax, setCcMax] = useState<string>("");
   const [ccFlags, setCcFlags] = useState<PersonFlag[]>([]);
 
+  // وضع فلتر عدد الأفراد (مستقل عن القيمة حتى لا يختفي الحقل عند مسحه)
+  const [famSizeMode, setFamSizeMode] = useState<"all" | "gt" | "lt">("all");
+
   useEffect(() => {
     if (!open) return;
     setStep(1);
+    setFamSizeMode("all");
     // تطبيق الفلاتر المبدئية القادمة من واجهة الأدمن (إن وجدت)
     setCfg((c) =>
       initialFilters ? { ...c, filters: { ...c.filters, ...initialFilters } } : c,
@@ -127,6 +132,13 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
       .catch(() => toast.error("تعذر تحميل البيانات"))
       .finally(() => setLoading(false));
   }, [open]);
+
+  // تنسيق خلايا المعاينة: عرض التواريخ بصيغة عربية واضحة بدل النص الخام
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
+  const formatCell = (cell: any): string => {
+    if (typeof cell === "string" && ISO_DATE.test(cell)) return formatDateShort(cell);
+    return String(cell);
+  };
 
   const camps = useMemo(() => (ds ? listCamps(ds) : []), [ds]);
   const cols = cfg.entity === "family" ? FAMILY_COLS : MEMBER_COLS;
@@ -147,6 +159,9 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
     // دمج الفلاتر المبدئية من واجهة الأدمن مع فلاتر القالب
     if (initialFilters) next.filters = { ...next.filters, ...initialFilters };
     setCfg(next);
+    setFamSizeMode(
+      next.filters.familySizeMin != null ? "gt" : next.filters.familySizeMax != null ? "lt" : "all",
+    );
     if (andExport) {
       doExport(next);
     } else {
@@ -156,6 +171,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
 
   function setEntity(entity: Entity) {
     setCfg(blankConfig(entity));
+    setFamSizeMode("all");
   }
 
   function toggleColumn(key: string) {
@@ -594,56 +610,55 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
 
                       <div className="grid grid-cols-2 gap-3 items-end">
                         <div>
-                          <Label className="text-xs">عدد الأفراد</Label>
+                          <Label className="text-xs">عدد أفراد الأسرة</Label>
                           <Select
-                            value={
-                              cfg.filters.familySizeMin != null
-                                ? "gt"
-                                : cfg.filters.familySizeMax != null
-                                  ? "lt"
-                                  : "all"
-                            }
-                            onValueChange={(v) =>
+                            value={famSizeMode}
+                            onValueChange={(v) => {
+                              const mode = v as "all" | "gt" | "lt";
+                              setFamSizeMode(mode);
                               setCfg((c) => ({
                                 ...c,
                                 filters: {
                                   ...c.filters,
-                                  familySizeMin: v === "gt" ? (c.filters.familySizeMin ?? 1) : null,
-                                  familySizeMax: v === "lt" ? (c.filters.familySizeMax ?? 10) : null,
+                                  familySizeMin: mode === "gt" ? c.filters.familySizeMin ?? null : null,
+                                  familySizeMax: mode === "lt" ? c.filters.familySizeMax ?? null : null,
                                 },
-                              }))
-                            }
+                              }));
+                            }}
                           >
                             <SelectTrigger className="mt-1">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">الكل</SelectItem>
-                              <SelectItem value="gt">أكبر من</SelectItem>
-                              <SelectItem value="lt">أصغر من</SelectItem>
+                              <SelectItem value="gt">أكبر من أو يساوي</SelectItem>
+                              <SelectItem value="lt">أصغر من أو يساوي</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        {(cfg.filters.familySizeMin != null || cfg.filters.familySizeMax != null) && (
+                        {famSizeMode !== "all" && (
                           <div>
                             <Label className="text-xs">الرقم</Label>
                             <Input
                               type="number"
                               min={0}
+                              inputMode="numeric"
+                              placeholder="اكتب رقماً — فارغ = الكل"
                               className="mt-1"
                               value={
-                                cfg.filters.familySizeMin != null
-                                  ? cfg.filters.familySizeMin
+                                famSizeMode === "gt"
+                                  ? cfg.filters.familySizeMin ?? ""
                                   : cfg.filters.familySizeMax ?? ""
                               }
                               onChange={(e) => {
-                                const val = e.target.value === "" ? null : parseInt(e.target.value);
+                                const raw = e.target.value;
+                                const val = raw === "" ? null : Math.max(0, parseInt(raw) || 0);
                                 setCfg((c) => ({
                                   ...c,
                                   filters: {
                                     ...c.filters,
-                                    familySizeMin: c.filters.familySizeMin != null ? val : null,
-                                    familySizeMax: c.filters.familySizeMax != null ? val : null,
+                                    familySizeMin: famSizeMode === "gt" ? val : null,
+                                    familySizeMax: famSizeMode === "lt" ? val : null,
                                   },
                                 }));
                               }}
@@ -651,6 +666,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                           </div>
                         )}
                       </div>
+
                     </>
                   )}
 
@@ -688,12 +704,23 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                     </div>
                   )}
 
+                  {/* عدد السجلات المطابقة */}
+                  <div className="flex items-center justify-between rounded-xl border-2 border-primary/30 bg-primary/5 px-4 py-3">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-primary" />
+                      {cfg.entity === "family" ? "عدد الأسر المطابقة" : "عدد الأفراد المطابقين"}
+                    </span>
+                    <span className="text-xl font-extrabold text-primary tabular-nums">
+                      {preview.rows.length}
+                    </span>
+                  </div>
+
                   {/* المعاينة */}
                   <div>
                     <h3 className="font-bold mb-2 flex items-center gap-2">
                       <Eye className="h-4 w-4 text-primary" /> معاينة حية
                       <span className="text-[11px] font-normal text-muted-foreground">
-                        ({preview.rows.length} سجل مطابق)
+                        (عرض أول 3 سجلات)
                       </span>
                     </h3>
                     <div className="rounded-xl border overflow-auto max-h-56">
@@ -712,7 +739,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                             <TableRow key={ri}>
                               {r.map((cell, ci) => (
                                 <TableCell key={ci} className="text-xs whitespace-nowrap text-center">
-                                  {String(cell)}
+                                  {formatCell(cell)}
                                 </TableCell>
                               ))}
                             </TableRow>
