@@ -703,6 +703,19 @@ const Admin = () => {
                             <div className="flex gap-1 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => openDetails(r)} title="عرض التفاصيل"><Eye className="h-4 w-4" /></Button>
                               <Button size="sm" variant="ghost" onClick={() => setEditRow(r)} className="text-primary hover:bg-primary/10" title="تعديل بيانات الأسرة"><Pencil className="h-4 w-4" /></Button>
+                              {(() => {
+                                const nid = p.national_id;
+                                const isRosterApproved = nid && rosterMap[nid] === "approved";
+                                return isRosterApproved ? (
+                                  <Button size="sm" variant="ghost" onClick={() => toggleRoster(r)} className="text-warning hover:bg-warning/10" title="إلغاء الاعتماد النهائي">
+                                    <ShieldX className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button size="sm" variant="ghost" onClick={() => toggleRoster(r)} className="text-success hover:bg-success/10" title="اعتماد نهائي للمخيم">
+                                    <ShieldCheck className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
                               {r.status !== "approved" && (
                                 <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10" title="قبول">
                                   <CheckCircle2 className="h-4 w-4" />
