@@ -159,6 +159,9 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
     // دمج الفلاتر المبدئية من واجهة الأدمن مع فلاتر القالب
     if (initialFilters) next.filters = { ...next.filters, ...initialFilters };
     setCfg(next);
+    setFamSizeMode(
+      next.filters.familySizeMin != null ? "gt" : next.filters.familySizeMax != null ? "lt" : "all",
+    );
     if (andExport) {
       doExport(next);
     } else {
@@ -168,6 +171,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
 
   function setEntity(entity: Entity) {
     setCfg(blankConfig(entity));
+    setFamSizeMode("all");
   }
 
   function toggleColumn(key: string) {
