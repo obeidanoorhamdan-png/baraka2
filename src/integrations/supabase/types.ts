@@ -1005,6 +1005,7 @@ export type Database = {
       head_account_exists: { Args: { _nid: string }; Returns: boolean }
       is_admin_locked: { Args: { _nid: string }; Returns: boolean }
       is_admin_tier: { Args: { _user_id: string }; Returns: boolean }
+      is_only_super_admin: { Args: { _user_id: string }; Returns: boolean }
       is_super_admin: { Args: { _user_id: string }; Returns: boolean }
       list_admins: {
         Args: never
