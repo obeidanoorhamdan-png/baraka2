@@ -58,6 +58,8 @@ const Admin = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editRow, setEditRow] = useState<Row | null>(null);
   const [incomplete, setIncomplete] = useState<any[]>([]);
+  // اعتماد المخيم: خريطة رقم الهوية -> الحالة (approved/removed)
+  const [rosterMap, setRosterMap] = useState<Record<string, string>>({});
 
   const loadIncomplete = async () => {
     const { data, error } = await supabase.rpc("list_incomplete_accounts");
