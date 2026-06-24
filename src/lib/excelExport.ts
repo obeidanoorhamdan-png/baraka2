@@ -688,6 +688,8 @@ export interface ExportConfig {
     femaleBreadwinner?: boolean;
     hasMartyr?: boolean;
     memberKinds?: MemberKind[];
+    familySizeMin?: number | null;
+    familySizeMax?: number | null;
   };
 }
 
@@ -712,6 +714,8 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
       return (f.femaleBreadwinner && a.is_female_breadwinner) || (f.maritalWidow && isWidow(head));
     });
   }
+  if (f.familySizeMin != null) pool = pool.filter((a) => (a.family_size ?? 0) >= f.familySizeMin!);
+  if (f.familySizeMax != null) pool = pool.filter((a) => (a.family_size ?? 0) <= f.familySizeMax!);
 
   if (cfg.entity === "family") {
     const colDefs = cfg.columns
@@ -816,6 +820,11 @@ export function validateConfig(cfg: ExportConfig): string[] {
   const { ageMin, ageMax } = cfg.filters;
   if (ageMin != null && ageMax != null && ageMin > ageMax) {
     errors.push("نطاق العمر في الفلاتر غير صحيح (الحد الأدنى أكبر من الأقصى).");
+  }
+  // 6) نطاق عدد الأفراد
+  const { familySizeMin, familySizeMax } = cfg.filters;
+  if (familySizeMin != null && familySizeMax != null && familySizeMin > familySizeMax) {
+    errors.push("نطاق عدد الأفراد غير صحيح (الحد الأدنى أكبر من الأقصى).");
   }
   return errors;
 }
