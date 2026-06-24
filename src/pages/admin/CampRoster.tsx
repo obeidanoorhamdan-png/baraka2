@@ -229,7 +229,10 @@ export default function CampRoster() {
                     <Input value={note} onChange={(e) => setNote(e.target.value)} />
                   </div>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button variant="outline" onClick={bulkApproveAll} disabled={busy} className="gap-2">
+                    <ShieldCheck className="h-4 w-4" /> اعتماد جميع الأسر المقبولة
+                  </Button>
                   <Button onClick={addId} disabled={busy} className="gap-2"><Plus className="h-4 w-4" /> اعتماد</Button>
                 </div>
               </CardContent>
