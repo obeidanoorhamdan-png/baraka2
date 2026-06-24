@@ -121,6 +121,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   useEffect(() => {
     if (!open) return;
     setStep(1);
+    setFamSizeMode("all");
     // تطبيق الفلاتر المبدئية القادمة من واجهة الأدمن (إن وجدت)
     setCfg((c) =>
       initialFilters ? { ...c, filters: { ...c.filters, ...initialFilters } } : c,
@@ -131,6 +132,13 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
       .catch(() => toast.error("تعذر تحميل البيانات"))
       .finally(() => setLoading(false));
   }, [open]);
+
+  // تنسيق خلايا المعاينة: عرض التواريخ بصيغة عربية واضحة بدل النص الخام
+  const ISO_DATE = /^\d{4}-\d{2}-\d{2}/;
+  const formatCell = (cell: any): string => {
+    if (typeof cell === "string" && ISO_DATE.test(cell)) return formatDateShort(cell);
+    return String(cell);
+  };
 
   const camps = useMemo(() => (ds ? listCamps(ds) : []), [ds]);
   const cols = cfg.entity === "family" ? FAMILY_COLS : MEMBER_COLS;
