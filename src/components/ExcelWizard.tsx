@@ -115,6 +115,9 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   const [ccMax, setCcMax] = useState<string>("");
   const [ccFlags, setCcFlags] = useState<PersonFlag[]>([]);
 
+  // وضع فلتر عدد الأفراد (مستقل عن القيمة حتى لا يختفي الحقل عند مسحه)
+  const [famSizeMode, setFamSizeMode] = useState<"all" | "gt" | "lt">("all");
+
   useEffect(() => {
     if (!open) return;
     setStep(1);
