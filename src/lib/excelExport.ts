@@ -821,6 +821,11 @@ export function validateConfig(cfg: ExportConfig): string[] {
   if (ageMin != null && ageMax != null && ageMin > ageMax) {
     errors.push("نطاق العمر في الفلاتر غير صحيح (الحد الأدنى أكبر من الأقصى).");
   }
+  // 6) نطاق عدد الأفراد
+  const { familySizeMin, familySizeMax } = cfg.filters;
+  if (familySizeMin != null && familySizeMax != null && familySizeMin > familySizeMax) {
+    errors.push("نطاق عدد الأفراد غير صحيح (الحد الأدنى أكبر من الأقصى).");
+  }
   return errors;
 }
 
