@@ -610,56 +610,55 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
 
                       <div className="grid grid-cols-2 gap-3 items-end">
                         <div>
-                          <Label className="text-xs">عدد الأفراد</Label>
+                          <Label className="text-xs">عدد أفراد الأسرة</Label>
                           <Select
-                            value={
-                              cfg.filters.familySizeMin != null
-                                ? "gt"
-                                : cfg.filters.familySizeMax != null
-                                  ? "lt"
-                                  : "all"
-                            }
-                            onValueChange={(v) =>
+                            value={famSizeMode}
+                            onValueChange={(v) => {
+                              const mode = v as "all" | "gt" | "lt";
+                              setFamSizeMode(mode);
                               setCfg((c) => ({
                                 ...c,
                                 filters: {
                                   ...c.filters,
-                                  familySizeMin: v === "gt" ? (c.filters.familySizeMin ?? 1) : null,
-                                  familySizeMax: v === "lt" ? (c.filters.familySizeMax ?? 10) : null,
+                                  familySizeMin: mode === "gt" ? c.filters.familySizeMin ?? null : null,
+                                  familySizeMax: mode === "lt" ? c.filters.familySizeMax ?? null : null,
                                 },
-                              }))
-                            }
+                              }));
+                            }}
                           >
                             <SelectTrigger className="mt-1">
                               <SelectValue />
                             </SelectTrigger>
                             <SelectContent>
                               <SelectItem value="all">الكل</SelectItem>
-                              <SelectItem value="gt">أكبر من</SelectItem>
-                              <SelectItem value="lt">أصغر من</SelectItem>
+                              <SelectItem value="gt">أكبر من أو يساوي</SelectItem>
+                              <SelectItem value="lt">أصغر من أو يساوي</SelectItem>
                             </SelectContent>
                           </Select>
                         </div>
-                        {(cfg.filters.familySizeMin != null || cfg.filters.familySizeMax != null) && (
+                        {famSizeMode !== "all" && (
                           <div>
                             <Label className="text-xs">الرقم</Label>
                             <Input
                               type="number"
                               min={0}
+                              inputMode="numeric"
+                              placeholder="اكتب رقماً — فارغ = الكل"
                               className="mt-1"
                               value={
-                                cfg.filters.familySizeMin != null
-                                  ? cfg.filters.familySizeMin
+                                famSizeMode === "gt"
+                                  ? cfg.filters.familySizeMin ?? ""
                                   : cfg.filters.familySizeMax ?? ""
                               }
                               onChange={(e) => {
-                                const val = e.target.value === "" ? null : parseInt(e.target.value);
+                                const raw = e.target.value;
+                                const val = raw === "" ? null : Math.max(0, parseInt(raw) || 0);
                                 setCfg((c) => ({
                                   ...c,
                                   filters: {
                                     ...c.filters,
-                                    familySizeMin: c.filters.familySizeMin != null ? val : null,
-                                    familySizeMax: c.filters.familySizeMax != null ? val : null,
+                                    familySizeMin: famSizeMode === "gt" ? val : null,
+                                    familySizeMax: famSizeMode === "lt" ? val : null,
                                   },
                                 }));
                               }}
@@ -667,6 +666,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                           </div>
                         )}
                       </div>
+
                     </>
                   )}
 
