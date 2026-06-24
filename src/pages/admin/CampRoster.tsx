@@ -63,6 +63,31 @@ export default function CampRoster() {
     setNid(""); setName(""); setNote(""); load();
   };
 
+  // اعتماد جميع الأسر المقبولة دفعة واحدة بشكل نهائي
+  const bulkApproveAll = async () => {
+    if (!(await confirmAsk({
+      title: "اعتماد جميع الأسر المقبولة",
+      description: "سيتم اعتماد كل الأسر ذات الطلبات المقبولة نهائياً ضمن قائمة المخيم. متابعة؟",
+      confirmText: "اعتماد الجميع", variant: "success",
+    }))) return;
+    setBusy(true);
+    const { data: apps } = await supabase.from("applications").select("user_id").eq("status", "approved");
+    const userIds = Array.from(new Set((apps || []).map((a: any) => a.user_id)));
+    if (userIds.length === 0) { setBusy(false); toast.info("لا توجد أسر مقبولة"); return; }
+    const { data: profs } = await supabase.from("profiles").select("id, national_id, full_name").in("id", userIds);
+    const records = (profs || [])
+      .filter((p: any) => p.national_id)
+      .map((p: any) => ({
+        national_id: p.national_id, head_name: p.full_name || null,
+        status: "approved", added_by: user?.id, camp: "Baraka 2",
+      }));
+    const { error } = await supabase.from("camp_roster").upsert(records as any, { onConflict: "national_id" });
+    setBusy(false);
+    if (error) { toast.error(error.message); return; }
+    toast.success(`تم اعتماد ${records.length} أسرة نهائياً`);
+    load();
+  };
+
   const saveEditNid = async (row: RosterRow) => {
     if (!ID_RE.test(editNid)) { toast.error("رقم هوية غير صالح"); return; }
     const { error } = await supabase.from("camp_roster").update({ national_id: editNid } as any).eq("id", row.id);
@@ -204,7 +229,10 @@ export default function CampRoster() {
                     <Input value={note} onChange={(e) => setNote(e.target.value)} />
                   </div>
                 </div>
-                <div className="flex justify-end">
+                <div className="flex flex-wrap justify-end gap-2">
+                  <Button variant="outline" onClick={bulkApproveAll} disabled={busy} className="gap-2">
+                    <ShieldCheck className="h-4 w-4" /> اعتماد جميع الأسر المقبولة
+                  </Button>
                   <Button onClick={addId} disabled={busy} className="gap-2"><Plus className="h-4 w-4" /> اعتماد</Button>
                 </div>
               </CardContent>

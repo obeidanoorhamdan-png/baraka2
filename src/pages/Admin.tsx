@@ -24,7 +24,7 @@ import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { BulkAidDistributor } from "@/components/BulkAidDistributor";
 import { ExcelWizard } from "@/components/ExcelWizard";
 import { FamilyEditDialog } from "@/components/admin/FamilyEditDialog";
-import { PackageCheck, Trash2, Wand2, Pencil } from "lucide-react";
+import { PackageCheck, Trash2, Wand2, Pencil, ShieldCheck, ShieldX } from "lucide-react";
 
 type Row = any;
 
@@ -58,6 +58,8 @@ const Admin = () => {
   const [wizardOpen, setWizardOpen] = useState(false);
   const [editRow, setEditRow] = useState<Row | null>(null);
   const [incomplete, setIncomplete] = useState<any[]>([]);
+  // اعتماد المخيم: خريطة رقم الهوية -> الحالة (approved/removed)
+  const [rosterMap, setRosterMap] = useState<Record<string, string>>({});
 
   const loadIncomplete = async () => {
     const { data, error } = await supabase.rpc("list_incomplete_accounts");
@@ -106,9 +108,17 @@ const Admin = () => {
     if (!loading && (!user || !isAdmin)) navigate("/admin-login", { replace: true });
   }, [user, isAdmin, loading, navigate]);
 
+  const loadRoster = async () => {
+    const { data } = await supabase.from("camp_roster").select("national_id, status");
+    const map: Record<string, string> = {};
+    (data || []).forEach((r: any) => { map[r.national_id] = r.status; });
+    setRosterMap(map);
+  };
+
   const load = async () => {
     const { data: apps } = await supabase.from("applications").select("*").order("submitted_at", { ascending: false });
     setRows(apps || []);
+    loadRoster();
     if (apps?.length) {
       const ids = apps.map((a) => a.id);
       const userIds = apps.map((a) => a.user_id);
@@ -315,6 +325,42 @@ const Admin = () => {
     setRejectOpen(false); setRejectReason(""); setRejectTarget(null);
     load();
   };
+
+  // اعتماد الأسرة نهائياً ضمن قائمة اعتماد المخيم أو إلغاء اعتمادها
+  const toggleRoster = async (r: Row) => {
+    const p = profiles[r.user_id] || {};
+    const nid = p.national_id as string | undefined;
+    if (!nid) { toast.error("لا يوجد رقم هوية لرب الأسرة"); return; }
+    const current = rosterMap[nid];
+    const isApproved = current === "approved";
+
+    if (isApproved) {
+      if (!(await confirmAsk({
+        title: "إلغاء الاعتماد النهائي",
+        description: `سيتم استبعاد أسرة ${p.full_name || nid} من قائمة اعتماد المخيم، ولن تظهر في الكشوف. متابعة؟`,
+        confirmText: "إلغاء الاعتماد", variant: "warning",
+      }))) return;
+      const { error } = await supabase.from("camp_roster").update({ status: "removed" } as any).eq("national_id", nid);
+      if (error) { toast.error(error.message); return; }
+      setRosterMap((m) => ({ ...m, [nid]: "removed" }));
+      toast.success("تم إلغاء الاعتماد");
+    } else {
+      if (!(await confirmAsk({
+        title: "اعتماد نهائي",
+        description: `سيتم اعتماد أسرة ${p.full_name || nid} نهائياً ضمن قائمة اعتماد المخيم. متابعة؟`,
+        confirmText: "اعتماد نهائي", variant: "success",
+      }))) return;
+      const { error } = await supabase.from("camp_roster").upsert({
+        national_id: nid, head_name: p.full_name || null, status: "approved",
+        added_by: user?.id, camp: "Baraka 2",
+      } as any, { onConflict: "national_id" });
+      if (error) { toast.error(error.message); return; }
+      setRosterMap((m) => ({ ...m, [nid]: "approved" }));
+      toast.success("تم الاعتماد النهائي");
+    }
+  };
+
+
 
   const openDetails = async (r: Row) => {
     setSelected(r);
@@ -647,16 +693,36 @@ const Admin = () => {
                           <TableCell>{r.family_size}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{formatDateShort(r.submitted_at)}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                              r.status === "approved" ? "bg-success/15 text-success" :
-                              r.status === "rejected" ? "bg-destructive/15 text-destructive" :
-                              "bg-warning/20 text-warning-foreground"
-                            }`}>{t(`status.${r.status}`)}</span>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                r.status === "approved" ? "bg-success/15 text-success" :
+                                r.status === "rejected" ? "bg-destructive/15 text-destructive" :
+                                "bg-warning/20 text-warning-foreground"
+                              }`}>{t(`status.${r.status}`)}</span>
+                              {p.national_id && rosterMap[p.national_id] === "approved" && (
+                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary">
+                                  <ShieldCheck className="h-3 w-3" /> معتمد نهائياً
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-end">
                             <div className="flex gap-1 justify-end">
                               <Button size="sm" variant="ghost" onClick={() => openDetails(r)} title="عرض التفاصيل"><Eye className="h-4 w-4" /></Button>
                               <Button size="sm" variant="ghost" onClick={() => setEditRow(r)} className="text-primary hover:bg-primary/10" title="تعديل بيانات الأسرة"><Pencil className="h-4 w-4" /></Button>
+                              {(() => {
+                                const nid = p.national_id;
+                                const isRosterApproved = nid && rosterMap[nid] === "approved";
+                                return isRosterApproved ? (
+                                  <Button size="sm" variant="ghost" onClick={() => toggleRoster(r)} className="text-warning hover:bg-warning/10" title="إلغاء الاعتماد النهائي">
+                                    <ShieldX className="h-4 w-4" />
+                                  </Button>
+                                ) : (
+                                  <Button size="sm" variant="ghost" onClick={() => toggleRoster(r)} className="text-success hover:bg-success/10" title="اعتماد نهائي للمخيم">
+                                    <ShieldCheck className="h-4 w-4" />
+                                  </Button>
+                                );
+                              })()}
                               {r.status !== "approved" && (
                                 <Button size="sm" variant="ghost" onClick={() => approve(r)} className="text-success hover:bg-success/10" title="قبول">
                                   <CheckCircle2 className="h-4 w-4" />
