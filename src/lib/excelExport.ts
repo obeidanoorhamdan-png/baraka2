@@ -714,6 +714,8 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
       return (f.femaleBreadwinner && a.is_female_breadwinner) || (f.maritalWidow && isWidow(head));
     });
   }
+  if (f.familySizeMin != null) pool = pool.filter((a) => (a.family_size ?? 0) >= f.familySizeMin!);
+  if (f.familySizeMax != null) pool = pool.filter((a) => (a.family_size ?? 0) <= f.familySizeMax!);
 
   if (cfg.entity === "family") {
     const colDefs = cfg.columns
