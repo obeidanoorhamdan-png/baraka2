@@ -108,9 +108,17 @@ const Admin = () => {
     if (!loading && (!user || !isAdmin)) navigate("/admin-login", { replace: true });
   }, [user, isAdmin, loading, navigate]);
 
+  const loadRoster = async () => {
+    const { data } = await supabase.from("camp_roster").select("national_id, status");
+    const map: Record<string, string> = {};
+    (data || []).forEach((r: any) => { map[r.national_id] = r.status; });
+    setRosterMap(map);
+  };
+
   const load = async () => {
     const { data: apps } = await supabase.from("applications").select("*").order("submitted_at", { ascending: false });
     setRows(apps || []);
+    loadRoster();
     if (apps?.length) {
       const ids = apps.map((a) => a.id);
       const userIds = apps.map((a) => a.user_id);
