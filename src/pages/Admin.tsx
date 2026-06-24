@@ -24,7 +24,7 @@ import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { BulkAidDistributor } from "@/components/BulkAidDistributor";
 import { ExcelWizard } from "@/components/ExcelWizard";
 import { FamilyEditDialog } from "@/components/admin/FamilyEditDialog";
-import { PackageCheck, Trash2, Wand2, Pencil } from "lucide-react";
+import { PackageCheck, Trash2, Wand2, Pencil, ShieldCheck, ShieldX } from "lucide-react";
 
 type Row = any;
 
