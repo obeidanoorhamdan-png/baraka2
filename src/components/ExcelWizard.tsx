@@ -561,35 +561,97 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                   )}
 
                   {cfg.entity === "family" && (
-                    <div className="flex flex-wrap gap-3">
-                      <label className="flex items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={!!cfg.filters.hasMartyr}
-                          onCheckedChange={(v) =>
-                            setCfg((c) => ({ ...c, filters: { ...c.filters, hasMartyr: !!v } }))
-                          }
-                        />
-                        أسر بها شهيد فقط
-                      </label>
-                      <label className="flex items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={!!cfg.filters.maritalWidow}
-                          onCheckedChange={(v) =>
-                            setCfg((c) => ({ ...c, filters: { ...c.filters, maritalWidow: !!v } }))
-                          }
-                        />
-                        الأرامل فقط
-                      </label>
-                      <label className="flex items-center gap-2 text-xs">
-                        <Checkbox
-                          checked={!!cfg.filters.femaleBreadwinner}
-                          onCheckedChange={(v) =>
-                            setCfg((c) => ({ ...c, filters: { ...c.filters, femaleBreadwinner: !!v } }))
-                          }
-                        />
-                        المرأة المعيلة فقط
-                      </label>
-                    </div>
+                    <>
+                      <div className="flex flex-wrap gap-3">
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox
+                            checked={!!cfg.filters.hasMartyr}
+                            onCheckedChange={(v) =>
+                              setCfg((c) => ({ ...c, filters: { ...c.filters, hasMartyr: !!v } }))
+                            }
+                          />
+                          أسر بها شهيد فقط
+                        </label>
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox
+                            checked={!!cfg.filters.maritalWidow}
+                            onCheckedChange={(v) =>
+                              setCfg((c) => ({ ...c, filters: { ...c.filters, maritalWidow: !!v } }))
+                            }
+                          />
+                          الأرامل فقط
+                        </label>
+                        <label className="flex items-center gap-2 text-xs">
+                          <Checkbox
+                            checked={!!cfg.filters.femaleBreadwinner}
+                            onCheckedChange={(v) =>
+                              setCfg((c) => ({ ...c, filters: { ...c.filters, femaleBreadwinner: !!v } }))
+                            }
+                          />
+                          المرأة المعيلة فقط
+                        </label>
+                      </div>
+
+                      <div className="grid grid-cols-2 gap-3 items-end">
+                        <div>
+                          <Label className="text-xs">عدد الأفراد</Label>
+                          <Select
+                            value={
+                              cfg.filters.familySizeMin != null
+                                ? "gt"
+                                : cfg.filters.familySizeMax != null
+                                  ? "lt"
+                                  : "all"
+                            }
+                            onValueChange={(v) =>
+                              setCfg((c) => ({
+                                ...c,
+                                filters: {
+                                  ...c.filters,
+                                  familySizeMin: v === "gt" ? (c.filters.familySizeMin ?? 1) : null,
+                                  familySizeMax: v === "lt" ? (c.filters.familySizeMax ?? 10) : null,
+                                },
+                              }))
+                            }
+                          >
+                            <SelectTrigger className="mt-1">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="all">الكل</SelectItem>
+                              <SelectItem value="gt">أكبر من</SelectItem>
+                              <SelectItem value="lt">أصغر من</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
+                        {(cfg.filters.familySizeMin != null || cfg.filters.familySizeMax != null) && (
+                          <div>
+                            <Label className="text-xs">الرقم</Label>
+                            <Input
+                              type="number"
+                              min={0}
+                              className="mt-1"
+                              value={
+                                cfg.filters.familySizeMin != null
+                                  ? cfg.filters.familySizeMin
+                                  : cfg.filters.familySizeMax ?? ""
+                              }
+                              onChange={(e) => {
+                                const val = e.target.value === "" ? null : parseInt(e.target.value);
+                                setCfg((c) => ({
+                                  ...c,
+                                  filters: {
+                                    ...c.filters,
+                                    familySizeMin: c.filters.familySizeMin != null ? val : null,
+                                    familySizeMax: c.filters.familySizeMax != null ? val : null,
+                                  },
+                                }));
+                              }}
+                            />
+                          </div>
+                        )}
+                      </div>
+                    </>
                   )}
 
                   {cfg.entity === "member" && (
