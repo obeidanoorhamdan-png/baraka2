@@ -739,7 +739,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                             <TableRow key={ri}>
                               {r.map((cell, ci) => (
                                 <TableCell key={ci} className="text-xs whitespace-nowrap text-center">
-                                  {String(cell)}
+                                  {formatCell(cell)}
                                 </TableCell>
                               ))}
                             </TableRow>
