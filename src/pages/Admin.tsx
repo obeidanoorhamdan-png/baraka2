@@ -326,6 +326,42 @@ const Admin = () => {
     load();
   };
 
+  // اعتماد الأسرة نهائياً ضمن قائمة اعتماد المخيم أو إلغاء اعتمادها
+  const toggleRoster = async (r: Row) => {
+    const p = profiles[r.user_id] || {};
+    const nid = p.national_id as string | undefined;
+    if (!nid) { toast.error("لا يوجد رقم هوية لرب الأسرة"); return; }
+    const current = rosterMap[nid];
+    const isApproved = current === "approved";
+
+    if (isApproved) {
+      if (!(await confirmAsk({
+        title: "إلغاء الاعتماد النهائي",
+        description: `سيتم استبعاد أسرة ${p.full_name || nid} من قائمة اعتماد المخيم، ولن تظهر في الكشوف. متابعة؟`,
+        confirmText: "إلغاء الاعتماد", variant: "warning",
+      }))) return;
+      const { error } = await supabase.from("camp_roster").update({ status: "removed" } as any).eq("national_id", nid);
+      if (error) { toast.error(error.message); return; }
+      setRosterMap((m) => ({ ...m, [nid]: "removed" }));
+      toast.success("تم إلغاء الاعتماد");
+    } else {
+      if (!(await confirmAsk({
+        title: "اعتماد نهائي",
+        description: `سيتم اعتماد أسرة ${p.full_name || nid} نهائياً ضمن قائمة اعتماد المخيم. متابعة؟`,
+        confirmText: "اعتماد نهائي", variant: "success",
+      }))) return;
+      const { error } = await supabase.from("camp_roster").upsert({
+        national_id: nid, head_name: p.full_name || null, status: "approved",
+        added_by: user?.id, camp: "Baraka 2",
+      } as any, { onConflict: "national_id" });
+      if (error) { toast.error(error.message); return; }
+      setRosterMap((m) => ({ ...m, [nid]: "approved" }));
+      toast.success("تم الاعتماد النهائي");
+    }
+  };
+
+
+
   const openDetails = async (r: Row) => {
     setSelected(r);
     const fm = members[r.id] || [];
