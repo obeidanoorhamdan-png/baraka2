@@ -704,12 +704,23 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                     </div>
                   )}
 
+                  {/* عدد السجلات المطابقة */}
+                  <div className="flex items-center justify-between rounded-xl border-2 border-primary/30 bg-primary/5 px-4 py-3">
+                    <span className="text-sm font-bold flex items-center gap-2">
+                      <Filter className="h-4 w-4 text-primary" />
+                      {cfg.entity === "family" ? "عدد الأسر المطابقة" : "عدد الأفراد المطابقين"}
+                    </span>
+                    <span className="text-xl font-extrabold text-primary tabular-nums">
+                      {preview.rows.length}
+                    </span>
+                  </div>
+
                   {/* المعاينة */}
                   <div>
                     <h3 className="font-bold mb-2 flex items-center gap-2">
                       <Eye className="h-4 w-4 text-primary" /> معاينة حية
                       <span className="text-[11px] font-normal text-muted-foreground">
-                        ({preview.rows.length} سجل مطابق)
+                        (عرض أول 3 سجلات)
                       </span>
                     </h3>
                     <div className="rounded-xl border overflow-auto max-h-56">
