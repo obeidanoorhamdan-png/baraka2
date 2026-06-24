@@ -688,6 +688,8 @@ export interface ExportConfig {
     femaleBreadwinner?: boolean;
     hasMartyr?: boolean;
     memberKinds?: MemberKind[];
+    familySizeMin?: number | null;
+    familySizeMax?: number | null;
   };
 }
 
