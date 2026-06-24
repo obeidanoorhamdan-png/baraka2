@@ -693,11 +693,18 @@ const Admin = () => {
                           <TableCell>{r.family_size}</TableCell>
                           <TableCell className="text-xs text-muted-foreground">{formatDateShort(r.submitted_at)}</TableCell>
                           <TableCell>
-                            <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
-                              r.status === "approved" ? "bg-success/15 text-success" :
-                              r.status === "rejected" ? "bg-destructive/15 text-destructive" :
-                              "bg-warning/20 text-warning-foreground"
-                            }`}>{t(`status.${r.status}`)}</span>
+                            <div className="flex flex-wrap items-center gap-1">
+                              <span className={`px-2 py-0.5 rounded-full text-xs font-bold ${
+                                r.status === "approved" ? "bg-success/15 text-success" :
+                                r.status === "rejected" ? "bg-destructive/15 text-destructive" :
+                                "bg-warning/20 text-warning-foreground"
+                              }`}>{t(`status.${r.status}`)}</span>
+                              {p.national_id && rosterMap[p.national_id] === "approved" && (
+                                <span className="inline-flex items-center gap-0.5 px-2 py-0.5 rounded-full text-[10px] font-bold bg-primary/15 text-primary">
+                                  <ShieldCheck className="h-3 w-3" /> معتمد نهائياً
+                                </span>
+                              )}
+                            </div>
                           </TableCell>
                           <TableCell className="text-end">
                             <div className="flex gap-1 justify-end">
