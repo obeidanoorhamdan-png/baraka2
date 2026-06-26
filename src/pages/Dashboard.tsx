@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import {
   Home, FileText, PackageCheck, MessageCircle, ShieldCheck, HelpCircle, Phone,
   Users, CheckCircle2, Clock, XCircle, UserCog, MapPin, HeartPulse, Bell,
-  CalendarDays, IdCard, Sparkles,
+  CalendarDays, IdCard, Sparkles, Plus, Trash2, Crown, Tent, Navigation,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
