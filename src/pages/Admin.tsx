@@ -765,6 +765,11 @@ const Admin = () => {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
+                              {r.status === "rejected" && (
+                                <Button size="sm" variant="ghost" onClick={() => deleteFamily(r)} className="text-destructive hover:bg-destructive/15" title="حذف الأسرة نهائياً من قاعدة البيانات">
+                                  <Trash2 className="h-4 w-4" /> <span className="text-[11px] font-bold">حذف نهائي</span>
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
