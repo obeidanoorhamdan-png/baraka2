@@ -159,6 +159,7 @@ const Dashboard = () => {
   };
 
   const unread = notifications.filter((n) => !n.read_at && !n.is_read).length;
+  const visibleMembers = members.filter((m) => !m.is_head);
 
   return (
     <Layout>
