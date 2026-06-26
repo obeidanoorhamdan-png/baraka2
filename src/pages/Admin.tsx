@@ -326,6 +326,38 @@ const Admin = () => {
     load();
   };
 
+  // حذف الأسرة المرفوضة نهائياً من قاعدة البيانات (الحساب + الطلب + الأفراد)
+  const deleteFamily = async (r: Row) => {
+    const p = profiles[r.user_id] || {};
+    if (!p.national_id || !p.phone) {
+      toast.error("لا يمكن الحذف: بيانات رب الأسرة غير مكتملة (الهوية/الجوال)");
+      return;
+    }
+    if (!(await confirmAsk({
+      title: "حذف الأسرة نهائياً",
+      description: `سيتم حذف أسرة «${p.full_name || p.national_id}» وجميع بياناتها (رب الأسرة، الطلب، الأفراد) نهائياً من قاعدة البيانات. لا يمكن التراجع.`,
+      confirmText: "حذف نهائي",
+      variant: "danger",
+    }))) return;
+    const { data, error } = await supabase.functions.invoke("forget-account", {
+      body: { national_id: p.national_id, phone: p.phone },
+    });
+    if (error || !(data as any)?.ok) {
+      toast.error((data as any)?.error || error?.message || t("toast.error"));
+      return;
+    }
+    await supabase.rpc("log_admin_action", {
+      _action: "delete_family_permanent",
+      _target_type: "application",
+      _target_id: r.id,
+      _target_label: p.full_name || p.national_id,
+      _details: { national_id: p.national_id, status: r.status },
+    });
+    toast.success("تم حذف الأسرة نهائياً");
+    if (selected?.id === r.id) setSelected(null);
+    load();
+  };
+
   // اعتماد الأسرة نهائياً ضمن قائمة اعتماد المخيم أو إلغاء اعتمادها
   const toggleRoster = async (r: Row) => {
     const p = profiles[r.user_id] || {};
@@ -733,6 +765,11 @@ const Admin = () => {
                                   <Trash2 className="h-4 w-4" />
                                 </Button>
                               )}
+                              {r.status === "rejected" && (
+                                <Button size="sm" variant="ghost" onClick={() => deleteFamily(r)} className="text-destructive hover:bg-destructive/15" title="حذف الأسرة نهائياً من قاعدة البيانات">
+                                  <Trash2 className="h-4 w-4" /> <span className="text-[11px] font-bold">حذف نهائي</span>
+                                </Button>
+                              )}
                             </div>
                           </TableCell>
                         </TableRow>
@@ -849,10 +886,15 @@ const Admin = () => {
             const fm = members[selected.id] || [];
             return (
               <div className="space-y-5 text-sm">
-                <div className="flex justify-end">
+                <div className="flex justify-end gap-2 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => exportFamily(selected)} className="gap-1.5">
                     <FileSpreadsheet className="h-4 w-4" /> {t("admin.export_family")}
                   </Button>
+                  {selected.status === "rejected" && (
+                    <Button size="sm" variant="outline" onClick={() => deleteFamily(selected)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" /> حذف الأسرة نهائياً
+                    </Button>
+                  )}
                 </div>
                 <Card className="p-4 bg-accent-soft/40">
                   <h3 className="font-bold text-primary mb-2">{t("admin.head_of_family")}</h3>
