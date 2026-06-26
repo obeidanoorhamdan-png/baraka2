@@ -383,7 +383,7 @@ const AnnouncementsAdmin = () => {
               </div>
             </div>
 
-            <div className="border-t pt-3 space-y-3￼">
+            <div className="border-t pt-3 space-y-3">
               <div className="flex items-center gap-2">
                 <Switch checked={editing.active} onCheckedChange={(v) => setEditing({ ...editing, active: v })} />
                 <Label>نشط (مرئي في صفحة الإعلانات)</Label>
