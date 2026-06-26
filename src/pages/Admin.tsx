@@ -886,7 +886,7 @@ const Admin = () => {
             const fm = members[selected.id] || [];
             return (
               <div className="space-y-5 text-sm">
-                <div class="flex justify-end gap-2 flex-wrap">
+                <div className="flex justify-end gap-2 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => exportFamily(selected)} className="gap-1.5">
                     <FileSpreadsheet className="h-4 w-4" /> {t("admin.export_family")}
                   </Button>
