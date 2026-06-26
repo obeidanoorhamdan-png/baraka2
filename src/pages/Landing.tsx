@@ -53,6 +53,10 @@ const Landing = () => {
         </div>
       </section>
 
+      <NewsStrip />
+
+
+
       <section className="container py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl text-primary mb-6 text-center">{t("landing.details_title")}</h2>
         <div className="grid gap-4 md:grid-cols-3">
