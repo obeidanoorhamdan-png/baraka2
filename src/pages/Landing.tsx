@@ -22,7 +22,10 @@ const Landing = () => {
           className="absolute inset-0 bg-cover bg-center"
           style={{ backgroundImage: `url(${bannerAsset.url})` }}
         />
-        <div className="absolute inset-0 brand-gradient opacity-[0.82]" />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to left, hsl(220 50% 18% / 0.93) 0%, hsl(220 50% 18% / 0.86) 42%, hsl(220 50% 18% / 0.5) 100%)" }}
+        />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--accent)/0.18),transparent_50%)]" />
 
         <div className="container relative py-16 md:py-24 grid gap-10 md:grid-cols-2 items-center">
