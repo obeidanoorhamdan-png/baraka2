@@ -374,7 +374,11 @@ export type Database = {
           event_at: string | null
           id: string
           kind: string
+          media_type: string | null
+          media_url: string | null
           organizer: string | null
+          show_in_strip: boolean
+          show_popup: boolean
           target_age_max: number | null
           target_age_min: number | null
           target_camp: string | null
@@ -391,7 +395,11 @@ export type Database = {
           event_at?: string | null
           id?: string
           kind?: string
+          media_type?: string | null
+          media_url?: string | null
           organizer?: string | null
+          show_in_strip?: boolean
+          show_popup?: boolean
           target_age_max?: number | null
           target_age_min?: number | null
           target_camp?: string | null
@@ -408,7 +416,11 @@ export type Database = {
           event_at?: string | null
           id?: string
           kind?: string
+          media_type?: string | null
+          media_url?: string | null
           organizer?: string | null
+          show_in_strip?: boolean
+          show_popup?: boolean
           target_age_max?: number | null
           target_age_min?: number | null
           target_camp?: string | null
