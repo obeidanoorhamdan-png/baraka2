@@ -163,7 +163,7 @@ const Dashboard = () => {
 
   return (
     <Layout>
-      <section className="container py-8 max-w-4xl space-y-6">
+      <section className="container py-6 sm:py-8 max-w-4xl space-y-5 sm:space-y-6">�
         {/* Hero greeting — warm sand */}
         <Card className="overflow-hidden border-accent/30 shadow-elegant">
           <div className="bg-gradient-to-bl from-accent-soft via-secondary to-background p-6 md:p-8">
