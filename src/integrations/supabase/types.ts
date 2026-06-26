@@ -933,6 +933,7 @@ export type Database = {
           status: string
         }[]
       }
+      admin_promote_to_review: { Args: { _user_id: string }; Returns: boolean }
       admin_remove_family_member: {
         Args: { _member_id: string }
         Returns: boolean
@@ -1036,10 +1037,14 @@ export type Database = {
         Returns: {
           application_id: string
           created_at: string
+          family_size: number
           full_name: string
+          member_count: number
+          missing: string[]
           national_id: string
           phone: string
           reason: string
+          status: string
           user_id: string
         }[]
       }
