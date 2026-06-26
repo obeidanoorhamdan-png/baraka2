@@ -886,10 +886,15 @@ const Admin = () => {
             const fm = members[selected.id] || [];
             return (
               <div className="space-y-5 text-sm">
-                <div className="flex justify-end">
+                <div class="flex justify-end gap-2 flex-wrap">
                   <Button size="sm" variant="outline" onClick={() => exportFamily(selected)} className="gap-1.5">
                     <FileSpreadsheet className="h-4 w-4" /> {t("admin.export_family")}
                   </Button>
+                  {selected.status === "rejected" && (
+                    <Button size="sm" variant="outline" onClick={() => deleteFamily(selected)} className="gap-1.5 text-destructive border-destructive/40 hover:bg-destructive/10">
+                      <Trash2 className="h-4 w-4" /> حذف الأسرة نهائياً
+                    </Button>
+                  )}
                 </div>
                 <Card className="p-4 bg-accent-soft/40">
                   <h3 className="font-bold text-primary mb-2">{t("admin.head_of_family")}</h3>
