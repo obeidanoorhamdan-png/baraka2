@@ -95,6 +95,41 @@ const Dashboard = () => {
     return true;
   };
 
+  // ---- Add / remove family members ----
+  const addMember = async () => {
+    if (!app) return;
+    const { data, error } = await supabase
+      .from("family_members")
+      .insert({
+        application_id: app.id,
+        full_name: "",
+        birth_date: new Date().toISOString().slice(0, 10),
+        gender: "male",
+        relationship: "son",
+      } as any)
+      .select()
+      .single();
+    if (error) { toast.error(error.message || "تعذّر إضافة فرد"); return; }
+    setMembers((ms) => [...ms, data]);
+    const newSize = (members.filter((m) => !m.is_head).length + 1) + 1; // members + new + head
+    await supabase.from("applications").update({ family_size: newSize } as any).eq("id", app.id);
+    setApp((a: any) => ({ ...a, family_size: newSize }));
+    toast.success("تمت إضافة فرد جديد — يمكنك تعبئة بياناته الآن");
+  };
+
+  const removeMember = async (id: string) => {
+    const { error } = await supabase.from("family_members").delete().eq("id", id);
+    if (error) { toast.error(error.message || "تعذّر الحذف"); return; }
+    const remaining = members.filter((m) => m.id !== id);
+    setMembers(remaining);
+    if (app) {
+      const newSize = Math.max(1, remaining.filter((m) => !m.is_head).length + 1);
+      await supabase.from("applications").update({ family_size: newSize } as any).eq("id", app.id);
+      setApp((a: any) => ({ ...a, family_size: newSize }));
+    }
+    toast.success("تم حذف الفرد");
+  };
+
   if (pageLoading) {
     return <Layout><div className="container py-20 text-center text-muted-foreground">جارٍ التحميل…</div></Layout>;
   }
