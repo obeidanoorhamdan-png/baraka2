@@ -2,33 +2,44 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Home, FileText, PackageCheck, MessageCircle, Download, ShieldCheck,
-  Users, MapPin, CheckCircle2, Clock, XCircle, ArrowLeft, ArrowRight, HelpCircle, Phone,
+  Home, FileText, PackageCheck, MessageCircle, ShieldCheck, HelpCircle, Phone,
+  Users, CheckCircle2, Clock, XCircle, UserCog, MapPin, HeartPulse, Bell,
+  CalendarDays, IdCard, Sparkles,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
+import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
-import { generateApplicationPdf } from "@/lib/applicationPdf";
 import { toast } from "sonner";
+import { InlineEdit } from "@/components/dashboard/InlineEdit";
+import { formatBirthDate, formatDateShort } from "@/lib/formatDate";
 import {
   ADMIN_WHATSAPP, ADMIN_WHATSAPP_DISPLAY,
   SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_DISPLAY, waLink,
 } from "@/lib/contact";
 
+const GENDERS = [{ v: "male", l: "ذكر" }, { v: "female", l: "أنثى" }];
+const MARITAL = [
+  { v: "married", l: "متزوج/ة" }, { v: "single", l: "أعزب/عزباء" },
+  { v: "widowed", l: "أرمل/ة" }, { v: "divorced", l: "مطلق/ة" }, { v: "other", l: "أخرى" },
+];
+const RELATIONS = [
+  { v: "wife", l: "زوجة" }, { v: "husband", l: "زوج" }, { v: "son", l: "ابن" },
+  { v: "daughter", l: "ابنة" }, { v: "father", l: "والد" }, { v: "mother", l: "والدة" },
+  { v: "brother", l: "أخ" }, { v: "sister", l: "أخت" }, { v: "other", l: "أخرى" },
+];
+
 const Dashboard = () => {
-  const { t, i18n } = useTranslation();
+  const { t } = useTranslation();
   const { user, isAdmin, loading } = useAuth();
   const navigate = useNavigate();
   const [profile, setProfile] = useState<any>(null);
   const [app, setApp] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [aidCount, setAidCount] = useState(0);
-  const [latestAid, setLatestAid] = useState<any>(null);
+  const [aids, setAids] = useState<any[]>([]);
+  const [notifications, setNotifications] = useState<any[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
-  const isRtl = i18n.language === "ar";
-  const Arrow = isRtl ? ArrowLeft : ArrowRight;
 
   useEffect(() => {
     if (!loading && !user) navigate("/auth");
@@ -44,49 +55,64 @@ const Dashboard = () => {
       const { data: a } = await supabase.from("applications").select("*").eq("user_id", user.id).maybeSingle();
       setApp(a);
       if (a) {
-        const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", a.id);
+        const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", a.id).order("created_at");
         setMembers(fm || []);
-        const { data: aids, count } = await supabase
-          .from("aid_distributions")
-          .select("*", { count: "exact" })
-          .eq("application_id", a.id)
-          .order("delivered_at", { ascending: false })
-          .limit(1);
-        setAidCount(count || 0);
-        setLatestAid((aids && aids[0]) || null);
+        const { data: ad } = await supabase
+          .from("aid_distributions").select("*").eq("application_id", a.id)
+          .order("delivered_at", { ascending: false });
+        setAids(ad || []);
       }
+      const { data: notifs } = await supabase
+        .from("notifications").select("*").eq("user_id", user.id)
+        .order("created_at", { ascending: false }).limit(8);
+      setNotifications(notifs || []);
       setPageLoading(false);
     })();
   }, [user]);
 
-  const handleDownloadPdf = () => {
-    if (!profile || !app) {
-      toast.error(t("dashboard.no_app_yet"));
-      return;
-    }
-    try {
-      generateApplicationPdf({
-        head: profile,
-        residence: app,
-        members,
-        meta: { status: app.status, submitted_at: app.submitted_at, application_id: app.id },
-      });
-      toast.success(t("dashboard.pdf_done"));
-    } catch (e: any) {
-      toast.error(e?.message || t("toast.error"));
-    }
+  // ---- Direct save helpers (instant persistence) ----
+  const saveProfile = (key: string) => async (val: any) => {
+    const { error } = await supabase.from("profiles").update({ [key]: val } as any).eq("id", user!.id);
+    if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
+    setProfile((p: any) => ({ ...p, [key]: val }));
+    toast.success("تم الحفظ");
+    return true;
+  };
+  const saveApp = (key: string) => async (val: any) => {
+    if (!app) return false;
+    const { error } = await supabase.from("applications").update({ [key]: val } as any).eq("id", app.id);
+    if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
+    setApp((a: any) => ({ ...a, [key]: val }));
+    toast.success("تم الحفظ");
+    return true;
+  };
+  const saveMember = (id: string, key: string) => async (val: any) => {
+    const { error } = await supabase.from("family_members").update({ [key]: val } as any).eq("id", id);
+    if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
+    setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, [key]: val } : m)));
+    toast.success("تم الحفظ");
+    return true;
   };
 
   if (pageLoading) {
-    return <Layout><div className="container py-20 text-center text-muted-foreground">...</div></Layout>;
+    return <Layout><div className="container py-20 text-center text-muted-foreground">جارٍ التحميل…</div></Layout>;
   }
+
+  // ---- Completion calculation ----
+  const reqProfile = ["full_name", "national_id", "phone", "birth_date", "gender", "marital_status"];
+  const reqApp = ["original_residence", "current_camp", "family_size"];
+  const filled =
+    reqProfile.filter((k) => profile?.[k] != null && profile[k] !== "").length +
+    (app ? reqApp.filter((k) => app?.[k] != null && app[k] !== "").length : 0);
+  const totalFields = reqProfile.length + (app ? reqApp.length : 0);
+  const completion = totalFields ? Math.round((filled / totalFields) * 100) : 0;
 
   const statusBadge = () => {
     if (!app) return null;
     const map: Record<string, { cls: string; Icon: any; label: string }> = {
       approved: { cls: "bg-success/15 text-success border-success/30", Icon: CheckCircle2, label: t("status.approved") },
       rejected: { cls: "bg-destructive/15 text-destructive border-destructive/30", Icon: XCircle, label: t("status.rejected") },
-      pending: { cls: "bg-warning/20 text-warning-foreground border-warning/30", Icon: Clock, label: t("status.pending") },
+      pending: { cls: "bg-warning/20 text-warning-foreground border-warning/40", Icon: Clock, label: t("status.pending") },
     };
     const v = map[app.status] || map.pending;
     return (
@@ -96,110 +122,210 @@ const Dashboard = () => {
     );
   };
 
+  const unread = notifications.filter((n) => !n.read_at && !n.is_read).length;
+
   return (
     <Layout>
-      <section className="container py-8 max-w-5xl">
-        {/* Hero greeting */}
-        <Card className="p-6 md:p-8 mb-6 shadow-elegant border-accent/20 bg-gradient-to-br from-accent-soft/40 via-background to-background">
-          <div className="flex items-start justify-between gap-4 flex-wrap">
-            <div>
-              <div className="text-xs uppercase tracking-widest text-accent font-bold mb-1">{t("dashboard.welcome")}</div>
-              <h1 className="text-2xl md:text-3xl font-extrabold text-primary">
-                {profile?.full_name || "—"}
-              </h1>
-              <p className="text-sm text-muted-foreground mt-1 inline-flex items-center gap-1.5">
-                <Home className="h-3.5 w-3.5" /> {t("app.name")} (Baraka 2)
-              </p>
+      <section className="container py-8 max-w-4xl space-y-6">
+        {/* Hero greeting — warm sand */}
+        <Card className="overflow-hidden border-accent/30 shadow-elegant">
+          <div className="bg-gradient-to-bl from-accent-soft via-secondary to-background p-6 md:p-8">
+            <div className="flex items-start justify-between gap-4 flex-wrap">
+              <div className="min-w-0">
+                <div className="text-xs uppercase tracking-widest text-accent font-bold mb-1 inline-flex items-center gap-1.5">
+                  <Sparkles className="h-3.5 w-3.5" /> {t("dashboard.welcome")}
+                </div>
+                <h1 className="text-2xl md:text-3xl font-extrabold text-primary truncate">
+                  {profile?.full_name || "—"}
+                </h1>
+                <p className="text-sm text-muted-foreground mt-1 inline-flex items-center gap-1.5">
+                  <Home className="h-3.5 w-3.5" /> {t("app.name")} (Baraka 2)
+                </p>
+              </div>
+              {statusBadge()}
             </div>
-            {statusBadge()}
+
+            {/* Completion bar */}
+            <div className="mt-6 rounded-xl bg-card/70 backdrop-blur-sm border border-accent/20 p-4">
+              <div className="flex items-center justify-between mb-2">
+                <span className="text-sm font-bold text-primary inline-flex items-center gap-1.5">
+                  <CheckCircle2 className="h-4 w-4 text-accent" /> اكتمال بيانات الأسرة
+                </span>
+                <span className="text-sm font-extrabold text-accent tabular-nums">{completion}%</span>
+              </div>
+              <Progress value={completion} className="h-2.5" />
+              {completion < 100 && (
+                <p className="text-xs text-muted-foreground mt-2">
+                  أكمل الحقول الناقصة المظللة لرفع نسبة اكتمال بياناتك.
+                </p>
+              )}
+            </div>
           </div>
         </Card>
 
-        {!app && (
-          <Card className="p-6 mb-6 border-warning/40 bg-warning/5 text-center">
-            <FileText className="h-10 w-10 text-warning-foreground mx-auto mb-2" />
-            <h2 className="text-lg font-bold text-primary mb-1">{t("dashboard.no_app_title")}</h2>
-            <p className="text-sm text-muted-foreground mb-4">{t("dashboard.no_app_subtitle")}</p>
-            <Button asChild className="brand-gradient text-primary-foreground gap-2">
-              <Link to="/my-application">
-                <FileText className="h-4 w-4" /> {t("my_app.submit_now")}
-              </Link>
-            </Button>
+        {/* Notifications */}
+        {notifications.length > 0 && (
+          <Card className="p-5 shadow-card border-accent/20">
+            <h2 className="font-bold text-primary mb-3 inline-flex items-center gap-2">
+              <Bell className="h-4 w-4 text-accent" /> التنبيهات والإشعارات
+              {unread > 0 && (
+                <span className="rounded-full bg-destructive px-2 py-0.5 text-[11px] font-bold text-destructive-foreground">
+                  {unread} جديد
+                </span>
+              )}
+            </h2>
+            <div className="space-y-2">
+              {notifications.map((n) => (
+                <div
+                  key={n.id}
+                  className={`flex items-start gap-3 rounded-xl border p-3 ${
+                    !n.read_at && !n.is_read ? "border-accent/40 bg-accent-soft/30" : "border-border bg-muted/30"
+                  }`}
+                >
+                  <div className="rounded-full bg-accent/15 p-1.5 mt-0.5">
+                    <Bell className="h-3.5 w-3.5 text-accent" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-primary">{n.title || "إشعار"}</div>
+                    {n.body && <div className="text-xs text-muted-foreground mt-0.5">{n.body}</div>}
+                    <div className="text-[11px] text-muted-foreground/70 mt-1">{formatDateShort(n.created_at)}</div>
+                  </div>
+                </div>
+              ))}
+            </div>
           </Card>
         )}
 
         {/* Top stats */}
         {app && (
-          <div className="grid gap-3 sm:grid-cols-3 mb-6">
-            <StatCard icon={Users} value={app.family_size} label={t("dashboard.family_count")} accent="accent" />
-            <StatCard icon={PackageCheck} value={aidCount} label={t("dashboard.aids_received")} accent="success" />
-            <StatCard
-              icon={MapPin}
-              value={app.original_residence || "—"}
-              label={t("residence.original_residence")}
-              accent="primary"
-              small
-            />
+          <div className="grid gap-3 sm:grid-cols-3">
+            <StatCard icon={Users} value={app.family_size ?? "—"} label={t("dashboard.family_count")} tone="accent" />
+            <StatCard icon={PackageCheck} value={aids.length} label={t("dashboard.aids_received")} tone="success" />
+            <StatCard icon={MapPin} value={app.current_camp || "—"} label={t("residence.current_camp")} tone="primary" small />
           </div>
         )}
 
-        {/* Action grid */}
-        <div className="grid gap-4 md:grid-cols-2 mb-6">
-          <ActionCard
-            icon={FileText}
-            title={t("dashboard.action_app_title")}
-            subtitle={app ? t("dashboard.action_app_view_subtitle") : t("dashboard.action_app_new_subtitle")}
-            to="/my-application"
-            cta={app ? t("my_app.edit") : t("my_app.submit_now")}
-            Arrow={Arrow}
-            tone="primary"
-          />
-          <ActionCard
-            icon={PackageCheck}
-            title={t("dashboard.action_aid_title")}
-            subtitle={
-              latestAid
-                ? `${t("aid.last_received")}: ${latestAid.title}`
-                : t("aid.empty_user")
-            }
-            to="/my-aid"
-            cta={t("aid.show_all")}
-            Arrow={Arrow}
-            tone="accent"
-            disabled={!app}
-          />
-          <ActionCard
-            icon={Download}
-            title={t("dashboard.action_pdf_title")}
-            subtitle={t("dashboard.action_pdf_subtitle")}
-            onClick={handleDownloadPdf}
-            cta={t("dashboard.action_pdf_cta")}
-            Arrow={Download}
-            tone="gold"
-            disabled={!app}
-          />
-          <ActionCard
-            icon={MessageCircle}
-            title={t("dashboard.action_contact_title")}
-            subtitle={t("dashboard.action_contact_subtitle")}
-            to="/contact"
-            cta={t("dashboard.action_contact_cta")}
-            Arrow={Arrow}
-            tone="success"
-          />
-        </div>
+        {/* No application prompt */}
+        {!app && (
+          <Card className="p-6 border-warning/40 bg-warning/5 text-center">
+            <FileText className="h-10 w-10 text-warning-foreground mx-auto mb-2" />
+            <h2 className="text-lg font-bold text-primary mb-1">{t("dashboard.no_app_title")}</h2>
+            <p className="text-sm text-muted-foreground mb-3">{t("dashboard.no_app_subtitle")}</p>
+            <Link to="/my-application" className="text-accent font-bold underline underline-offset-4">
+              {t("my_app.submit_now")}
+            </Link>
+          </Card>
+        )}
 
-        {/* Quick contact strip */}
+        {/* Head of family — editable */}
+        <SectionCard icon={UserCog} title="بيانات رب الأسرة" hint="اضغط على أي قيمة لتعديلها مباشرة">
+          <FieldRow icon={UserCog} label="الاسم الكامل">
+            <InlineEdit value={profile?.full_name} onSave={saveProfile("full_name")} />
+          </FieldRow>
+          <FieldRow icon={IdCard} label="رقم الهوية">
+            <InlineEdit value={profile?.national_id} numeric maxLength={9} dir="ltr" onSave={saveProfile("national_id")} />
+          </FieldRow>
+          <FieldRow icon={Phone} label="رقم الجوال">
+            <InlineEdit value={profile?.phone} type="tel" numeric dir="ltr" onSave={saveProfile("phone")} />
+          </FieldRow>
+          <FieldRow icon={Phone} label="جوال بديل">
+            <InlineEdit value={profile?.alt_phone} type="tel" numeric dir="ltr" onSave={saveProfile("alt_phone")} />
+          </FieldRow>
+          <FieldRow icon={CalendarDays} label="تاريخ الميلاد">
+            <InlineEdit value={profile?.birth_date} type="date" dir="ltr"
+              display={(v) => formatBirthDate(v)} onSave={saveProfile("birth_date")} />
+          </FieldRow>
+          <FieldRow icon={Users} label="الجنس">
+            <InlineEdit value={profile?.gender} type="select" options={GENDERS} onSave={saveProfile("gender")} />
+          </FieldRow>
+          <FieldRow icon={Users} label="الحالة الاجتماعية">
+            <InlineEdit value={profile?.marital_status} type="select" options={MARITAL} onSave={saveProfile("marital_status")} />
+          </FieldRow>
+          <FieldRow icon={HeartPulse} label="أمراض مزمنة">
+            <InlineEdit value={profile?.chronic_diseases} onSave={saveProfile("chronic_diseases")} />
+          </FieldRow>
+        </SectionCard>
+
+        {/* Residence & family — editable */}
+        {app && (
+          <SectionCard icon={Home} title="السكن والأسرة">
+            <FieldRow icon={MapPin} label="السكن الأصلي">
+              <InlineEdit value={app.original_residence} onSave={saveApp("original_residence")} />
+            </FieldRow>
+            <FieldRow icon={MapPin} label="أقرب معلم (الأصلي)">
+              <InlineEdit value={app.original_landmark} onSave={saveApp("original_landmark")} />
+            </FieldRow>
+            <FieldRow icon={Home} label="المخيم / مكان الإيواء">
+              <InlineEdit value={app.current_camp} onSave={saveApp("current_camp")} />
+            </FieldRow>
+            <FieldRow icon={MapPin} label="المعلم الحالي">
+              <InlineEdit value={app.current_landmark} onSave={saveApp("current_landmark")} />
+            </FieldRow>
+            <FieldRow icon={Users} label="عدد الأفراد">
+              <InlineEdit value={app.family_size} type="number" numeric dir="ltr" onSave={saveApp("family_size")} />
+            </FieldRow>
+          </SectionCard>
+        )}
+
+        {/* Family members — editable */}
+        {app && (
+          <SectionCard icon={Users} title={`أفراد الأسرة (${members.length})`}>
+            {members.length === 0 && <p className="text-sm text-muted-foreground px-1">لا يوجد أفراد مسجلون.</p>}
+            <div className="space-y-3">
+              {members.map((m, i) => (
+                <div key={m.id} className="rounded-xl border border-accent/20 bg-accent-soft/20 p-3">
+                  <div className="text-xs font-bold text-accent mb-2">فرد رقم {i + 1}</div>
+                  <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
+                    <FieldRow icon={UserCog} label="الاسم">
+                      <InlineEdit value={m.full_name} onSave={saveMember(m.id, "full_name")} />
+                    </FieldRow>
+                    <FieldRow icon={IdCard} label="رقم الهوية">
+                      <InlineEdit value={m.national_id} numeric maxLength={9} dir="ltr" onSave={saveMember(m.id, "national_id")} />
+                    </FieldRow>
+                    <FieldRow icon={CalendarDays} label="تاريخ الميلاد">
+                      <InlineEdit value={m.birth_date} type="date" dir="ltr"
+                        display={(v) => formatBirthDate(v)} onSave={saveMember(m.id, "birth_date")} />
+                    </FieldRow>
+                    <FieldRow icon={Users} label="الجنس">
+                      <InlineEdit value={m.gender} type="select" options={GENDERS} onSave={saveMember(m.id, "gender")} />
+                    </FieldRow>
+                    <FieldRow icon={Users} label="صلة القرابة">
+                      <InlineEdit value={m.relationship} type="select" options={RELATIONS} onSave={saveMember(m.id, "relationship")} />
+                    </FieldRow>
+                  </div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* Last aids */}
+        {app && (
+          <SectionCard icon={PackageCheck} title="آخر المساعدات المستلمة">
+            {aids.length === 0 && <p className="text-sm text-muted-foreground px-1">{t("aid.empty_user")}</p>}
+            <div className="space-y-2">
+              {aids.slice(0, 5).map((aid) => (
+                <div key={aid.id} className="flex items-center gap-3 rounded-xl border border-success/25 bg-success/5 p-3">
+                  <div className="rounded-full bg-success/15 p-2"><PackageCheck className="h-4 w-4 text-success" /></div>
+                  <div className="min-w-0 flex-1">
+                    <div className="text-sm font-bold text-primary truncate">{aid.title || "مساعدة"}</div>
+                    {aid.notes && <div className="text-xs text-muted-foreground truncate">{aid.notes}</div>}
+                  </div>
+                  <div className="text-xs text-muted-foreground shrink-0">{formatDateShort(aid.delivered_at)}</div>
+                </div>
+              ))}
+            </div>
+          </SectionCard>
+        )}
+
+        {/* Quick contact */}
         <Card className="p-5 shadow-card border-accent/20">
           <h2 className="font-bold text-primary mb-3 inline-flex items-center gap-2">
             <Phone className="h-4 w-4 text-accent" /> {t("contact.quick_title")}
           </h2>
           <div className="grid gap-3 md:grid-cols-2">
-            <a
-              href={waLink(ADMIN_WHATSAPP, t("contact.prefill_admin"))}
-              target="_blank" rel="noreferrer"
-              className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft/30 p-3 hover:bg-accent-soft transition-colors"
-            >
+            <a href={waLink(ADMIN_WHATSAPP, t("contact.prefill_admin"))} target="_blank" rel="noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-accent/30 bg-accent-soft/30 p-3 hover:bg-accent-soft transition-colors">
               <div className="rounded-full bg-accent/20 p-2"><ShieldCheck className="h-4 w-4 text-accent" /></div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold text-primary">{t("contact.admin_label")}</div>
@@ -207,11 +333,8 @@ const Dashboard = () => {
               </div>
               <MessageCircle className="h-4 w-4 text-success" />
             </a>
-            <a
-              href={waLink(SUPPORT_WHATSAPP, t("contact.prefill_support"))}
-              target="_blank" rel="noreferrer"
-              className="flex items-center gap-3 rounded-xl border border-success/30 bg-success/5 p-3 hover:bg-success/10 transition-colors"
-            >
+            <a href={waLink(SUPPORT_WHATSAPP, t("contact.prefill_support"))} target="_blank" rel="noreferrer"
+              className="flex items-center gap-3 rounded-xl border border-success/30 bg-success/5 p-3 hover:bg-success/10 transition-colors">
               <div className="rounded-full bg-success/15 p-2"><HelpCircle className="h-4 w-4 text-success" /></div>
               <div className="min-w-0 flex-1">
                 <div className="text-xs font-bold text-primary">{t("contact.support_label")}</div>
@@ -226,51 +349,38 @@ const Dashboard = () => {
   );
 };
 
-const StatCard = ({ icon: Icon, value, label, accent, small }: any) => (
-  <Card className="p-4 shadow-card flex items-center gap-3">
-    <div className={`rounded-full p-2.5 ${accent === "accent" ? "bg-accent/15 text-accent" : accent === "success" ? "bg-success/15 text-success" : "bg-primary/10 text-primary"}`}>
+const StatCard = ({ icon: Icon, value, label, tone, small }: any) => (
+  <Card className="p-4 shadow-card flex items-center gap-3 border-accent/15">
+    <div className={`rounded-full p-2.5 ${tone === "accent" ? "bg-accent/15 text-accent" : tone === "success" ? "bg-success/15 text-success" : "bg-primary/10 text-primary"}`}>
       <Icon className="h-5 w-5" />
     </div>
     <div className="min-w-0">
-      <div className={`font-extrabold text-primary ${small ? "text-base truncate" : "text-2xl"}`}>{value}</div>
+      <div className={`font-extrabold text-primary ${small ? "text-base truncate" : "text-2xl tabular-nums"}`}>{value}</div>
       <div className="text-xs text-muted-foreground">{label}</div>
     </div>
   </Card>
 );
 
-const ActionCard = ({ icon: Icon, title, subtitle, to, onClick, cta, Arrow, tone, disabled }: any) => {
-  const toneCls =
-    tone === "primary" ? "brand-gradient text-primary-foreground" :
-    tone === "gold" ? "gold-gradient text-accent-foreground shadow-gold" :
-    tone === "success" ? "bg-success text-white hover:bg-success/90" :
-    "bg-accent text-accent-foreground hover:bg-accent/90";
-  const inner = (
-    <Card className={`p-5 shadow-card hover:shadow-elegant transition-all border-accent/20 h-full flex flex-col ${disabled ? "opacity-60" : ""}`}>
-      <div className="flex items-start gap-3 mb-3">
-        <div className="rounded-xl bg-accent/10 text-accent p-2.5">
-          <Icon className="h-5 w-5" />
-        </div>
-        <div className="min-w-0 flex-1">
-          <div className="font-bold text-primary">{title}</div>
-          <div className="text-xs text-muted-foreground mt-0.5 line-clamp-2">{subtitle}</div>
-        </div>
-      </div>
-      <div className="mt-auto pt-2">
-        <Button
-          type="button"
-          disabled={disabled}
-          onClick={onClick}
-          className={`w-full gap-2 ${toneCls}`}
-        >
-          {cta} <Arrow className="h-4 w-4" />
-        </Button>
-      </div>
-    </Card>
-  );
-  if (to && !onClick) {
-    return disabled ? <div>{inner}</div> : <Link to={to}>{inner}</Link>;
-  }
-  return <div>{inner}</div>;
-};
+const SectionCard = ({ icon: Icon, title, hint, children }: any) => (
+  <Card className="p-5 shadow-card border-accent/20">
+    <div className="mb-3 flex items-center justify-between gap-2">
+      <h2 className="font-bold text-primary inline-flex items-center gap-2">
+        <span className="rounded-lg bg-accent/10 p-1.5"><Icon className="h-4 w-4 text-accent" /></span>
+        {title}
+      </h2>
+      {hint && <span className="hidden sm:inline text-[11px] text-muted-foreground">{hint}</span>}
+    </div>
+    <div className="divide-y divide-border/60">{children}</div>
+  </Card>
+);
+
+const FieldRow = ({ icon: Icon, label, children }: any) => (
+  <div className="flex items-center justify-between gap-3 py-1.5">
+    <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground min-w-[7.5rem]">
+      {Icon && <Icon className="h-3.5 w-3.5 text-accent/70" />} {label}
+    </span>
+    <div className="min-w-0 flex-1 max-w-[60%]">{children}</div>
+  </div>
+);
 
 export default Dashboard;
