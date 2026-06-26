@@ -72,7 +72,7 @@ const Dashboard = () => {
 
   // ---- Direct save helpers (instant persistence) ----
   const saveProfile = (key: string) => async (val: any) => {
-    const { error } = await supabase.from("profiles").update({ [key]: val }).eq("id", user!.id);
+    const { error } = await supabase.from("profiles").update({ [key]: val } as any).eq("id", user!.id);
     if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
     setProfile((p: any) => ({ ...p, [key]: val }));
     toast.success("تم الحفظ");
@@ -80,14 +80,14 @@ const Dashboard = () => {
   };
   const saveApp = (key: string) => async (val: any) => {
     if (!app) return false;
-    const { error } = await supabase.from("applications").update({ [key]: val }).eq("id", app.id);
+    const { error } = await supabase.from("applications").update({ [key]: val } as any).eq("id", app.id);
     if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
     setApp((a: any) => ({ ...a, [key]: val }));
     toast.success("تم الحفظ");
     return true;
   };
   const saveMember = (id: string, key: string) => async (val: any) => {
-    const { error } = await supabase.from("family_members").update({ [key]: val }).eq("id", id);
+    const { error } = await supabase.from("family_members").update({ [key]: val } as any).eq("id", id);
     if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
     setMembers((ms) => ms.map((m) => (m.id === id ? { ...m, [key]: val } : m)));
     toast.success("تم الحفظ");
