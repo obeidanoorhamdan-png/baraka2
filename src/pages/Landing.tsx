@@ -4,7 +4,10 @@ import { ArrowLeft, ArrowRight, MapPin, Phone, Compass, ShieldCheck } from "luci
 import { Layout } from "@/components/Layout";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { NewsStrip } from "@/components/NewsStrip";
+import { AnnouncementPopup } from "@/components/AnnouncementPopup";
 import logo from "@/assets/baraka-logo.jpg";
+import bannerAsset from "@/assets/baraka-banner.jpg.asset.json";
 
 const Landing = () => {
   const { t, i18n } = useTranslation();
@@ -13,9 +16,18 @@ const Landing = () => {
 
   return (
     <Layout>
+      <AnnouncementPopup />
       <section className="relative overflow-hidden">
-        <div className="absolute inset-0 brand-gradient opacity-95" />
+        <div
+          className="absolute inset-0 bg-cover bg-center"
+          style={{ backgroundImage: `url(${bannerAsset.url})` }}
+        />
+        <div
+          className="absolute inset-0"
+          style={{ background: "linear-gradient(to left, hsl(220 50% 18% / 0.93) 0%, hsl(220 50% 18% / 0.86) 42%, hsl(220 50% 18% / 0.5) 100%)" }}
+        />
         <div className="absolute inset-0 bg-[radial-gradient(circle_at_30%_20%,hsl(var(--accent)/0.18),transparent_50%)]" />
+
         <div className="container relative py-16 md:py-24 grid gap-10 md:grid-cols-2 items-center">
           <div className="text-primary-foreground space-y-5">
             <div className="inline-flex items-center gap-2 rounded-full bg-accent/15 border border-accent/30 px-3 py-1 text-xs text-accent">
@@ -43,6 +55,10 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      <NewsStrip />
+
+
 
       <section className="container py-12 md:py-16">
         <h2 className="text-2xl md:text-3xl text-primary mb-6 text-center">{t("landing.details_title")}</h2>
