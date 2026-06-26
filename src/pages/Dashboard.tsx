@@ -440,12 +440,17 @@ const StatCard = ({ icon: Icon, value, label, tone, small }: any) => (
   </Card>
 );
 
-const SectionCard = ({ icon: Icon, title, hint, children }: any) => (
-  <Card className="p-5 shadow-card border-accent/20">
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <h2 className="font-bold text-primary inline-flex items-center gap-2">
-        <span className="rounded-lg bg-accent/10 p-1.5"><Icon className="h-4 w-4 text-accent" /></span>
-        {title}
+const SectionCard = ({ icon: Icon, title, hint, badge, children }: any) => (
+  <Card className="p-4 sm:p-5 shadow-card border-accent/20">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h2 className="font-bold text-primary inline-flex items-center gap-2 min-w-0">
+        <span className="rounded-lg bg-accent/10 p-1.5 shrink-0"><Icon className="h-4 w-4 text-accent" /></span>
+        <span className="truncate">{title}</span>
+        {badge && (
+          <span className="shrink-0 rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-bold text-accent border border-accent/30">
+            {badge}
+          </span>
+        )}
       </h2>
       {hint && <span className="hidden sm:inline text-[11px] text-muted-foreground">{hint}</span>}
     </div>
@@ -454,11 +459,11 @@ const SectionCard = ({ icon: Icon, title, hint, children }: any) => (
 );
 
 const FieldRow = ({ icon: Icon, label, children }: any) => (
-  <div className="flex items-center justify-between gap-3 py-1.5">
-    <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground min-w-[7.5rem]">
+  <div className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-1.5">
+    <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground sm:min-w-[7.5rem]">
       {Icon && <Icon className="h-3.5 w-3.5 text-accent/70" />} {label}
     </span>
-    <div className="min-w-0 flex-1 max-w-[60%]">{children}</div>
+    <div className="min-w-0 w-full sm:flex-1 sm:max-w-[60%]">{children}</div>
   </div>
 );
 
