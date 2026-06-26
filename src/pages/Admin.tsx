@@ -326,6 +326,38 @@ const Admin = () => {
     load();
   };
 
+  // حذف الأسرة المرفوضة نهائياً من قاعدة البيانات (الحساب + الطلب + الأفراد)
+  const deleteFamily = async (r: Row) => {
+    const p = profiles[r.user_id] || {};
+    if (!p.national_id || !p.phone) {
+      toast.error("لا يمكن الحذف: بيانات رب الأسرة غير مكتملة (الهوية/الجوال)");
+      return;
+    }
+    if (!(await confirmAsk({
+      title: "حذف الأسرة نهائياً",
+      description: `سيتم حذف أسرة «${p.full_name || p.national_id}» وجميع بياناتها (رب الأسرة، الطلب، الأفراد) نهائياً من قاعدة البيانات. لا يمكن التراجع.`,
+      confirmText: "حذف نهائي",
+      variant: "danger",
+    }))) return;
+    const { data, error } = await supabase.functions.invoke("forget-account", {
+      body: { national_id: p.national_id, phone: p.phone },
+    });
+    if (error || !(data as any)?.ok) {
+      toast.error((data as any)?.error || error?.message || t("toast.error"));
+      return;
+    }
+    await supabase.rpc("log_admin_action", {
+      _action: "delete_family_permanent",
+      _target_type: "application",
+      _target_id: r.id,
+      _target_label: p.full_name || p.national_id,
+      _details: { national_id: p.national_id, status: r.status },
+    });
+    toast.success("تم حذف الأسرة نهائياً");
+    if (selected?.id === r.id) setSelected(null);
+    load();
+  };
+
   // اعتماد الأسرة نهائياً ضمن قائمة اعتماد المخيم أو إلغاء اعتمادها
   const toggleRoster = async (r: Row) => {
     const p = profiles[r.user_id] || {};
