@@ -4,10 +4,11 @@ import { useTranslation } from "react-i18next";
 import {
   Home, FileText, PackageCheck, MessageCircle, ShieldCheck, HelpCircle, Phone,
   Users, CheckCircle2, Clock, XCircle, UserCog, MapPin, HeartPulse, Bell,
-  CalendarDays, IdCard, Sparkles,
+  CalendarDays, IdCard, Sparkles, Plus, Trash2, Crown, Tent, Navigation,
 } from "lucide-react";
 import { Layout } from "@/components/Layout";
 import { Card } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
@@ -94,6 +95,41 @@ const Dashboard = () => {
     return true;
   };
 
+  // ---- Add / remove family members ----
+  const addMember = async () => {
+    if (!app) return;
+    const { data, error } = await supabase
+      .from("family_members")
+      .insert({
+        application_id: app.id,
+        full_name: "",
+        birth_date: new Date().toISOString().slice(0, 10),
+        gender: "male",
+        relationship: "son",
+      } as any)
+      .select()
+      .single();
+    if (error) { toast.error(error.message || "تعذّر إضافة فرد"); return; }
+    setMembers((ms) => [...ms, data]);
+    const newSize = (members.filter((m) => !m.is_head).length + 1) + 1; // members + new + head
+    await supabase.from("applications").update({ family_size: newSize } as any).eq("id", app.id);
+    setApp((a: any) => ({ ...a, family_size: newSize }));
+    toast.success("تمت إضافة فرد جديد — يمكنك تعبئة بياناته الآن");
+  };
+
+  const removeMember = async (id: string) => {
+    const { error } = await supabase.from("family_members").delete().eq("id", id);
+    if (error) { toast.error(error.message || "تعذّر الحذف"); return; }
+    const remaining = members.filter((m) => m.id !== id);
+    setMembers(remaining);
+    if (app) {
+      const newSize = Math.max(1, remaining.filter((m) => !m.is_head).length + 1);
+      await supabase.from("applications").update({ family_size: newSize } as any).eq("id", app.id);
+      setApp((a: any) => ({ ...a, family_size: newSize }));
+    }
+    toast.success("تم حذف الفرد");
+  };
+
   if (pageLoading) {
     return <Layout><div className="container py-20 text-center text-muted-foreground">جارٍ التحميل…</div></Layout>;
   }
@@ -123,10 +159,11 @@ const Dashboard = () => {
   };
 
   const unread = notifications.filter((n) => !n.read_at && !n.is_read).length;
+  const visibleMembers = members.filter((m) => !m.is_head);
 
   return (
     <Layout>
-      <section className="container py-8 max-w-4xl space-y-6">
+      <section className="container py-6 sm:py-8 max-w-4xl space-y-5 sm:space-y-6">
         {/* Hero greeting — warm sand */}
         <Card className="overflow-hidden border-accent/30 shadow-elegant">
           <div className="bg-gradient-to-bl from-accent-soft via-secondary to-background p-6 md:p-8">
@@ -217,8 +254,9 @@ const Dashboard = () => {
           </Card>
         )}
 
-        {/* Head of family — editable */}
-        <SectionCard icon={UserCog} title="بيانات رب الأسرة" hint="اضغط على أي قيمة لتعديلها مباشرة">
+        {/* Head of family — editable (he is one of the family members, marked as head) */}
+        <SectionCard icon={Crown} title="بيانات رب الأسرة" badge="رب الأسرة"
+          hint="اضغط على أي قيمة لتعديلها مباشرة">
           <FieldRow icon={UserCog} label="الاسم الكامل">
             <InlineEdit value={profile?.full_name} onSave={saveProfile("full_name")} />
           </FieldRow>
@@ -246,35 +284,72 @@ const Dashboard = () => {
           </FieldRow>
         </SectionCard>
 
-        {/* Residence & family — editable */}
+        {/* Residence — redesigned: original vs current */}
         {app && (
-          <SectionCard icon={Home} title="السكن والأسرة">
-            <FieldRow icon={MapPin} label="السكن الأصلي">
-              <InlineEdit value={app.original_residence} onSave={saveApp("original_residence")} />
-            </FieldRow>
-            <FieldRow icon={MapPin} label="أقرب معلم (الأصلي)">
-              <InlineEdit value={app.original_landmark} onSave={saveApp("original_landmark")} />
-            </FieldRow>
-            <FieldRow icon={Home} label="المخيم / مكان الإيواء">
-              <InlineEdit value={app.current_camp} onSave={saveApp("current_camp")} />
-            </FieldRow>
-            <FieldRow icon={MapPin} label="المعلم الحالي">
-              <InlineEdit value={app.current_landmark} onSave={saveApp("current_landmark")} />
-            </FieldRow>
-            <FieldRow icon={Users} label="عدد الأفراد">
-              <InlineEdit value={app.family_size} type="number" numeric dir="ltr" onSave={saveApp("family_size")} />
-            </FieldRow>
+          <SectionCard icon={MapPin} title="بيانات السكن">
+            <div className="grid gap-4 md:grid-cols-2">
+              {/* Original residence */}
+              <div className="rounded-2xl border border-primary/15 bg-primary/[0.04] p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-primary">
+                  <span className="rounded-lg bg-primary/10 p-1.5"><Home className="h-4 w-4 text-primary" /></span>
+                  السكن الأصلي
+                </div>
+                <div className="divide-y divide-border/50">
+                  <FieldRow icon={MapPin} label="مكان السكن">
+                    <InlineEdit value={app.original_residence} onSave={saveApp("original_residence")} />
+                  </FieldRow>
+                  <FieldRow icon={Navigation} label="أقرب معلم">
+                    <InlineEdit value={app.original_landmark} onSave={saveApp("original_landmark")} />
+                  </FieldRow>
+                </div>
+              </div>
+              {/* Current shelter */}
+              <div className="rounded-2xl border border-accent/25 bg-accent-soft/25 p-4">
+                <div className="mb-3 flex items-center gap-2 text-sm font-bold text-accent-foreground">
+                  <span className="rounded-lg bg-accent/15 p-1.5"><Tent className="h-4 w-4 text-accent" /></span>
+                  السكن الحالي / الإيواء
+                </div>
+                <div className="divide-y divide-border/50">
+                  <FieldRow icon={Tent} label="المخيم / الإيواء">
+                    <InlineEdit value={app.current_camp} onSave={saveApp("current_camp")} />
+                  </FieldRow>
+                  <FieldRow icon={Navigation} label="أقرب معلم">
+                    <InlineEdit value={app.current_landmark} onSave={saveApp("current_landmark")} />
+                  </FieldRow>
+                </div>
+              </div>
+            </div>
+            <div className="mt-4 flex items-center justify-between rounded-xl bg-muted/40 px-4 py-2.5">
+              <span className="flex items-center gap-2 text-sm font-bold text-primary">
+                <Users className="h-4 w-4 text-accent" /> إجمالي عدد الأفراد
+              </span>
+              <span className="text-base font-extrabold text-accent tabular-nums">
+                {visibleMembers.length + 1}
+              </span>
+            </div>
           </SectionCard>
         )}
 
-        {/* Family members — editable */}
+        {/* Family members — editable, head excluded (shown above) */}
         {app && (
-          <SectionCard icon={Users} title={`أفراد الأسرة (${members.length})`}>
-            {members.length === 0 && <p className="text-sm text-muted-foreground px-1">لا يوجد أفراد مسجلون.</p>}
+          <SectionCard icon={Users} title={`أفراد الأسرة (${visibleMembers.length})`}>
+            <p className="mb-3 text-xs text-muted-foreground">
+              لا يظهر رب الأسرة هنا لأنه مُسجَّل في الأعلى كرب أسرة — لتجنّب التكرار.
+            </p>
+            {visibleMembers.length === 0 && (
+              <p className="text-sm text-muted-foreground px-1 mb-3">لا يوجد أفراد إضافيون مسجلون بعد.</p>
+            )}
             <div className="space-y-3">
-              {members.map((m, i) => (
+              {visibleMembers.map((m, i) => (
                 <div key={m.id} className="rounded-xl border border-accent/20 bg-accent-soft/20 p-3">
-                  <div className="text-xs font-bold text-accent mb-2">فرد رقم {i + 1}</div>
+                  <div className="mb-2 flex items-center justify-between gap-2">
+                    <div className="text-xs font-bold text-accent">فرد رقم {i + 1}</div>
+                    <Button variant="ghost" size="sm"
+                      className="h-7 gap-1 px-2 text-destructive hover:bg-destructive/10 hover:text-destructive"
+                      onClick={() => removeMember(m.id)}>
+                      <Trash2 className="h-3.5 w-3.5" /> حذف
+                    </Button>
+                  </div>
                   <div className="grid gap-x-4 gap-y-1 sm:grid-cols-2">
                     <FieldRow icon={UserCog} label="الاسم">
                       <InlineEdit value={m.full_name} onSave={saveMember(m.id, "full_name")} />
@@ -296,6 +371,10 @@ const Dashboard = () => {
                 </div>
               ))}
             </div>
+            <Button onClick={addMember} variant="outline"
+              className="mt-4 w-full gap-2 border-dashed border-accent/40 text-accent hover:bg-accent-soft hover:text-accent">
+              <Plus className="h-4 w-4" /> إضافة فرد جديد
+            </Button>
           </SectionCard>
         )}
 
@@ -361,12 +440,17 @@ const StatCard = ({ icon: Icon, value, label, tone, small }: any) => (
   </Card>
 );
 
-const SectionCard = ({ icon: Icon, title, hint, children }: any) => (
-  <Card className="p-5 shadow-card border-accent/20">
-    <div className="mb-3 flex items-center justify-between gap-2">
-      <h2 className="font-bold text-primary inline-flex items-center gap-2">
-        <span className="rounded-lg bg-accent/10 p-1.5"><Icon className="h-4 w-4 text-accent" /></span>
-        {title}
+const SectionCard = ({ icon: Icon, title, hint, badge, children }: any) => (
+  <Card className="p-4 sm:p-5 shadow-card border-accent/20">
+    <div className="mb-3 flex flex-wrap items-center justify-between gap-2">
+      <h2 className="font-bold text-primary inline-flex items-center gap-2 min-w-0">
+        <span className="rounded-lg bg-accent/10 p-1.5 shrink-0"><Icon className="h-4 w-4 text-accent" /></span>
+        <span className="truncate">{title}</span>
+        {badge && (
+          <span className="shrink-0 rounded-full bg-accent/15 px-2.5 py-0.5 text-[11px] font-bold text-accent border border-accent/30">
+            {badge}
+          </span>
+        )}
       </h2>
       {hint && <span className="hidden sm:inline text-[11px] text-muted-foreground">{hint}</span>}
     </div>
@@ -375,11 +459,11 @@ const SectionCard = ({ icon: Icon, title, hint, children }: any) => (
 );
 
 const FieldRow = ({ icon: Icon, label, children }: any) => (
-  <div className="flex items-center justify-between gap-3 py-1.5">
-    <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground min-w-[7.5rem]">
+  <div className="flex flex-col gap-1 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-3 sm:py-1.5">
+    <span className="flex shrink-0 items-center gap-2 text-sm text-muted-foreground sm:min-w-[7.5rem]">
       {Icon && <Icon className="h-3.5 w-3.5 text-accent/70" />} {label}
     </span>
-    <div className="min-w-0 flex-1 max-w-[60%]">{children}</div>
+    <div className="min-w-0 w-full sm:flex-1 sm:max-w-[60%]">{children}</div>
   </div>
 );
 
