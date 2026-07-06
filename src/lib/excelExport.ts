@@ -824,7 +824,7 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
         });
         if (!ok) continue;
       }
-      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head }))]);
+      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head, spouse }))]);
     }
   }
   return { headers, rows };
