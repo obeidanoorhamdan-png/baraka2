@@ -808,6 +808,7 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
     const head = profiles.find((p) => p.id === app.user_id);
     if (!head) continue;
     const fam = members.filter((m) => m.application_id === app.id);
+    const spouse = findSpouse(app.id, members);
     for (const m of fam) {
       const age = calcAge(m.birth_date);
       if (f.ageMin != null && (typeof age !== "number" || age < f.ageMin)) continue;
