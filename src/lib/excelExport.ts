@@ -486,7 +486,33 @@ export interface ColDef {
 }
 
 type FamilyCtx = { app: Application; head: Profile; spouse: FamilyMember | null; fam: FamilyMember[] };
-type MemberCtx = { m: FamilyMember; app: Application; head: Profile };
+type MemberCtx = { m: FamilyMember; app: Application; head: Profile; spouse?: FamilyMember | null };
+
+/** اسم المخيم دائماً بالعربية الكاملة "بركة 2". */
+const campAr = (c?: string | null): string => {
+  if (!c) return "بركة 2";
+  const s = String(c).trim().toLowerCase();
+  if (s.includes("baraka") || s.includes("بركة") || s === "2") return "بركة 2";
+  return c;
+};
+
+/** الحالة الصحية مجمّعة في نص واحد واضح. */
+function healthStatus(p: {
+  is_war_injured?: boolean | null;
+  chronic_diseases?: string | null;
+  is_special_needs?: boolean | null;
+  is_pregnant?: boolean | null;
+  is_breastfeeding?: boolean | null;
+}): string {
+  const parts: string[] = [];
+  if (p.is_war_injured) parts.push("مصاب حرب");
+  if (p.chronic_diseases && String(p.chronic_diseases).trim() !== "")
+    parts.push(`مرض مزمن: ${p.chronic_diseases}`);
+  if (p.is_special_needs) parts.push("ذوي همم");
+  if (p.is_pregnant) parts.push("حامل");
+  if (p.is_breastfeeding) parts.push("مرضعة");
+  return parts.length ? parts.join("، ") : "سليم";
+}
 
 const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   head_name: (c) => v(c.head.full_name),
