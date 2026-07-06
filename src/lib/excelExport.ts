@@ -634,6 +634,14 @@ export const MEMBER_COLS: ColDef[] = [
   { key: "head_phone", label: "جوال المعيل" },
   { key: "current_camp", label: "المخيم/مكان الإيواء" },
   { key: "current_landmark", label: "المعلم الحالي" },
+  { key: "health_status", label: "الحالة الصحية" },
+  { key: "father_name", label: "اسم الأب" },
+  { key: "father_nid", label: "رقم هوية الأب" },
+  { key: "contact_phone", label: "رقم التواصل" },
+  { key: "contact_alt_phone", label: "رقم التواصل البديل" },
+  { key: "original_residence", label: "مكان السكن الأصلي" },
+  { key: "current_residence", label: "مكان السكن الحالي" },
+  { key: "camp_name", label: "اسم المخيم" },
 ];
 
 const STATUS_AR: Record<string, string> = {
