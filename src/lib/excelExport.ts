@@ -486,7 +486,33 @@ export interface ColDef {
 }
 
 type FamilyCtx = { app: Application; head: Profile; spouse: FamilyMember | null; fam: FamilyMember[] };
-type MemberCtx = { m: FamilyMember; app: Application; head: Profile };
+type MemberCtx = { m: FamilyMember; app: Application; head: Profile; spouse?: FamilyMember | null };
+
+/** اسم المخيم دائماً بالعربية الكاملة "بركة 2". */
+const campAr = (c?: string | null): string => {
+  if (!c) return "بركة 2";
+  const s = String(c).trim().toLowerCase();
+  if (s.includes("baraka") || s.includes("بركة") || s === "2") return "بركة 2";
+  return c;
+};
+
+/** الحالة الصحية مجمّعة في نص واحد واضح. */
+function healthStatus(p: {
+  is_war_injured?: boolean | null;
+  chronic_diseases?: string | null;
+  is_special_needs?: boolean | null;
+  is_pregnant?: boolean | null;
+  is_breastfeeding?: boolean | null;
+}): string {
+  const parts: string[] = [];
+  if (p.is_war_injured) parts.push("مصاب حرب");
+  if (p.chronic_diseases && String(p.chronic_diseases).trim() !== "")
+    parts.push(`مرض مزمن: ${p.chronic_diseases}`);
+  if (p.is_special_needs) parts.push("ذوي همم");
+  if (p.is_pregnant) parts.push("حامل");
+  if (p.is_breastfeeding) parts.push("مرضعة");
+  return parts.length ? parts.join("، ") : "سليم";
+}
 
 const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   head_name: (c) => v(c.head.full_name),
@@ -572,6 +598,21 @@ const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
   head_phone: (c) => v(c.head.phone),
   current_camp: (c) => v(c.app.current_camp),
   current_landmark: (c) => v(c.app.current_landmark),
+  // ---- أعمدة تقرير الأفراد ----
+  health_status: (c) => healthStatus(c.m),
+  father_name: (c) => {
+    const father = c.head.gender === "male" ? c.head : c.spouse;
+    return father ? v((father as any).full_name) : NA;
+  },
+  father_nid: (c) => {
+    const father = c.head.gender === "male" ? c.head : c.spouse;
+    return father ? v((father as any).national_id) : NA;
+  },
+  contact_phone: (c) => v(c.head.phone),
+  contact_alt_phone: (c) => v(c.head.alt_phone),
+  original_residence: (c) => v(c.app.original_residence),
+  current_residence: (c) => campAr(c.app.current_camp),
+  camp_name: () => "بركة 2",
 };
 
 export const MEMBER_COLS: ColDef[] = [
@@ -593,6 +634,14 @@ export const MEMBER_COLS: ColDef[] = [
   { key: "head_phone", label: "جوال المعيل" },
   { key: "current_camp", label: "المخيم/مكان الإيواء" },
   { key: "current_landmark", label: "المعلم الحالي" },
+  { key: "health_status", label: "الحالة الصحية" },
+  { key: "father_name", label: "اسم الأب" },
+  { key: "father_nid", label: "رقم هوية الأب" },
+  { key: "contact_phone", label: "رقم التواصل" },
+  { key: "contact_alt_phone", label: "رقم التواصل البديل" },
+  { key: "original_residence", label: "مكان السكن الأصلي" },
+  { key: "current_residence", label: "مكان السكن الحالي" },
+  { key: "camp_name", label: "اسم المخيم" },
 ];
 
 const STATUS_AR: Record<string, string> = {
@@ -759,6 +808,7 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
     const head = profiles.find((p) => p.id === app.user_id);
     if (!head) continue;
     const fam = members.filter((m) => m.application_id === app.id);
+    const spouse = findSpouse(app.id, members);
     for (const m of fam) {
       const age = calcAge(m.birth_date);
       if (f.ageMin != null && (typeof age !== "number" || age < f.ageMin)) continue;
@@ -774,7 +824,7 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
         });
         if (!ok) continue;
       }
-      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head }))]);
+      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head, spouse }))]);
     }
   }
   return { headers, rows };
@@ -947,16 +997,29 @@ export const PRESETS: Preset[] = [
     },
   },
   {
-    id: "clothes",
-    label: "ملابس الأطفال",
-    emoji: "🧒",
-    desc: "الأعمار من 0 إلى 12",
+    id: "individuals",
+    label: "تقرير الأفراد",
+    emoji: "👤",
+    desc: "بيانات كل فرد: الاسم، الهوية، الحالة الصحية، الأب، السكن، المخيم",
     config: {
-      title: "كشف ملابس الأطفال",
+      title: "تقرير الأفراد",
       entity: "member",
-      columns: ["member_name", "gender", "age", "relationship", "head_name", "head_phone", "current_camp"],
+      columns: [
+        "member_name",
+        "national_id",
+        "age",
+        "birth",
+        "health_status",
+        "father_name",
+        "father_nid",
+        "contact_phone",
+        "contact_alt_phone",
+        "original_residence",
+        "current_residence",
+        "camp_name",
+      ],
       computed: [],
-      filters: { status: "approved", ageMin: 0, ageMax: 12 },
+      filters: { status: "approved" },
     },
   },
   {
