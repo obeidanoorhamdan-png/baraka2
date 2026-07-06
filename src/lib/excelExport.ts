@@ -598,6 +598,21 @@ const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
   head_phone: (c) => v(c.head.phone),
   current_camp: (c) => v(c.app.current_camp),
   current_landmark: (c) => v(c.app.current_landmark),
+  // ---- أعمدة تقرير الأفراد ----
+  health_status: (c) => healthStatus(c.m),
+  father_name: (c) => {
+    const father = c.head.gender === "male" ? c.head : c.spouse;
+    return father ? v((father as any).full_name) : NA;
+  },
+  father_nid: (c) => {
+    const father = c.head.gender === "male" ? c.head : c.spouse;
+    return father ? v((father as any).national_id) : NA;
+  },
+  contact_phone: (c) => v(c.head.phone),
+  contact_alt_phone: (c) => v(c.head.alt_phone),
+  original_residence: (c) => v(c.app.original_residence),
+  current_residence: (c) => campAr(c.app.current_camp),
+  camp_name: () => "بركة 2",
 };
 
 export const MEMBER_COLS: ColDef[] = [
