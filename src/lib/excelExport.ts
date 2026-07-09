@@ -771,6 +771,17 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
   if (f.familySizeMin != null) pool = pool.filter((a) => (a.family_size ?? 0) >= f.familySizeMin!);
   if (f.familySizeMax != null) pool = pool.filter((a) => (a.family_size ?? 0) <= f.familySizeMax!);
 
+  // ترتيب حسب رقم الأسرة الذي يحدده الأدمن (العائلات بدون رقم في النهاية)
+  pool = pool.sort((a, b) => {
+    const an = a.family_no ?? null;
+    const bn = b.family_no ?? null;
+    if (an !== null && bn !== null && an !== bn) return an - bn;
+    if (an !== null && bn === null) return -1;
+    if (an === null && bn !== null) return 1;
+    return 0;
+  });
+
+
   if (cfg.entity === "family") {
     const colDefs = cfg.columns
       .map((k) => FAMILY_COLS.find((c) => c.key === k))
