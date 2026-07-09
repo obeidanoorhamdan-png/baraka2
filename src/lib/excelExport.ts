@@ -620,6 +620,7 @@ const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
 };
 
 export const MEMBER_COLS: ColDef[] = [
+  { key: "family_no", label: "رقم الأسرة" },
   { key: "member_name", label: "اسم الفرد" },
   { key: "national_id", label: "رقم الهوية" },
   { key: "gender", label: "الجنس" },
