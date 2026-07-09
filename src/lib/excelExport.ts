@@ -516,6 +516,7 @@ function healthStatus(p: {
 }
 
 const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
+  family_no: (c) => c.app.family_no ?? NA,
   head_name: (c) => v(c.head.full_name),
   national_id: (c) => v(c.head.national_id),
   head_gender: (c) => G(c.head.gender),
