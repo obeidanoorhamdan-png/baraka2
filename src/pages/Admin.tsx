@@ -165,8 +165,13 @@ const Admin = () => {
       }
       return true;
     });
-    // Sort alphabetically by head-of-family full name (Arabic-aware)
+    // ترتيب حسب رقم الأسرة الذي يحدده الأدمن أولاً، ثم أبجدياً باسم رب الأسرة
     return [...list].sort((a, b) => {
+      const anum = a.family_no ?? null;
+      const bnum = b.family_no ?? null;
+      if (anum !== null && bnum !== null && anum !== bnum) return anum - bnum;
+      if (anum !== null && bnum === null) return -1;
+      if (anum === null && bnum !== null) return 1;
       const an = profiles[a.user_id]?.full_name || "";
       const bn = profiles[b.user_id]?.full_name || "";
       return an.localeCompare(bn, "ar", { sensitivity: "base" });
