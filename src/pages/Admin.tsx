@@ -137,6 +137,28 @@ const Admin = () => {
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
 
+  // حفظ رقم الأسرة الذي يحدده الأدمن (للترتيب/رقم الخيمة)
+  const saveFamilyNo = async (r: Row, raw: string) => {
+    const trimmed = raw.trim();
+    const num = trimmed === "" ? null : parseInt(trimmed, 10);
+    if (trimmed !== "" && (isNaN(num as number) || (num as number) < 0)) {
+      toast.error("أدخل رقماً صحيحاً");
+      return;
+    }
+    if ((r.family_no ?? null) === num) return;
+    const { data, error } = await supabase.rpc("admin_set_family_no", {
+      _app_id: r.id,
+      _family_no: num,
+    } as any);
+    if (error || !data) {
+      toast.error("تعذّر حفظ رقم الأسرة");
+      return;
+    }
+    setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, family_no: num } : x)));
+    setSelected((s) => (s && s.id === r.id ? { ...s, family_no: num } : s));
+    toast.success("تم حفظ رقم الأسرة");
+  };
+
   const stats = useMemo(() => {
     const total = rows.length;
     const pending = rows.filter((r) => r.status === "pending").length;
