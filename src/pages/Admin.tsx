@@ -968,7 +968,23 @@ const Admin = () => {
                 </Card>
 
                 <Card className="p-4">
-                  <h3 className="font-bold text-primary mb-2">{t("admin.residence")}</h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <h3 className="font-bold text-primary">{t("admin.residence")}</h3>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs font-bold whitespace-nowrap">رقم الأسرة / الخيمة</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        defaultValue={selected.family_no ?? ""}
+                        key={`fno-${selected.id}-${selected.family_no ?? ""}`}
+                        placeholder="—"
+                        dir="ltr"
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                        onBlur={(e) => saveFamilyNo(selected, e.target.value)}
+                        className="h-8 w-20 text-center font-bold"
+                      />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><strong>{t("residence.original_residence")}:</strong> {selected.original_residence}</div>
                     <div><strong>{t("residence.original_landmark")}:</strong> {selected.original_landmark}</div>
