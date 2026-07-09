@@ -508,6 +508,7 @@ export type Database = {
           created_at: string
           current_camp: string
           current_landmark: string
+          family_no: number | null
           family_size: number
           has_martyr: boolean
           id: string
@@ -529,6 +530,7 @@ export type Database = {
           created_at?: string
           current_camp?: string
           current_landmark: string
+          family_no?: number | null
           family_size: number
           has_martyr?: boolean
           id?: string
@@ -550,6 +552,7 @@ export type Database = {
           created_at?: string
           current_camp?: string
           current_landmark?: string
+          family_no?: number | null
           family_size?: number
           has_martyr?: boolean
           id?: string
@@ -936,6 +939,10 @@ export type Database = {
       admin_promote_to_review: { Args: { _user_id: string }; Returns: boolean }
       admin_remove_family_member: {
         Args: { _member_id: string }
+        Returns: boolean
+      }
+      admin_set_family_no: {
+        Args: { _app_id: string; _family_no: number }
         Returns: boolean
       }
       admin_update_head: {
