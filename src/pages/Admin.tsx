@@ -745,6 +745,19 @@ const Admin = () => {
                       const p = profiles[r.user_id] || {};
                       return (
                         <TableRow key={r.id}>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min={0}
+                              defaultValue={r.family_no ?? ""}
+                              placeholder="—"
+                              dir="ltr"
+                              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                              onBlur={(e) => saveFamilyNo(r, e.target.value)}
+                              className="h-8 w-16 text-center font-bold px-1"
+                              title="رقم الأسرة — للترتيب ورقم الخيمة"
+                            />
+                          </TableCell>
                           <TableCell className="font-semibold">
                             <button className="text-start hover:text-accent hover:underline" onClick={() => openDetails(r)}>{p.full_name || "—"}</button>
                           </TableCell>
