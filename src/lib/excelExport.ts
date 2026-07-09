@@ -42,6 +42,7 @@ export interface Application {
   id: string;
   user_id: string;
   status: string;
+  family_no?: number | null;
   family_size: number;
   current_camp: string;
   current_landmark: string;
