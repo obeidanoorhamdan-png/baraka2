@@ -454,6 +454,7 @@ const Admin = () => {
       const fm = members[r.id] || [];
       const base = {
         "م": idx + 1,
+        "رقم الأسرة": r.family_no ?? "",
         "حالة الطلب": STATUS_AR[r.status] ?? r.status,
         "تاريخ التقديم": r.submitted_at ? new Date(r.submitted_at).toLocaleString("ar-EG") : "",
         "السكن الأصلي": r.original_residence || "",
