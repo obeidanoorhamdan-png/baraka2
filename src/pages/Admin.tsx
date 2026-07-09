@@ -571,11 +571,7 @@ const Admin = () => {
   // members flattened into Member1_*, Member2_* columns. Useful for
   // pivot/filter analysis where each family is a single record.
   const exportFlat = () => {
-    const sorted = [...rows].sort((a, b) => {
-      const an = profiles[a.user_id]?.full_name || "";
-      const bn = profiles[b.user_id]?.full_name || "";
-      return an.localeCompare(bn, "ar");
-    });
+    const sorted = [...rows].sort(familyCompare);
     const maxMembers = Math.max(0, ...sorted.map((r) => members[r.id]?.length || 0));
     const wsData: any[] = sorted.map((r, idx) => {
       const p = profiles[r.user_id] || {};
