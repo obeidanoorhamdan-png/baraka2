@@ -727,6 +727,7 @@ const Admin = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-24">رقم الأسرة</TableHead>
                       <TableHead>{t("admin.head_of_family")}</TableHead>
                       <TableHead>{t("form.national_id")}</TableHead>
                       <TableHead>{t("form.phone")}</TableHead>
@@ -738,7 +739,7 @@ const Admin = () => {
                   </TableHeader>
                   <TableBody>
                     {filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
                     )}
                     {filtered.map((r) => {
                       const p = profiles[r.user_id] || {};
