@@ -550,6 +550,7 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
 };
 
 export const FAMILY_COLS: ColDef[] = [
+  { key: "family_no", label: "رقم الأسرة" },
   { key: "head_name", label: "اسم رب الأسرة" },
   { key: "national_id", label: "رقم هوية رب الأسرة" },
   { key: "head_gender", label: "الجنس" },
