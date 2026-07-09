@@ -541,13 +541,18 @@ const Admin = () => {
     return ws;
   };
 
+  // ترتيب موحّد: رقم الأسرة أولاً ثم اسم رب الأسرة أبجدياً
+  const familyCompare = (a: Row, b: Row) => {
+    const an = a.family_no ?? null;
+    const bn = b.family_no ?? null;
+    if (an !== null && bn !== null && an !== bn) return an - bn;
+    if (an !== null && bn === null) return -1;
+    if (an === null && bn !== null) return 1;
+    return (profiles[a.user_id]?.full_name || "").localeCompare(profiles[b.user_id]?.full_name || "", "ar");
+  };
+
   const exportData = (format: "csv" | "xlsx") => {
-    // Sort by head full name (Arabic-aware) before export
-    const sorted = [...rows].sort((a, b) => {
-      const an = profiles[a.user_id]?.full_name || "";
-      const bn = profiles[b.user_id]?.full_name || "";
-      return an.localeCompare(bn, "ar");
-    });
+    const sorted = [...rows].sort(familyCompare);
     const wsData = buildRows(sorted);
     const ws = XLSX.utils.json_to_sheet(wsData);
     styleSheet(ws);
