@@ -42,6 +42,7 @@ export interface Application {
   id: string;
   user_id: string;
   status: string;
+  family_no?: number | null;
   family_size: number;
   current_camp: string;
   current_landmark: string;
@@ -515,6 +516,7 @@ function healthStatus(p: {
 }
 
 const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
+  family_no: (c) => c.app.family_no ?? NA,
   head_name: (c) => v(c.head.full_name),
   national_id: (c) => v(c.head.national_id),
   head_gender: (c) => G(c.head.gender),
@@ -548,6 +550,7 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
 };
 
 export const FAMILY_COLS: ColDef[] = [
+  { key: "family_no", label: "رقم الأسرة" },
   { key: "head_name", label: "اسم رب الأسرة" },
   { key: "national_id", label: "رقم هوية رب الأسرة" },
   { key: "head_gender", label: "الجنس" },
@@ -580,6 +583,7 @@ export const FAMILY_COLS: ColDef[] = [
 ];
 
 const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
+  family_no: (c) => c.app.family_no ?? NA,
   member_name: (c) => v(c.m.full_name),
   national_id: (c) => v(c.m.national_id),
   gender: (c) => G(c.m.gender),
@@ -616,6 +620,7 @@ const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
 };
 
 export const MEMBER_COLS: ColDef[] = [
+  { key: "family_no", label: "رقم الأسرة" },
   { key: "member_name", label: "اسم الفرد" },
   { key: "national_id", label: "رقم الهوية" },
   { key: "gender", label: "الجنس" },
@@ -765,6 +770,17 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
   }
   if (f.familySizeMin != null) pool = pool.filter((a) => (a.family_size ?? 0) >= f.familySizeMin!);
   if (f.familySizeMax != null) pool = pool.filter((a) => (a.family_size ?? 0) <= f.familySizeMax!);
+
+  // ترتيب حسب رقم الأسرة الذي يحدده الأدمن (العائلات بدون رقم في النهاية)
+  pool = pool.sort((a, b) => {
+    const an = a.family_no ?? null;
+    const bn = b.family_no ?? null;
+    if (an !== null && bn !== null && an !== bn) return an - bn;
+    if (an !== null && bn === null) return -1;
+    if (an === null && bn !== null) return 1;
+    return 0;
+  });
+
 
   if (cfg.entity === "family") {
     const colDefs = cfg.columns

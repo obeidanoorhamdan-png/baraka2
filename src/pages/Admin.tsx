@@ -137,6 +137,28 @@ const Admin = () => {
 
   useEffect(() => { if (isAdmin) load(); }, [isAdmin]);
 
+  // حفظ رقم الأسرة الذي يحدده الأدمن (للترتيب/رقم الخيمة)
+  const saveFamilyNo = async (r: Row, raw: string) => {
+    const trimmed = raw.trim();
+    const num = trimmed === "" ? null : parseInt(trimmed, 10);
+    if (trimmed !== "" && (isNaN(num as number) || (num as number) < 0)) {
+      toast.error("أدخل رقماً صحيحاً");
+      return;
+    }
+    if ((r.family_no ?? null) === num) return;
+    const { data, error } = await supabase.rpc("admin_set_family_no", {
+      _app_id: r.id,
+      _family_no: num,
+    } as any);
+    if (error || !data) {
+      toast.error("تعذّر حفظ رقم الأسرة");
+      return;
+    }
+    setRows((prev) => prev.map((x) => (x.id === r.id ? { ...x, family_no: num } : x)));
+    setSelected((s) => (s && s.id === r.id ? { ...s, family_no: num } : s));
+    toast.success("تم حفظ رقم الأسرة");
+  };
+
   const stats = useMemo(() => {
     const total = rows.length;
     const pending = rows.filter((r) => r.status === "pending").length;
@@ -165,8 +187,13 @@ const Admin = () => {
       }
       return true;
     });
-    // Sort alphabetically by head-of-family full name (Arabic-aware)
+    // ترتيب حسب رقم الأسرة الذي يحدده الأدمن أولاً، ثم أبجدياً باسم رب الأسرة
     return [...list].sort((a, b) => {
+      const anum = a.family_no ?? null;
+      const bnum = b.family_no ?? null;
+      if (anum !== null && bnum !== null && anum !== bnum) return anum - bnum;
+      if (anum !== null && bnum === null) return -1;
+      if (anum === null && bnum !== null) return 1;
       const an = profiles[a.user_id]?.full_name || "";
       const bn = profiles[b.user_id]?.full_name || "";
       return an.localeCompare(bn, "ar", { sensitivity: "base" });
@@ -427,6 +454,7 @@ const Admin = () => {
       const fm = members[r.id] || [];
       const base = {
         "م": idx + 1,
+        "رقم الأسرة": r.family_no ?? "",
         "حالة الطلب": STATUS_AR[r.status] ?? r.status,
         "تاريخ التقديم": r.submitted_at ? new Date(r.submitted_at).toLocaleString("ar-EG") : "",
         "السكن الأصلي": r.original_residence || "",
@@ -513,13 +541,18 @@ const Admin = () => {
     return ws;
   };
 
+  // ترتيب موحّد: رقم الأسرة أولاً ثم اسم رب الأسرة أبجدياً
+  const familyCompare = (a: Row, b: Row) => {
+    const an = a.family_no ?? null;
+    const bn = b.family_no ?? null;
+    if (an !== null && bn !== null && an !== bn) return an - bn;
+    if (an !== null && bn === null) return -1;
+    if (an === null && bn !== null) return 1;
+    return (profiles[a.user_id]?.full_name || "").localeCompare(profiles[b.user_id]?.full_name || "", "ar");
+  };
+
   const exportData = (format: "csv" | "xlsx") => {
-    // Sort by head full name (Arabic-aware) before export
-    const sorted = [...rows].sort((a, b) => {
-      const an = profiles[a.user_id]?.full_name || "";
-      const bn = profiles[b.user_id]?.full_name || "";
-      return an.localeCompare(bn, "ar");
-    });
+    const sorted = [...rows].sort(familyCompare);
     const wsData = buildRows(sorted);
     const ws = XLSX.utils.json_to_sheet(wsData);
     styleSheet(ws);
@@ -538,17 +571,14 @@ const Admin = () => {
   // members flattened into Member1_*, Member2_* columns. Useful for
   // pivot/filter analysis where each family is a single record.
   const exportFlat = () => {
-    const sorted = [...rows].sort((a, b) => {
-      const an = profiles[a.user_id]?.full_name || "";
-      const bn = profiles[b.user_id]?.full_name || "";
-      return an.localeCompare(bn, "ar");
-    });
+    const sorted = [...rows].sort(familyCompare);
     const maxMembers = Math.max(0, ...sorted.map((r) => members[r.id]?.length || 0));
     const wsData: any[] = sorted.map((r, idx) => {
       const p = profiles[r.user_id] || {};
       const fm = members[r.id] || [];
       const row: Record<string, any> = {
         "م": idx + 1,
+        "رقم الأسرة": r.family_no ?? "",
         "حالة الطلب": STATUS_AR[r.status] ?? r.status,
         "تاريخ التقديم": r.submitted_at ? new Date(r.submitted_at).toLocaleString("ar-EG") : "",
         "اسم رب الأسرة": p.full_name || "",
@@ -700,6 +730,7 @@ const Admin = () => {
                 <Table>
                   <TableHeader>
                     <TableRow>
+                      <TableHead className="w-24">رقم الأسرة</TableHead>
                       <TableHead>{t("admin.head_of_family")}</TableHead>
                       <TableHead>{t("form.national_id")}</TableHead>
                       <TableHead>{t("form.phone")}</TableHead>
@@ -711,12 +742,25 @@ const Admin = () => {
                   </TableHeader>
                   <TableBody>
                     {filtered.length === 0 && (
-                      <TableRow><TableCell colSpan={7} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
+                      <TableRow><TableCell colSpan={8} className="text-center py-10 text-muted-foreground">{t("admin.no_results")}</TableCell></TableRow>
                     )}
                     {filtered.map((r) => {
                       const p = profiles[r.user_id] || {};
                       return (
                         <TableRow key={r.id}>
+                          <TableCell>
+                            <Input
+                              type="number"
+                              min={0}
+                              defaultValue={r.family_no ?? ""}
+                              placeholder="—"
+                              dir="ltr"
+                              onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                              onBlur={(e) => saveFamilyNo(r, e.target.value)}
+                              className="h-8 w-16 text-center font-bold px-1"
+                              title="رقم الأسرة — للترتيب ورقم الخيمة"
+                            />
+                          </TableCell>
                           <TableCell className="font-semibold">
                             <button className="text-start hover:text-accent hover:underline" onClick={() => openDetails(r)}>{p.full_name || "—"}</button>
                           </TableCell>
@@ -927,7 +971,23 @@ const Admin = () => {
                 </Card>
 
                 <Card className="p-4">
-                  <h3 className="font-bold text-primary mb-2">{t("admin.residence")}</h3>
+                  <div className="flex items-center justify-between flex-wrap gap-2 mb-2">
+                    <h3 className="font-bold text-primary">{t("admin.residence")}</h3>
+                    <div className="flex items-center gap-2">
+                      <Label className="text-xs font-bold whitespace-nowrap">رقم الأسرة / الخيمة</Label>
+                      <Input
+                        type="number"
+                        min={0}
+                        defaultValue={selected.family_no ?? ""}
+                        key={`fno-${selected.id}-${selected.family_no ?? ""}`}
+                        placeholder="—"
+                        dir="ltr"
+                        onKeyDown={(e) => { if (e.key === "Enter") (e.target as HTMLInputElement).blur(); }}
+                        onBlur={(e) => saveFamilyNo(selected, e.target.value)}
+                        className="h-8 w-20 text-center font-bold"
+                      />
+                    </div>
+                  </div>
                   <div className="grid grid-cols-2 gap-2">
                     <div><strong>{t("residence.original_residence")}:</strong> {selected.original_residence}</div>
                     <div><strong>{t("residence.original_landmark")}:</strong> {selected.original_landmark}</div>
