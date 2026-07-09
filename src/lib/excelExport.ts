@@ -583,6 +583,7 @@ export const FAMILY_COLS: ColDef[] = [
 ];
 
 const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
+  family_no: (c) => c.app.family_no ?? NA,
   member_name: (c) => v(c.m.full_name),
   national_id: (c) => v(c.m.national_id),
   gender: (c) => G(c.m.gender),
