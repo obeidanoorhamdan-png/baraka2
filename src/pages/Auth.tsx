@@ -623,20 +623,33 @@ const Auth = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
-                      <Input
-                        inputMode="numeric"
-                        maxLength={9}
-                        value={su.national_id}
-                        placeholder="9 أرقام"
-                        aria-invalid={!!errors.national_id}
-                        className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
-                        onBlur={() =>
-                          setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))
-                        }
-                        onChange={(e) => setField("national_id", e.target.value.replace(/\D/g, "").slice(0, 9))}
-                      />
+                      <div className="relative">
+                        <Input
+                          inputMode="numeric"
+                          maxLength={9}
+                          value={su.national_id}
+                          placeholder="9 أرقام"
+                          aria-invalid={!!errors.national_id}
+                          className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
+                          onBlur={() =>
+                            setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                            setField("national_id", val);
+                            if (val.length === 9) autoFillFromRegistry(val);
+                          }}
+                        />
+                        {civilBusy && (
+                          <Loader2 className="h-4 w-4 animate-spin absolute top-1/2 -translate-y-1/2 end-3 text-primary" />
+                        )}
+                      </div>
                       {errors.national_id && <p className="text-xs text-destructive mt-1">{errors.national_id}</p>}
+                      {civilMsg && (
+                        <p className="text-xs text-emerald-600 mt-1 font-semibold">{civilMsg}</p>
+                      )}
                     </div>
+
                     <div>
                       <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
                       <Input
