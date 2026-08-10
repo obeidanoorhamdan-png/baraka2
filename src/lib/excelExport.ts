@@ -742,40 +742,41 @@ const statusAr = (s?: string | null) => (s ? STATUS_AR[s] || s : NA);
 
 /* ---------- الأعمدة الحسابية ---------- */
 export type PersonFlag = "pregnant" | "breastfeeding" | "war_injured" | "chronic" | "special_needs";
+export type AgeUnit = "years" | "months";
 export interface ComputedCol {
   id: string;
   label: string;
   gender?: "all" | "male" | "female";
+  /** وحدة النطاق العمري: سنوات (افتراضي) أو شهور. */
+  unit?: AgeUnit;
   ageMin?: number | null;
   ageMax?: number | null;
   flags?: PersonFlag[];
 }
 
 export const COMPUTED_PRESETS: ComputedCol[] = [
-  // ---- الفئات العمرية (الجنسان معاً) ----
-  { id: "kids_0_2_all", label: "رُضّع (0-2) — الكل", gender: "all", ageMin: 0, ageMax: 2 },
-  { id: "kids_0_5_all", label: "أطفال (0-5) — الكل", gender: "all", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12_all", label: "أطفال (6-12) — الكل", gender: "all", ageMin: 6, ageMax: 12 },
-  { id: "teens_13_17_all", label: "مراهقون (13-17) — الكل", gender: "all", ageMin: 13, ageMax: 17 },
-  { id: "students_6_18_all", label: "طلاب (6-18) — الكل", gender: "all", ageMin: 6, ageMax: 18 },
-  { id: "adults_18_59_all", label: "بالغون (18-59) — الكل", gender: "all", ageMin: 18, ageMax: 59 },
-  { id: "elderly_60_all", label: "كبار السن (60+) — الكل", gender: "all", ageMin: 60, ageMax: null },
-  // ---- الذكور حسب الفئات العمرية ----
-  { id: "kids_0_5_m", label: "ذكور (0-5)", gender: "male", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12_m", label: "ذكور (6-12)", gender: "male", ageMin: 6, ageMax: 12 },
-  { id: "teens_13_17_m", label: "ذكور (13-17)", gender: "male", ageMin: 13, ageMax: 17 },
+  // ---- فئات عمرية دقيقة وغير متداخلة (بالشهور للرُّضّع) ----
+  { id: "m_0_5", label: "رُضّع (0-5 شهور)", gender: "all", unit: "months", ageMin: 0, ageMax: 5 },
+  { id: "m_6_11", label: "رُضّع (6-11 شهر)", gender: "all", unit: "months", ageMin: 6, ageMax: 11 },
+  { id: "m_12_23", label: "أطفال (12-23 شهر)", gender: "all", unit: "months", ageMin: 12, ageMax: 23 },
+  { id: "y_2_4", label: "أطفال (2-4 سنوات)", gender: "all", ageMin: 2, ageMax: 4 },
+  { id: "y_5_11", label: "أطفال (5-11 سنة)", gender: "all", ageMin: 5, ageMax: 11 },
+  { id: "y_12_17", label: "مراهقون (12-17 سنة)", gender: "all", ageMin: 12, ageMax: 17 },
+  { id: "y_18_59", label: "بالغون (18-59 سنة)", gender: "all", ageMin: 18, ageMax: 59 },
+  { id: "y_60_up", label: "كبار السن (60+)", gender: "all", ageMin: 60, ageMax: null },
+  // ---- الذكور ----
+  { id: "m_y_0_4", label: "ذكور (0-4)", gender: "male", ageMin: 0, ageMax: 4 },
+  { id: "m_y_5_11", label: "ذكور (5-11)", gender: "male", ageMin: 5, ageMax: 11 },
+  { id: "m_y_12_17", label: "ذكور (12-17)", gender: "male", ageMin: 12, ageMax: 17 },
   { id: "adult_male", label: "ذكور بالغون (18+)", gender: "male", ageMin: 18, ageMax: null },
-  { id: "elderly_male", label: "ذكور كبار السن (60+)", gender: "male", ageMin: 60, ageMax: null },
-  // ---- الإناث حسب الفئات العمرية ----
-  { id: "kids_0_5_f", label: "إناث (0-5)", gender: "female", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12_f", label: "إناث (6-12)", gender: "female", ageMin: 6, ageMax: 12 },
-  { id: "teens_13_17_f", label: "إناث (13-17)", gender: "female", ageMin: 13, ageMax: 17 },
-  { id: "adult_female", label: "إناث بالغات (18+)", gender: "female", ageMin: 18, ageMax: null },
-  { id: "elderly_female", label: "إناث كبار السن (60+)", gender: "female", ageMin: 60, ageMax: null },
-  // ---- الإجمالي حسب الجنس ----
   { id: "total_male", label: "إجمالي الذكور", gender: "male" },
+  // ---- الإناث ----
+  { id: "f_y_0_4", label: "إناث (0-4)", gender: "female", ageMin: 0, ageMax: 4 },
+  { id: "f_y_5_11", label: "إناث (5-11)", gender: "female", ageMin: 5, ageMax: 11 },
+  { id: "f_y_12_17", label: "إناث (12-17)", gender: "female", ageMin: 12, ageMax: 17 },
+  { id: "adult_female", label: "إناث بالغات (18+)", gender: "female", ageMin: 18, ageMax: null },
   { id: "total_female", label: "إجمالي الإناث", gender: "female" },
-  // ---- الحالات الصحية والخاصة ----
+  // ---- الحالات ----
   { id: "pregnant", label: "عدد الحوامل", gender: "female", flags: ["pregnant"] },
   { id: "breastfeeding", label: "عدد المرضعات", gender: "female", flags: ["breastfeeding"] },
   { id: "injured", label: "عدد المصابين", flags: ["war_injured"] },
@@ -795,15 +796,16 @@ interface Person {
 
 function matchPerson(p: Person, cc: ComputedCol): boolean {
   if (cc.gender && cc.gender !== "all" && p.gender !== cc.gender) return false;
-  const age = calcAge(p.birth_date);
-  if (cc.ageMin != null && (typeof age !== "number" || age < cc.ageMin)) return false;
-  if (cc.ageMax != null && (typeof age !== "number" || age > cc.ageMax)) return false;
+  const parts = ageParts(p.birth_date);
+  const age = parts ? (cc.unit === "months" ? parts.totalMonths : parts.years) : null;
+  if (cc.ageMin != null && (age === null || age < cc.ageMin)) return false;
+  if (cc.ageMax != null && (age === null || age > cc.ageMax)) return false;
   for (const f of cc.flags || []) {
     if (f === "pregnant" && !p.is_pregnant) return false;
     if (f === "breastfeeding" && !p.is_breastfeeding) return false;
     if (f === "war_injured" && !p.is_war_injured) return false;
     if (f === "special_needs" && !p.is_special_needs) return false;
-    if (f === "chronic" && !(p.chronic_diseases && p.chronic_diseases !== "")) return false;
+    if (f === "chronic" && !hasChronic(p.chronic_diseases)) return false;
   }
   return true;
 }
@@ -822,6 +824,10 @@ export interface ExportConfig {
     status?: "approved" | "pending" | "rejected" | "all";
     ageMin?: number | null;
     ageMax?: number | null;
+    /** وحدة نطاق العمر في الفلاتر (سنوات افتراضياً). */
+    ageUnit?: AgeUnit;
+    /** تضمين رب الأسرة في كشف الأفراد. */
+    includeHead?: boolean;
     maritalWidow?: boolean;
     femaleBreadwinner?: boolean;
     hasMartyr?: boolean;
