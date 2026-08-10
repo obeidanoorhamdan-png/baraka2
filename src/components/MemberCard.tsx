@@ -334,9 +334,34 @@ export const MemberCard = ({
           )}
         </div>
         <div>
-          <Label className="text-xs">الأمراض المزمنة</Label>
-          <Textarea rows={2} value={member.chronic_diseases} placeholder="مثل: ضغط، سكري، قلب..."
-            onChange={(e) => onChange({ ...member, chronic_diseases: e.target.value })} />
+          <Label className="text-xs">هل يعاني من أمراض مزمنة؟</Label>
+          <div className="flex gap-2 mt-1">
+            {[
+              { v: true, l: "نعم" },
+              { v: false, l: "لا" },
+            ].map((opt) => {
+              const on = !!member.chronic_diseases?.trim() === opt.v;
+              return (
+                <button
+                  key={String(opt.v)}
+                  type="button"
+                  onClick={() =>
+                    onChange({ ...member, chronic_diseases: opt.v ? (member.chronic_diseases?.trim() ? member.chronic_diseases : " ") : "" })
+                  }
+                  className={`rounded-full border px-4 py-1 text-xs font-bold transition-colors ${
+                    on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent"
+                  }`}
+                >
+                  {opt.l}
+                </button>
+              );
+            })}
+          </div>
+          {!!member.chronic_diseases && (
+            <Textarea rows={2} className="mt-2" value={member.chronic_diseases.trim() ? member.chronic_diseases : ""}
+              placeholder="اكتب اسم المرض المزمن — مثل: ضغط، سكري، قلب..."
+              onChange={(e) => onChange({ ...member, chronic_diseases: e.target.value || " " })} />
+          )}
           {member.chronic_diseases?.trim() && (
             <div className="mt-2">
               <Label className="text-xs text-muted-foreground">رفع تقرير طبي للمرض المزمن (اختياري)</Label>

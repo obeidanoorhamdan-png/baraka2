@@ -37,6 +37,7 @@ export interface FamilyMember {
   is_pregnant?: boolean;
   is_breastfeeding?: boolean;
   is_special_needs?: boolean;
+  is_head?: boolean;
 }
 export interface Application {
   id: string;
@@ -87,12 +88,31 @@ export async function fetchApprovedDataset() {
 
 
 /* ---------- أدوات مساعدة ---------- */
-function calcAge(birthDate?: string | null): number | string {
-  if (!birthDate) return NA;
+/** تفصيل العمر بدقة: سنوات + شهور + إجمالي الشهور. */
+export function ageParts(birthDate?: string | null): { years: number; months: number; totalMonths: number } | null {
+  if (!birthDate) return null;
   const b = new Date(birthDate);
-  if (isNaN(b.getTime())) return NA;
-  const diff = Date.now() - b.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth());
+  if (now.getDate() < b.getDate()) months -= 1;
+  if (months < 0) months = 0;
+  return { years: Math.floor(months / 12), months: months % 12, totalMonths: months };
+}
+function calcAge(birthDate?: string | null): number | string {
+  const a = ageParts(birthDate);
+  return a ? a.years : NA;
+}
+/** العمر بالشهور (إجمالي). */
+function calcAgeMonths(birthDate?: string | null): number | string {
+  const a = ageParts(birthDate);
+  return a ? a.totalMonths : NA;
+}
+/** نص العمر التفصيلي: «0 سنة و8 شهور». */
+function ageFull(birthDate?: string | null): string {
+  const a = ageParts(birthDate);
+  if (!a) return NA;
+  return `${a.years} سنة و${a.months} شهر`;
 }
 function v(x: any): any {
   if (x === null || x === undefined || x === "") return NA;
@@ -101,14 +121,34 @@ function v(x: any): any {
 function bool(x: any): string {
   return x ? "نعم" : "لا";
 }
-function pregBreast(m: FamilyMember): string {
+/** قيم تعني «لا يوجد مرض مزمن» حتى إن كُتبت نصاً. */
+const NO_CHRONIC = [
+  "", "0", "لا", "لايوجد", "لا يوجد", "لاشيء", "لا شيء", "لاشئ", "لا شئ",
+  "الحمدلله", "الحمد لله", "بخير", "سليم", "سليمة", "معافى", "لا امراض", "لا أمراض",
+  "none", "no", "n/a", "na", "-",
+];
+export function hasChronic(text?: string | null): boolean {
+  if (!text) return false;
+  const t = String(text).trim().replace(/[.،,]/g, "").replace(/\s+/g, " ");
+  if (!t) return false;
+  return !NO_CHRONIC.includes(t) && !NO_CHRONIC.includes(t.replace(/ /g, ""));
+}
+/** نص الأمراض المزمنة المنقّى (لا يوجد إذا كان النص لا يعني مرضاً). */
+function chronicText(text?: string | null): string {
+  return hasChronic(text) ? String(text).trim() : NA;
+}
+function pregBreast(m: { is_pregnant?: boolean | null; is_breastfeeding?: boolean | null }): string {
   if (m.is_pregnant && m.is_breastfeeding) return "حامل ومرضعة";
   if (m.is_pregnant) return "حامل";
   if (m.is_breastfeeding) return "مرضعة";
   return "لا";
 }
 function findSpouse(appId: string, members: FamilyMember[]): FamilyMember | null {
-  return members.find((m) => m.application_id === appId && (m.relationship === "wife" || m.relationship === "husband")) || null;
+  return members.find((m) => m.application_id === appId && !m.is_head && (m.relationship === "wife" || m.relationship === "husband")) || null;
+}
+/** أفراد الأسرة بدون رب الأسرة (لتجنّب تكراره لأنه مسجّل في الملف الشخصي). */
+function famWithoutHead(appId: string, members: FamilyMember[]): FamilyMember[] {
+  return members.filter((m) => m.application_id === appId && !m.is_head);
 }
 
 /* ---------- تنسيق ورقة احترافي ---------- */
@@ -473,11 +513,21 @@ const relAr = (s?: string | null) => (s ? REL_AR[s] || s : NA);
 const isWidow = (head?: Profile | null) =>
   !!head && (head.marital_status === "widow" || head.marital_status === "widowed");
 
-function isOrphan(m: FamilyMember, app: Application): boolean {
+/** صلات القرابة التي تجعل الأبناء أيتاماً فعلياً (الشهيد أب أو أم). */
+const PARENT_MARTYR = ["father", "mother", "أب", "اب", "الأب", "الاب", "أم", "ام", "الأم", "الام", "زوج", "husband", "زوجة", "wife"];
+export function martyrIsParent(app: Application): boolean {
   if (!app.has_martyr) return false;
-  if (m.relationship === "wife" || m.relationship === "husband") return false;
-  const age = calcAge(m.birth_date);
-  return typeof age === "number" && age < 18;
+  const r = String(app.martyr_relationship || "").trim().toLowerCase();
+  if (!r) return false;
+  return PARENT_MARTYR.some((x) => r === x.toLowerCase() || r.includes(x.toLowerCase()));
+}
+/** يتيم = ابن/ابنة دون 18 سنة والشهيد هو الأب أو الأم (لا الأخ أو صلة أخرى). */
+function isOrphan(m: FamilyMember, app: Application): boolean {
+  if (!martyrIsParent(app)) return false;
+  if (m.is_head) return false;
+  if (!["son", "daughter"].includes(String(m.relationship))) return false;
+  const a = ageParts(m.birth_date);
+  return !!a && a.years < 18;
 }
 
 /* ---------- كتالوج الأعمدة ---------- */
@@ -487,7 +537,7 @@ export interface ColDef {
 }
 
 type FamilyCtx = { app: Application; head: Profile; spouse: FamilyMember | null; fam: FamilyMember[] };
-type MemberCtx = { m: FamilyMember; app: Application; head: Profile; spouse?: FamilyMember | null };
+type MemberCtx = { m: FamilyMember; app: Application; head: Profile; spouse?: FamilyMember | null; isHeadRow?: boolean };
 
 /** اسم المخيم دائماً بالعربية الكاملة "بركة 2". */
 const campAr = (c?: string | null): string => {
@@ -525,7 +575,9 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   marital_status: (c) => maritalAr(c.head.marital_status),
   phone: (c) => v(c.head.phone),
   alt_phone: (c) => v(c.head.alt_phone),
-  chronic: (c) => v(c.head.chronic_diseases),
+  chronic: (c) => chronicText(c.head.chronic_diseases),
+  has_chronic: (c) => bool(hasChronic(c.head.chronic_diseases)),
+  head_age_full: (c) => ageFull(c.head.birth_date),
   war_injured: (c) => bool(c.head.is_war_injured),
   special_needs: (c) => bool(c.head.is_special_needs),
   spouse_name: (c) => (c.spouse ? v(c.spouse.full_name) : NA),
@@ -533,19 +585,22 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   spouse_gender: (c) => (c.spouse ? G(c.spouse.gender) : NA),
   spouse_age: (c) => (c.spouse ? calcAge(c.spouse.birth_date) : NA),
   spouse_birth: (c) => (c.spouse ? v(c.spouse.birth_date) : NA),
-  spouse_chronic: (c) => (c.spouse ? v(c.spouse.chronic_diseases) : NA),
+  spouse_chronic: (c) => (c.spouse ? chronicText(c.spouse.chronic_diseases) : NA),
   spouse_war_injured: (c) => (c.spouse ? bool(c.spouse.is_war_injured) : NA),
   spouse_special_needs: (c) => (c.spouse ? bool(c.spouse.is_special_needs) : NA),
   spouse_preg: (c) => (c.spouse ? pregBreast(c.spouse) : NA),
   family_size: (c) => c.app.family_size ?? ZERO,
+  members_count: (c) => c.fam.length + 1,
   children_count: (c) =>
-    c.fam.filter((m) => m.relationship !== "wife" && m.relationship !== "husband").length,
+    c.fam.filter((m) => m.relationship === "son" || m.relationship === "daughter").length,
   original_residence: (c) => v(c.app.original_residence),
   original_landmark: (c) => v(c.app.original_landmark),
   current_camp: (c) => v(c.app.current_camp),
   current_landmark: (c) => v(c.app.current_landmark),
   has_martyr: (c) => bool(c.app.has_martyr),
   martyr_name: (c) => v(c.app.martyr_name),
+  martyr_relationship: (c) => v(c.app.martyr_relationship),
+  camp_name: () => "بركة 2",
   status: (c) => statusAr(c.app.status),
 };
 
@@ -559,7 +614,9 @@ export const FAMILY_COLS: ColDef[] = [
   { key: "marital_status", label: "الحالة الاجتماعية" },
   { key: "phone", label: "الجوال" },
   { key: "alt_phone", label: "الجوال البديل" },
-  { key: "chronic", label: "أمراض مزمنة" },
+  { key: "has_chronic", label: "يعاني أمراض مزمنة" },
+  { key: "chronic", label: "الأمراض المزمنة" },
+  { key: "head_age_full", label: "العمر (سنة وشهر)" },
   { key: "war_injured", label: "مصاب حرب" },
   { key: "special_needs", label: "ذوي همم" },
   { key: "spouse_name", label: "اسم الزوج/ة" },
@@ -572,6 +629,7 @@ export const FAMILY_COLS: ColDef[] = [
   { key: "spouse_special_needs", label: "ذوي همم (الزوج/ة)" },
   { key: "spouse_preg", label: "حامل/مرضعة (الزوجة)" },
   { key: "family_size", label: "عدد الأفراد" },
+  { key: "members_count", label: "عدد الأفراد الفعلي" },
   { key: "children_count", label: "عدد الأبناء" },
   { key: "original_residence", label: "السكن الأصلي" },
   { key: "original_landmark", label: "أقرب معلم أصلي" },
@@ -579,6 +637,8 @@ export const FAMILY_COLS: ColDef[] = [
   { key: "current_landmark", label: "المعلم الحالي" },
   { key: "has_martyr", label: "يوجد شهيد" },
   { key: "martyr_name", label: "اسم الشهيد" },
+  { key: "martyr_relationship", label: "صلة القرابة بالشهيد" },
+  { key: "camp_name", label: "اسم المخيم" },
   { key: "status", label: "حالة الطلب" },
 ];
 
@@ -588,29 +648,46 @@ const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
   national_id: (c) => v(c.m.national_id),
   gender: (c) => G(c.m.gender),
   age: (c) => calcAge(c.m.birth_date),
+  age_months: (c) => calcAgeMonths(c.m.birth_date),
+  age_full: (c) => ageFull(c.m.birth_date),
   birth: (c) => v(c.m.birth_date),
-  relationship: (c) => relAr(c.m.relationship),
-  chronic: (c) => v(c.m.chronic_diseases),
+  relationship: (c) => (c.isHeadRow ? "رب الأسرة" : relAr(c.m.relationship)),
+  has_chronic: (c) => bool(hasChronic(c.m.chronic_diseases)),
+  chronic: (c) => chronicText(c.m.chronic_diseases),
   war_injured: (c) => bool(c.m.is_war_injured),
   special_needs: (c) => bool(c.m.is_special_needs),
   preg_breast: (c) => pregBreast(c.m),
   orphan: (c) => bool(isOrphan(c.m, c.app)),
-  father_martyr: (c) => bool(c.app.has_martyr),
+  father_martyr: (c) => bool(martyrIsParent(c.app)),
   martyr_name: (c) => v(c.app.martyr_name),
+  martyr_relationship: (c) => v(c.app.martyr_relationship),
   head_name: (c) => v(c.head.full_name),
   head_nid: (c) => v(c.head.national_id),
   head_phone: (c) => v(c.head.phone),
   current_camp: (c) => v(c.app.current_camp),
   current_landmark: (c) => v(c.app.current_landmark),
-  // ---- أعمدة تقرير الأفراد ----
-  health_status: (c) => healthStatus(c.m),
+  original_landmark: (c) => v(c.app.original_landmark),
+  health_status: (c) => healthStatus({ ...c.m, chronic_diseases: chronicText(c.m.chronic_diseases) === NA ? null : c.m.chronic_diseases }),
+  // رب الأسرة لا يوجد له «أب» في الكشف — نكتب «لا يوجد».
   father_name: (c) => {
+    if (c.isHeadRow) return NA;
     const father = c.head.gender === "male" ? c.head : c.spouse;
     return father ? v((father as any).full_name) : NA;
   },
   father_nid: (c) => {
+    if (c.isHeadRow) return NA;
     const father = c.head.gender === "male" ? c.head : c.spouse;
     return father ? v((father as any).national_id) : NA;
+  },
+  mother_name: (c) => {
+    if (c.isHeadRow) return NA;
+    const mother = c.head.gender === "female" ? c.head : c.spouse;
+    return mother ? v((mother as any).full_name) : NA;
+  },
+  mother_nid: (c) => {
+    if (c.isHeadRow) return NA;
+    const mother = c.head.gender === "female" ? c.head : c.spouse;
+    return mother ? v((mother as any).national_id) : NA;
   },
   contact_phone: (c) => v(c.head.phone),
   contact_alt_phone: (c) => v(c.head.alt_phone),
@@ -624,28 +701,35 @@ export const MEMBER_COLS: ColDef[] = [
   { key: "member_name", label: "اسم الفرد" },
   { key: "national_id", label: "رقم الهوية" },
   { key: "gender", label: "الجنس" },
-  { key: "age", label: "العمر" },
+  { key: "age", label: "العمر (سنوات)" },
+  { key: "age_full", label: "العمر (سنة وشهر)" },
+  { key: "age_months", label: "العمر بالشهور" },
   { key: "birth", label: "تاريخ الميلاد" },
   { key: "relationship", label: "صلة القرابة" },
-  { key: "chronic", label: "أمراض مزمنة" },
-  { key: "war_injured", label: "مصاب" },
+  { key: "has_chronic", label: "يعاني أمراض مزمنة" },
+  { key: "chronic", label: "الأمراض المزمنة" },
+  { key: "health_status", label: "الحالة الصحية" },
+  { key: "war_injured", label: "مصاب حرب" },
   { key: "special_needs", label: "ذوي همم" },
   { key: "preg_breast", label: "حامل/مرضعة" },
   { key: "orphan", label: "يتيم" },
-  { key: "father_martyr", label: "استشهاد الأب" },
+  { key: "father_martyr", label: "الشهيد أحد الوالدين" },
   { key: "martyr_name", label: "اسم الشهيد" },
-  { key: "head_name", label: "اسم المعيل" },
-  { key: "head_nid", label: "هوية المعيل" },
-  { key: "head_phone", label: "جوال المعيل" },
-  { key: "current_camp", label: "المخيم/مكان الإيواء" },
-  { key: "current_landmark", label: "المعلم الحالي" },
-  { key: "health_status", label: "الحالة الصحية" },
+  { key: "martyr_relationship", label: "صلة القرابة بالشهيد" },
   { key: "father_name", label: "اسم الأب" },
   { key: "father_nid", label: "رقم هوية الأب" },
+  { key: "mother_name", label: "اسم الأم" },
+  { key: "mother_nid", label: "رقم هوية الأم" },
+  { key: "head_name", label: "اسم رب الأسرة/المعيل" },
+  { key: "head_nid", label: "هوية رب الأسرة" },
+  { key: "head_phone", label: "جوال رب الأسرة" },
   { key: "contact_phone", label: "رقم التواصل" },
   { key: "contact_alt_phone", label: "رقم التواصل البديل" },
   { key: "original_residence", label: "مكان السكن الأصلي" },
+  { key: "original_landmark", label: "أقرب معلم للسكن الأصلي" },
   { key: "current_residence", label: "مكان السكن الحالي" },
+  { key: "current_camp", label: "المخيم/مكان الإيواء" },
+  { key: "current_landmark", label: "المعلم الحالي" },
   { key: "camp_name", label: "اسم المخيم" },
 ];
 
@@ -658,40 +742,41 @@ const statusAr = (s?: string | null) => (s ? STATUS_AR[s] || s : NA);
 
 /* ---------- الأعمدة الحسابية ---------- */
 export type PersonFlag = "pregnant" | "breastfeeding" | "war_injured" | "chronic" | "special_needs";
+export type AgeUnit = "years" | "months";
 export interface ComputedCol {
   id: string;
   label: string;
   gender?: "all" | "male" | "female";
+  /** وحدة النطاق العمري: سنوات (افتراضي) أو شهور. */
+  unit?: AgeUnit;
   ageMin?: number | null;
   ageMax?: number | null;
   flags?: PersonFlag[];
 }
 
 export const COMPUTED_PRESETS: ComputedCol[] = [
-  // ---- الفئات العمرية (الجنسان معاً) ----
-  { id: "kids_0_2_all", label: "رُضّع (0-2) — الكل", gender: "all", ageMin: 0, ageMax: 2 },
-  { id: "kids_0_5_all", label: "أطفال (0-5) — الكل", gender: "all", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12_all", label: "أطفال (6-12) — الكل", gender: "all", ageMin: 6, ageMax: 12 },
-  { id: "teens_13_17_all", label: "مراهقون (13-17) — الكل", gender: "all", ageMin: 13, ageMax: 17 },
-  { id: "students_6_18_all", label: "طلاب (6-18) — الكل", gender: "all", ageMin: 6, ageMax: 18 },
-  { id: "adults_18_59_all", label: "بالغون (18-59) — الكل", gender: "all", ageMin: 18, ageMax: 59 },
-  { id: "elderly_60_all", label: "كبار السن (60+) — الكل", gender: "all", ageMin: 60, ageMax: null },
-  // ---- الذكور حسب الفئات العمرية ----
-  { id: "kids_0_5_m", label: "ذكور (0-5)", gender: "male", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12_m", label: "ذكور (6-12)", gender: "male", ageMin: 6, ageMax: 12 },
-  { id: "teens_13_17_m", label: "ذكور (13-17)", gender: "male", ageMin: 13, ageMax: 17 },
+  // ---- فئات عمرية دقيقة وغير متداخلة (بالشهور للرُّضّع) ----
+  { id: "m_0_5", label: "رُضّع (0-5 شهور)", gender: "all", unit: "months", ageMin: 0, ageMax: 5 },
+  { id: "m_6_11", label: "رُضّع (6-11 شهر)", gender: "all", unit: "months", ageMin: 6, ageMax: 11 },
+  { id: "m_12_23", label: "أطفال (12-23 شهر)", gender: "all", unit: "months", ageMin: 12, ageMax: 23 },
+  { id: "y_2_4", label: "أطفال (2-4 سنوات)", gender: "all", ageMin: 2, ageMax: 4 },
+  { id: "y_5_11", label: "أطفال (5-11 سنة)", gender: "all", ageMin: 5, ageMax: 11 },
+  { id: "y_12_17", label: "مراهقون (12-17 سنة)", gender: "all", ageMin: 12, ageMax: 17 },
+  { id: "y_18_59", label: "بالغون (18-59 سنة)", gender: "all", ageMin: 18, ageMax: 59 },
+  { id: "y_60_up", label: "كبار السن (60+)", gender: "all", ageMin: 60, ageMax: null },
+  // ---- الذكور ----
+  { id: "m_y_0_4", label: "ذكور (0-4)", gender: "male", ageMin: 0, ageMax: 4 },
+  { id: "m_y_5_11", label: "ذكور (5-11)", gender: "male", ageMin: 5, ageMax: 11 },
+  { id: "m_y_12_17", label: "ذكور (12-17)", gender: "male", ageMin: 12, ageMax: 17 },
   { id: "adult_male", label: "ذكور بالغون (18+)", gender: "male", ageMin: 18, ageMax: null },
-  { id: "elderly_male", label: "ذكور كبار السن (60+)", gender: "male", ageMin: 60, ageMax: null },
-  // ---- الإناث حسب الفئات العمرية ----
-  { id: "kids_0_5_f", label: "إناث (0-5)", gender: "female", ageMin: 0, ageMax: 5 },
-  { id: "kids_6_12_f", label: "إناث (6-12)", gender: "female", ageMin: 6, ageMax: 12 },
-  { id: "teens_13_17_f", label: "إناث (13-17)", gender: "female", ageMin: 13, ageMax: 17 },
-  { id: "adult_female", label: "إناث بالغات (18+)", gender: "female", ageMin: 18, ageMax: null },
-  { id: "elderly_female", label: "إناث كبار السن (60+)", gender: "female", ageMin: 60, ageMax: null },
-  // ---- الإجمالي حسب الجنس ----
   { id: "total_male", label: "إجمالي الذكور", gender: "male" },
+  // ---- الإناث ----
+  { id: "f_y_0_4", label: "إناث (0-4)", gender: "female", ageMin: 0, ageMax: 4 },
+  { id: "f_y_5_11", label: "إناث (5-11)", gender: "female", ageMin: 5, ageMax: 11 },
+  { id: "f_y_12_17", label: "إناث (12-17)", gender: "female", ageMin: 12, ageMax: 17 },
+  { id: "adult_female", label: "إناث بالغات (18+)", gender: "female", ageMin: 18, ageMax: null },
   { id: "total_female", label: "إجمالي الإناث", gender: "female" },
-  // ---- الحالات الصحية والخاصة ----
+  // ---- الحالات ----
   { id: "pregnant", label: "عدد الحوامل", gender: "female", flags: ["pregnant"] },
   { id: "breastfeeding", label: "عدد المرضعات", gender: "female", flags: ["breastfeeding"] },
   { id: "injured", label: "عدد المصابين", flags: ["war_injured"] },
@@ -711,15 +796,16 @@ interface Person {
 
 function matchPerson(p: Person, cc: ComputedCol): boolean {
   if (cc.gender && cc.gender !== "all" && p.gender !== cc.gender) return false;
-  const age = calcAge(p.birth_date);
-  if (cc.ageMin != null && (typeof age !== "number" || age < cc.ageMin)) return false;
-  if (cc.ageMax != null && (typeof age !== "number" || age > cc.ageMax)) return false;
+  const parts = ageParts(p.birth_date);
+  const age = parts ? (cc.unit === "months" ? parts.totalMonths : parts.years) : null;
+  if (cc.ageMin != null && (age === null || age < cc.ageMin)) return false;
+  if (cc.ageMax != null && (age === null || age > cc.ageMax)) return false;
   for (const f of cc.flags || []) {
     if (f === "pregnant" && !p.is_pregnant) return false;
     if (f === "breastfeeding" && !p.is_breastfeeding) return false;
     if (f === "war_injured" && !p.is_war_injured) return false;
     if (f === "special_needs" && !p.is_special_needs) return false;
-    if (f === "chronic" && !(p.chronic_diseases && p.chronic_diseases !== "")) return false;
+    if (f === "chronic" && !hasChronic(p.chronic_diseases)) return false;
   }
   return true;
 }
@@ -738,6 +824,10 @@ export interface ExportConfig {
     status?: "approved" | "pending" | "rejected" | "all";
     ageMin?: number | null;
     ageMax?: number | null;
+    /** وحدة نطاق العمر في الفلاتر (سنوات افتراضياً). */
+    ageUnit?: AgeUnit;
+    /** تضمين رب الأسرة في كشف الأفراد. */
+    includeHead?: boolean;
     maritalWidow?: boolean;
     femaleBreadwinner?: boolean;
     hasMartyr?: boolean;
@@ -793,18 +883,10 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
       const head = profiles.find((p) => p.id === app.user_id);
       if (!head) continue;
       const spouse = findSpouse(app.id, members);
-      const fam = members.filter((m) => m.application_id === app.id);
+      // أفراد الأسرة بدون رب الأسرة (حتى لا يُحتسب مرتين).
+      const fam = famWithoutHead(app.id, members);
       const ctx: FamilyCtx = { app, head, spouse, fam };
-      const people: Person[] = [
-        {
-          gender: head.gender,
-          birth_date: head.birth_date,
-          is_war_injured: head.is_war_injured,
-          chronic_diseases: head.chronic_diseases,
-          is_special_needs: head.is_special_needs,
-        },
-        ...fam,
-      ];
+      const people: Person[] = [headAsPerson(app, head, members), ...fam];
       const row: any[] = [i++, ...colDefs.map((c) => FAMILY_GETTERS[c.key](ctx))];
       for (const cc of cfg.computed) row.push(people.filter((p) => matchPerson(p, cc)).length);
       rows.push(row);
@@ -820,30 +902,79 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
   const rows: any[][] = [];
   let i = 1;
   const kinds = f.memberKinds || [];
+  const includeHead = f.includeHead !== false;
+  const unit: AgeUnit = f.ageUnit === "months" ? "months" : "years";
   for (const app of pool) {
     const head = profiles.find((p) => p.id === app.user_id);
     if (!head) continue;
-    const fam = members.filter((m) => m.application_id === app.id);
     const spouse = findSpouse(app.id, members);
-    for (const m of fam) {
-      const age = calcAge(m.birth_date);
-      if (f.ageMin != null && (typeof age !== "number" || age < f.ageMin)) continue;
-      if (f.ageMax != null && (typeof age !== "number" || age > f.ageMax)) continue;
+    // رب الأسرة سطر واحد فقط (من الملف الشخصي) + بقية الأفراد.
+    const headRow = headAsMember(app, head, members);
+    const list: { m: FamilyMember; isHeadRow: boolean }[] = [
+      ...(includeHead ? [{ m: headRow, isHeadRow: true }] : []),
+      ...famWithoutHead(app.id, members).map((m) => ({ m, isHeadRow: false })),
+    ];
+    const seen = new Set<string>();
+    for (const { m, isHeadRow } of list) {
+      // منع تكرار نفس الفرد (نفس الهوية أو نفس الاسم مع تاريخ الميلاد).
+      const sig = (m.national_id && m.national_id.length >= 5
+        ? `n:${m.national_id}`
+        : `x:${(m.full_name || "").trim()}|${m.birth_date || ""}`);
+      if (seen.has(sig)) continue;
+      seen.add(sig);
+
+      const parts = ageParts(m.birth_date);
+      const age = parts ? (unit === "months" ? parts.totalMonths : parts.years) : null;
+      if (f.ageMin != null && (age === null || age < f.ageMin)) continue;
+      if (f.ageMax != null && (age === null || age > f.ageMax)) continue;
       if (kinds.length) {
         const ok = kinds.some((k) => {
           if (k === "orphan") return isOrphan(m, app);
           if (k === "injured") return !!m.is_war_injured;
-          if (k === "chronic") return !!(m.chronic_diseases && m.chronic_diseases !== "");
+          if (k === "chronic") return hasChronic(m.chronic_diseases);
           if (k === "preg_breast") return !!(m.is_pregnant || m.is_breastfeeding);
           if (k === "special_needs") return !!m.is_special_needs;
           return false;
         });
         if (!ok) continue;
       }
-      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head, spouse }))]);
+      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head, spouse, isHeadRow }))]);
     }
   }
   return { headers, rows };
+}
+
+/** رب الأسرة كفرد (يدمج بيانات الملف الشخصي مع سطره في أفراد الأسرة إن وجد). */
+function headAsMember(app: Application, head: Profile, members: FamilyMember[]): FamilyMember {
+  const row = members.find((m) => m.application_id === app.id && m.is_head);
+  return {
+    id: row?.id || `head-${app.id}`,
+    application_id: app.id,
+    full_name: head.full_name,
+    national_id: head.national_id,
+    birth_date: head.birth_date,
+    gender: head.gender,
+    relationship: "head",
+    is_head: true,
+    is_war_injured: head.is_war_injured ?? row?.is_war_injured,
+    chronic_diseases: head.chronic_diseases ?? row?.chronic_diseases,
+    is_special_needs: head.is_special_needs ?? row?.is_special_needs,
+    is_pregnant: row?.is_pregnant,
+    is_breastfeeding: row?.is_breastfeeding,
+  } as FamilyMember;
+}
+
+function headAsPerson(app: Application, head: Profile, members: FamilyMember[]): Person {
+  const m = headAsMember(app, head, members);
+  return {
+    gender: m.gender,
+    birth_date: m.birth_date,
+    is_war_injured: m.is_war_injured,
+    chronic_diseases: m.chronic_diseases,
+    is_special_needs: m.is_special_needs,
+    is_pregnant: m.is_pregnant,
+    is_breastfeeding: m.is_breastfeeding,
+  };
 }
 
 /** التحقق من إعدادات التصدير قبل التنفيذ. يُعيد قائمة بالمشاكل (فارغة = سليم). */
@@ -951,12 +1082,38 @@ export const PRESETS: Preset[] = [
     id: "aid",
     label: "توزيع المساعدات",
     emoji: "📦",
-    desc: "الاسم، الهوية، الجوال، عدد الأفراد، المخيم",
+    desc: "سطر لكل أسرة: الرقم، رب الأسرة، الهوية، الجوال، عدد الأفراد",
     config: {
       title: "كشف توزيع المساعدات",
       entity: "family",
-      columns: ["head_name", "national_id", "phone", "family_size", "current_camp"],
+      columns: ["family_no", "head_name", "national_id", "phone", "alt_phone", "members_count", "current_camp", "camp_name"],
       computed: [],
+      filters: { status: "approved" },
+    },
+  },
+  {
+    id: "families_full",
+    label: "كشف الأسر الشامل",
+    emoji: "🏠",
+    desc: "بيانات رب الأسرة والزوج/ة والسكن وتفاصيل الأفراد",
+    config: {
+      title: "كشف الأسر الشامل",
+      entity: "family",
+      columns: [
+        "family_no", "head_name", "national_id", "head_gender", "head_age", "head_birth",
+        "marital_status", "phone", "alt_phone", "has_chronic", "chronic", "war_injured",
+        "spouse_name", "spouse_nid", "spouse_age", "spouse_birth", "spouse_preg",
+        "members_count", "children_count", "original_residence", "original_landmark",
+        "current_camp", "current_landmark", "camp_name",
+      ],
+      computed: [
+        { id: "m_0_11", label: "رُضّع (0-11 شهر)", gender: "all", unit: "months", ageMin: 0, ageMax: 11 },
+        { id: "y_1_4", label: "أطفال (1-4)", gender: "all", ageMin: 1, ageMax: 4 },
+        { id: "y_5_11", label: "أطفال (5-11)", gender: "all", ageMin: 5, ageMax: 11 },
+        { id: "y_12_17", label: "مراهقون (12-17)", gender: "all", ageMin: 12, ageMax: 17 },
+        { id: "y_18_59", label: "بالغون (18-59)", gender: "all", ageMin: 18, ageMax: 59 },
+        { id: "y_60_up", label: "كبار السن (60+)", gender: "all", ageMin: 60, ageMax: null },
+      ],
       filters: { status: "approved" },
     },
   },
@@ -964,12 +1121,20 @@ export const PRESETS: Preset[] = [
     id: "widows",
     label: "الأرامل وأسرهن",
     emoji: "🤲",
-    desc: "العائلات التي يعيلها أرمل/أرملة",
+    desc: "الأسر التي تعيلها أرملة أو امرأة معيلة + أعمار الأبناء",
     config: {
       title: "كشف الأرامل والمعيلات",
       entity: "family",
-      columns: ["head_name", "national_id", "head_age", "phone", "family_size", "children_count", "current_camp"],
-      computed: [{ id: "kids_0_5", label: "أطفال (0-5)", gender: "all", ageMin: 0, ageMax: 5 }],
+      columns: [
+        "family_no", "head_name", "national_id", "head_age", "head_birth", "marital_status",
+        "phone", "alt_phone", "has_chronic", "chronic", "members_count", "children_count",
+        "has_martyr", "martyr_name", "martyr_relationship", "original_residence", "current_camp", "camp_name",
+      ],
+      computed: [
+        { id: "y_0_4", label: "أطفال (0-4)", gender: "all", ageMin: 0, ageMax: 4 },
+        { id: "y_5_11", label: "أطفال (5-11)", gender: "all", ageMin: 5, ageMax: 11 },
+        { id: "y_12_17", label: "مراهقون (12-17)", gender: "all", ageMin: 12, ageMax: 17 },
+      ],
       filters: { status: "approved", maritalWidow: true, femaleBreadwinner: true },
     },
   },
@@ -977,24 +1142,32 @@ export const PRESETS: Preset[] = [
     id: "orphans",
     label: "الأيتام التفصيلي",
     emoji: "👶",
-    desc: "الأطفال الأيتام مع المعيل والمخيم",
+    desc: "أبناء الشهيد (الأب/الأم) دون 18 سنة فقط",
     config: {
       title: "كشف الأيتام",
       entity: "member",
-      columns: ["member_name", "national_id", "gender", "age", "martyr_name", "head_name", "head_phone", "current_camp"],
+      columns: [
+        "family_no", "member_name", "national_id", "gender", "age", "age_full", "birth",
+        "martyr_name", "martyr_relationship", "head_name", "head_nid", "head_phone",
+        "original_residence", "current_camp", "camp_name",
+      ],
       computed: [],
-      filters: { status: "approved", hasMartyr: true, memberKinds: ["orphan"] },
+      filters: { status: "approved", hasMartyr: true, memberKinds: ["orphan"], includeHead: false },
     },
   },
   {
     id: "medical",
     label: "الحالات الطبية والمصابين",
     emoji: "🏥",
-    desc: "الجرحى وأصحاب الأمراض والتواصل",
+    desc: "الجرحى وأصحاب الأمراض المزمنة الفعلية",
     config: {
       title: "كشف الحالات الطبية",
       entity: "member",
-      columns: ["member_name", "national_id", "age", "relationship", "war_injured", "chronic", "head_phone", "current_camp"],
+      columns: [
+        "family_no", "member_name", "national_id", "gender", "age", "relationship",
+        "war_injured", "has_chronic", "chronic", "special_needs",
+        "head_name", "contact_phone", "current_camp", "camp_name",
+      ],
       computed: [],
       filters: { status: "approved", memberKinds: ["injured", "chronic"] },
     },
@@ -1007,7 +1180,10 @@ export const PRESETS: Preset[] = [
     config: {
       title: "كشف الحوامل والمرضعات",
       entity: "member",
-      columns: ["member_name", "national_id", "age", "preg_breast", "head_name", "head_phone", "current_camp"],
+      columns: [
+        "family_no", "member_name", "national_id", "age", "preg_breast",
+        "head_name", "contact_phone", "current_camp", "camp_name",
+      ],
       computed: [],
       filters: { status: "approved", memberKinds: ["preg_breast"] },
     },
@@ -1016,50 +1192,63 @@ export const PRESETS: Preset[] = [
     id: "individuals",
     label: "تقرير الأفراد",
     emoji: "👤",
-    desc: "بيانات كل فرد: الاسم، الهوية، الحالة الصحية، الأب، السكن، المخيم",
+    desc: "سطر لكل فرد مع العمر بالسنة والشهر واسم الأب والأم والسكن",
     config: {
       title: "تقرير الأفراد",
       entity: "member",
       columns: [
-        "member_name",
-        "national_id",
-        "age",
-        "birth",
-        "health_status",
-        "father_name",
-        "father_nid",
-        "contact_phone",
-        "contact_alt_phone",
-        "original_residence",
-        "current_residence",
-        "camp_name",
+        "family_no", "member_name", "national_id", "gender", "age", "age_full", "birth",
+        "relationship", "health_status", "father_name", "father_nid", "mother_name", "mother_nid",
+        "contact_phone", "contact_alt_phone", "original_residence", "current_residence", "camp_name",
       ],
       computed: [],
-      filters: { status: "approved" },
+      filters: { status: "approved", includeHead: true },
+    },
+  },
+  {
+    id: "infants",
+    label: "الرُّضّع بالشهور",
+    emoji: "🍼",
+    desc: "الأطفال أقل من سنتين محسوبين بالشهور بدقة",
+    config: {
+      title: "كشف الرُّضّع بالشهور",
+      entity: "member",
+      columns: [
+        "family_no", "member_name", "national_id", "gender", "age_full", "age_months", "birth",
+        "father_name", "mother_name", "contact_phone", "current_camp", "camp_name",
+      ],
+      computed: [],
+      filters: { status: "approved", ageUnit: "months", ageMin: 0, ageMax: 23, includeHead: false },
     },
   },
   {
     id: "students",
     label: "طلاب المدارس",
     emoji: "🎒",
-    desc: "الأعمار من 6 إلى 18",
+    desc: "الأعمار من 6 إلى 18 سنة",
     config: {
       title: "كشف طلاب المدارس",
       entity: "member",
-      columns: ["member_name", "gender", "age", "relationship", "head_name", "head_phone", "current_camp"],
+      columns: [
+        "family_no", "member_name", "national_id", "gender", "age", "birth", "relationship",
+        "head_name", "contact_phone", "current_camp", "camp_name",
+      ],
       computed: [],
-      filters: { status: "approved", ageMin: 6, ageMax: 18 },
+      filters: { status: "approved", ageMin: 6, ageMax: 18, includeHead: false },
     },
   },
   {
     id: "martyrs",
     label: "أسر الشهداء",
     emoji: "🕊️",
-    desc: "العائلات التي بها شهيد",
+    desc: "العائلات التي بها شهيد وصلة القرابة به",
     config: {
       title: "كشف أسر الشهداء",
       entity: "family",
-      columns: ["head_name", "national_id", "phone", "martyr_name", "family_size", "children_count", "current_camp"],
+      columns: [
+        "family_no", "head_name", "national_id", "phone", "martyr_name", "martyr_relationship",
+        "members_count", "children_count", "current_camp", "camp_name",
+      ],
       computed: [],
       filters: { status: "approved", hasMartyr: true },
     },
@@ -1068,15 +1257,15 @@ export const PRESETS: Preset[] = [
     id: "males_by_age",
     label: "الذكور حسب الأعمار",
     emoji: "👦",
-    desc: "إحصاء الذكور لكل أسرة حسب الفئات العمرية",
+    desc: "إحصاء الذكور لكل أسرة بفئات غير متداخلة",
     config: {
       title: "تقرير الذكور حسب الفئات العمرية",
       entity: "family",
-      columns: ["head_name", "national_id", "phone", "family_size", "current_camp"],
+      columns: ["family_no", "head_name", "national_id", "phone", "members_count", "current_camp"],
       computed: [
-        { id: "kids_0_5_m", label: "ذكور (0-5)", gender: "male", ageMin: 0, ageMax: 5 },
-        { id: "kids_6_12_m", label: "ذكور (6-12)", gender: "male", ageMin: 6, ageMax: 12 },
-        { id: "teens_13_17_m", label: "ذكور (13-17)", gender: "male", ageMin: 13, ageMax: 17 },
+        { id: "m_y_0_4", label: "ذكور (0-4)", gender: "male", ageMin: 0, ageMax: 4 },
+        { id: "m_y_5_11", label: "ذكور (5-11)", gender: "male", ageMin: 5, ageMax: 11 },
+        { id: "m_y_12_17", label: "ذكور (12-17)", gender: "male", ageMin: 12, ageMax: 17 },
         { id: "adult_male", label: "ذكور بالغون (18+)", gender: "male", ageMin: 18, ageMax: null },
         { id: "total_male", label: "إجمالي الذكور", gender: "male" },
       ],
@@ -1087,15 +1276,15 @@ export const PRESETS: Preset[] = [
     id: "females_by_age",
     label: "الإناث حسب الأعمار",
     emoji: "👧",
-    desc: "إحصاء الإناث لكل أسرة حسب الفئات العمرية",
+    desc: "إحصاء الإناث لكل أسرة بفئات غير متداخلة",
     config: {
       title: "تقرير الإناث حسب الفئات العمرية",
       entity: "family",
-      columns: ["head_name", "national_id", "phone", "family_size", "current_camp"],
+      columns: ["family_no", "head_name", "national_id", "phone", "members_count", "current_camp"],
       computed: [
-        { id: "kids_0_5_f", label: "إناث (0-5)", gender: "female", ageMin: 0, ageMax: 5 },
-        { id: "kids_6_12_f", label: "إناث (6-12)", gender: "female", ageMin: 6, ageMax: 12 },
-        { id: "teens_13_17_f", label: "إناث (13-17)", gender: "female", ageMin: 13, ageMax: 17 },
+        { id: "f_y_0_4", label: "إناث (0-4)", gender: "female", ageMin: 0, ageMax: 4 },
+        { id: "f_y_5_11", label: "إناث (5-11)", gender: "female", ageMin: 5, ageMax: 11 },
+        { id: "f_y_12_17", label: "إناث (12-17)", gender: "female", ageMin: 12, ageMax: 17 },
         { id: "adult_female", label: "إناث بالغات (18+)", gender: "female", ageMin: 18, ageMax: null },
         { id: "total_female", label: "إجمالي الإناث", gender: "female" },
       ],
@@ -1104,13 +1293,16 @@ export const PRESETS: Preset[] = [
   },
   {
     id: "special_by_camp",
-    label: "ذوو الهمم حسب المخيم",
+    label: "ذوو الهمم",
     emoji: "♿",
-    desc: "أفراد ذوو الاحتياجات الخاصة مرتّبون بالمخيم",
+    desc: "أفراد ذوو الاحتياجات الخاصة مع المعيل",
     config: {
-      title: "كشف ذوي الهمم حسب المخيم",
+      title: "كشف ذوي الهمم",
       entity: "member",
-      columns: ["current_camp", "member_name", "national_id", "gender", "age", "relationship", "chronic", "head_name", "head_phone"],
+      columns: [
+        "current_camp", "family_no", "member_name", "national_id", "gender", "age", "relationship",
+        "has_chronic", "chronic", "head_name", "contact_phone", "camp_name",
+      ],
       computed: [],
       filters: { status: "approved", memberKinds: ["special_needs"] },
     },

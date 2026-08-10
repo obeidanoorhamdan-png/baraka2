@@ -18,7 +18,8 @@ import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { DatePickerField } from "@/components/DatePickerField";
-import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus } from "lucide-react";
+import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus, Loader2 } from "lucide-react";
+import { lookupCivilRecord } from "@/lib/civilRegistry";
 
 // A deterministic, server-generated initial password for new users.
 // The user never sees or types it. After signup, they sign in via the
@@ -282,6 +283,29 @@ const Auth = () => {
     health_notes: "",
   });
   const [suBusy, setSuBusy] = useState(false);
+  const [civilBusy, setCivilBusy] = useState(false);
+  const [civilMsg, setCivilMsg] = useState("");
+
+  /** تعبئة الاسم وتاريخ الميلاد تلقائياً من السجل المدني. */
+  const autoFillFromRegistry = async (nidVal: string) => {
+    setCivilMsg("");
+    setCivilBusy(true);
+    const res = await lookupCivilRecord(nidVal);
+    setCivilBusy(false);
+    if (res.success) {
+      setSu((p) => ({
+        ...p,
+        national_id: nidVal,
+        full_name: res.full_name,
+        birth_date: res.birth_date || p.birth_date,
+      }));
+      setErrors((p) => ({ ...p, national_id: "", full_name: "", birth_date: "" }));
+      setCivilMsg("تم جلب البيانات من السجل المدني ✅");
+    } else {
+      setErrors((p) => ({ ...p, national_id: res.message }));
+      toast.error(res.message, { duration: 5000 });
+    }
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
   const age = calculateAge(su.birth_date);
 
@@ -378,7 +402,7 @@ const Auth = () => {
           marital_status: su.marital_status,
           marital_status_other: su.marital_status_other || null,
           is_war_injured: su.is_war_injured,
-          chronic_diseases: su.chronic_diseases || null,
+          chronic_diseases: su.chronic_diseases.trim() || null,
           health_notes: su.health_notes || null,
         },
       },
@@ -623,20 +647,33 @@ const Auth = () => {
                   <div className="grid gap-4 md:grid-cols-2">
                     <div>
                       <Label>{t("form.national_id")} <span className="text-destructive">*</span></Label>
-                      <Input
-                        inputMode="numeric"
-                        maxLength={9}
-                        value={su.national_id}
-                        placeholder="9 أرقام"
-                        aria-invalid={!!errors.national_id}
-                        className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
-                        onBlur={() =>
-                          setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))
-                        }
-                        onChange={(e) => setField("national_id", e.target.value.replace(/\D/g, "").slice(0, 9))}
-                      />
+                      <div className="relative">
+                        <Input
+                          inputMode="numeric"
+                          maxLength={9}
+                          value={su.national_id}
+                          placeholder="9 أرقام"
+                          aria-invalid={!!errors.national_id}
+                          className={errors.national_id ? "border-destructive focus-visible:ring-destructive" : ""}
+                          onBlur={() =>
+                            setErrors((p) => ({ ...p, national_id: validateField("national_id", su.national_id) }))
+                          }
+                          onChange={(e) => {
+                            const val = e.target.value.replace(/\D/g, "").slice(0, 9);
+                            setField("national_id", val);
+                            if (val.length === 9) autoFillFromRegistry(val);
+                          }}
+                        />
+                        {civilBusy && (
+                          <Loader2 className="h-4 w-4 animate-spin absolute top-1/2 -translate-y-1/2 end-3 text-primary" />
+                        )}
+                      </div>
                       {errors.national_id && <p className="text-xs text-destructive mt-1">{errors.national_id}</p>}
+                      {civilMsg && (
+                        <p className="text-xs text-emerald-600 mt-1 font-semibold">{civilMsg}</p>
+                      )}
                     </div>
+
                     <div>
                       <Label>{t("form.full_name")} <span className="text-destructive">*</span></Label>
                       <Input
@@ -764,7 +801,34 @@ const Auth = () => {
                       </div>
                       <div>
                         <Label>{t("health.chronic")}</Label>
-                        <Textarea rows={2} value={su.chronic_diseases} onChange={(e) => setSu({ ...su, chronic_diseases: e.target.value })} />
+                        <div className="flex gap-2">
+                          {[{ v: true, l: "نعم" }, { v: false, l: "لا" }].map((opt) => {
+                            const on = !!su.chronic_diseases.trim() === opt.v;
+                            return (
+                              <button
+                                key={String(opt.v)}
+                                type="button"
+                                onClick={() =>
+                                  setSu({ ...su, chronic_diseases: opt.v ? (su.chronic_diseases.trim() || " ") : "" })
+                                }
+                                className={`rounded-full border px-4 py-1 text-xs font-bold transition-colors ${
+                                  on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent"
+                                }`}
+                              >
+                                {opt.l}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {!!su.chronic_diseases && (
+                          <Textarea
+                            rows={2}
+                            className="mt-2"
+                            placeholder="اكتب اسم المرض المزمن"
+                            value={su.chronic_diseases.trim() ? su.chronic_diseases : ""}
+                            onChange={(e) => setSu({ ...su, chronic_diseases: e.target.value || " " })}
+                          />
+                        )}
                       </div>
                       <div>
                         <Label>{t("health.notes")}</Label>

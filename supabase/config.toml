@@ -5,3 +5,6 @@ verify_jwt = false
 
 [functions.forget-account]
 verify_jwt = false
+
+[functions.civil-record]
+verify_jwt = false
