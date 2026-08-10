@@ -883,18 +883,10 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
       const head = profiles.find((p) => p.id === app.user_id);
       if (!head) continue;
       const spouse = findSpouse(app.id, members);
-      const fam = members.filter((m) => m.application_id === app.id);
+      // أفراد الأسرة بدون رب الأسرة (حتى لا يُحتسب مرتين).
+      const fam = famWithoutHead(app.id, members);
       const ctx: FamilyCtx = { app, head, spouse, fam };
-      const people: Person[] = [
-        {
-          gender: head.gender,
-          birth_date: head.birth_date,
-          is_war_injured: head.is_war_injured,
-          chronic_diseases: head.chronic_diseases,
-          is_special_needs: head.is_special_needs,
-        },
-        ...fam,
-      ];
+      const people: Person[] = [headAsPerson(app, head, members), ...fam];
       const row: any[] = [i++, ...colDefs.map((c) => FAMILY_GETTERS[c.key](ctx))];
       for (const cc of cfg.computed) row.push(people.filter((p) => matchPerson(p, cc)).length);
       rows.push(row);
@@ -910,30 +902,79 @@ export function buildExport(ds: Dataset, cfg: ExportConfig): { headers: string[]
   const rows: any[][] = [];
   let i = 1;
   const kinds = f.memberKinds || [];
+  const includeHead = f.includeHead !== false;
+  const unit: AgeUnit = f.ageUnit === "months" ? "months" : "years";
   for (const app of pool) {
     const head = profiles.find((p) => p.id === app.user_id);
     if (!head) continue;
-    const fam = members.filter((m) => m.application_id === app.id);
     const spouse = findSpouse(app.id, members);
-    for (const m of fam) {
-      const age = calcAge(m.birth_date);
-      if (f.ageMin != null && (typeof age !== "number" || age < f.ageMin)) continue;
-      if (f.ageMax != null && (typeof age !== "number" || age > f.ageMax)) continue;
+    // رب الأسرة سطر واحد فقط (من الملف الشخصي) + بقية الأفراد.
+    const headRow = headAsMember(app, head, members);
+    const list: { m: FamilyMember; isHeadRow: boolean }[] = [
+      ...(includeHead ? [{ m: headRow, isHeadRow: true }] : []),
+      ...famWithoutHead(app.id, members).map((m) => ({ m, isHeadRow: false })),
+    ];
+    const seen = new Set<string>();
+    for (const { m, isHeadRow } of list) {
+      // منع تكرار نفس الفرد (نفس الهوية أو نفس الاسم مع تاريخ الميلاد).
+      const sig = (m.national_id && m.national_id.length >= 5
+        ? `n:${m.national_id}`
+        : `x:${(m.full_name || "").trim()}|${m.birth_date || ""}`);
+      if (seen.has(sig)) continue;
+      seen.add(sig);
+
+      const parts = ageParts(m.birth_date);
+      const age = parts ? (unit === "months" ? parts.totalMonths : parts.years) : null;
+      if (f.ageMin != null && (age === null || age < f.ageMin)) continue;
+      if (f.ageMax != null && (age === null || age > f.ageMax)) continue;
       if (kinds.length) {
         const ok = kinds.some((k) => {
           if (k === "orphan") return isOrphan(m, app);
           if (k === "injured") return !!m.is_war_injured;
-          if (k === "chronic") return !!(m.chronic_diseases && m.chronic_diseases !== "");
+          if (k === "chronic") return hasChronic(m.chronic_diseases);
           if (k === "preg_breast") return !!(m.is_pregnant || m.is_breastfeeding);
           if (k === "special_needs") return !!m.is_special_needs;
           return false;
         });
         if (!ok) continue;
       }
-      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head, spouse }))]);
+      rows.push([i++, ...colDefs.map((c) => MEMBER_GETTERS[c.key]({ m, app, head, spouse, isHeadRow }))]);
     }
   }
   return { headers, rows };
+}
+
+/** رب الأسرة كفرد (يدمج بيانات الملف الشخصي مع سطره في أفراد الأسرة إن وجد). */
+function headAsMember(app: Application, head: Profile, members: FamilyMember[]): FamilyMember {
+  const row = members.find((m) => m.application_id === app.id && m.is_head);
+  return {
+    id: row?.id || `head-${app.id}`,
+    application_id: app.id,
+    full_name: head.full_name,
+    national_id: head.national_id,
+    birth_date: head.birth_date,
+    gender: head.gender,
+    relationship: "head",
+    is_head: true,
+    is_war_injured: head.is_war_injured ?? row?.is_war_injured,
+    chronic_diseases: head.chronic_diseases ?? row?.chronic_diseases,
+    is_special_needs: head.is_special_needs ?? row?.is_special_needs,
+    is_pregnant: row?.is_pregnant,
+    is_breastfeeding: row?.is_breastfeeding,
+  } as FamilyMember;
+}
+
+function headAsPerson(app: Application, head: Profile, members: FamilyMember[]): Person {
+  const m = headAsMember(app, head, members);
+  return {
+    gender: m.gender,
+    birth_date: m.birth_date,
+    is_war_injured: m.is_war_injured,
+    chronic_diseases: m.chronic_diseases,
+    is_special_needs: m.is_special_needs,
+    is_pregnant: m.is_pregnant,
+    is_breastfeeding: m.is_breastfeeding,
+  };
 }
 
 /** التحقق من إعدادات التصدير قبل التنفيذ. يُعيد قائمة بالمشاكل (فارغة = سليم). */
