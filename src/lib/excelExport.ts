@@ -513,11 +513,21 @@ const relAr = (s?: string | null) => (s ? REL_AR[s] || s : NA);
 const isWidow = (head?: Profile | null) =>
   !!head && (head.marital_status === "widow" || head.marital_status === "widowed");
 
-function isOrphan(m: FamilyMember, app: Application): boolean {
+/** صلات القرابة التي تجعل الأبناء أيتاماً فعلياً (الشهيد أب أو أم). */
+const PARENT_MARTYR = ["father", "mother", "أب", "اب", "الأب", "الاب", "أم", "ام", "الأم", "الام", "زوج", "husband", "زوجة", "wife"];
+export function martyrIsParent(app: Application): boolean {
   if (!app.has_martyr) return false;
-  if (m.relationship === "wife" || m.relationship === "husband") return false;
-  const age = calcAge(m.birth_date);
-  return typeof age === "number" && age < 18;
+  const r = String(app.martyr_relationship || "").trim().toLowerCase();
+  if (!r) return false;
+  return PARENT_MARTYR.some((x) => r === x.toLowerCase() || r.includes(x.toLowerCase()));
+}
+/** يتيم = ابن/ابنة دون 18 سنة والشهيد هو الأب أو الأم (لا الأخ أو صلة أخرى). */
+function isOrphan(m: FamilyMember, app: Application): boolean {
+  if (!martyrIsParent(app)) return false;
+  if (m.is_head) return false;
+  if (!["son", "daughter"].includes(String(m.relationship))) return false;
+  const a = ageParts(m.birth_date);
+  return !!a && a.years < 18;
 }
 
 /* ---------- كتالوج الأعمدة ---------- */
@@ -527,7 +537,7 @@ export interface ColDef {
 }
 
 type FamilyCtx = { app: Application; head: Profile; spouse: FamilyMember | null; fam: FamilyMember[] };
-type MemberCtx = { m: FamilyMember; app: Application; head: Profile; spouse?: FamilyMember | null };
+type MemberCtx = { m: FamilyMember; app: Application; head: Profile; spouse?: FamilyMember | null; isHeadRow?: boolean };
 
 /** اسم المخيم دائماً بالعربية الكاملة "بركة 2". */
 const campAr = (c?: string | null): string => {
@@ -565,7 +575,9 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   marital_status: (c) => maritalAr(c.head.marital_status),
   phone: (c) => v(c.head.phone),
   alt_phone: (c) => v(c.head.alt_phone),
-  chronic: (c) => v(c.head.chronic_diseases),
+  chronic: (c) => chronicText(c.head.chronic_diseases),
+  has_chronic: (c) => bool(hasChronic(c.head.chronic_diseases)),
+  head_age_full: (c) => ageFull(c.head.birth_date),
   war_injured: (c) => bool(c.head.is_war_injured),
   special_needs: (c) => bool(c.head.is_special_needs),
   spouse_name: (c) => (c.spouse ? v(c.spouse.full_name) : NA),
@@ -573,19 +585,22 @@ const FAMILY_GETTERS: Record<string, (c: FamilyCtx) => any> = {
   spouse_gender: (c) => (c.spouse ? G(c.spouse.gender) : NA),
   spouse_age: (c) => (c.spouse ? calcAge(c.spouse.birth_date) : NA),
   spouse_birth: (c) => (c.spouse ? v(c.spouse.birth_date) : NA),
-  spouse_chronic: (c) => (c.spouse ? v(c.spouse.chronic_diseases) : NA),
+  spouse_chronic: (c) => (c.spouse ? chronicText(c.spouse.chronic_diseases) : NA),
   spouse_war_injured: (c) => (c.spouse ? bool(c.spouse.is_war_injured) : NA),
   spouse_special_needs: (c) => (c.spouse ? bool(c.spouse.is_special_needs) : NA),
   spouse_preg: (c) => (c.spouse ? pregBreast(c.spouse) : NA),
   family_size: (c) => c.app.family_size ?? ZERO,
+  members_count: (c) => c.fam.length + 1,
   children_count: (c) =>
-    c.fam.filter((m) => m.relationship !== "wife" && m.relationship !== "husband").length,
+    c.fam.filter((m) => m.relationship === "son" || m.relationship === "daughter").length,
   original_residence: (c) => v(c.app.original_residence),
   original_landmark: (c) => v(c.app.original_landmark),
   current_camp: (c) => v(c.app.current_camp),
   current_landmark: (c) => v(c.app.current_landmark),
   has_martyr: (c) => bool(c.app.has_martyr),
   martyr_name: (c) => v(c.app.martyr_name),
+  martyr_relationship: (c) => v(c.app.martyr_relationship),
+  camp_name: () => "بركة 2",
   status: (c) => statusAr(c.app.status),
 };
 
@@ -599,7 +614,9 @@ export const FAMILY_COLS: ColDef[] = [
   { key: "marital_status", label: "الحالة الاجتماعية" },
   { key: "phone", label: "الجوال" },
   { key: "alt_phone", label: "الجوال البديل" },
-  { key: "chronic", label: "أمراض مزمنة" },
+  { key: "has_chronic", label: "يعاني أمراض مزمنة" },
+  { key: "chronic", label: "الأمراض المزمنة" },
+  { key: "head_age_full", label: "العمر (سنة وشهر)" },
   { key: "war_injured", label: "مصاب حرب" },
   { key: "special_needs", label: "ذوي همم" },
   { key: "spouse_name", label: "اسم الزوج/ة" },
@@ -612,6 +629,7 @@ export const FAMILY_COLS: ColDef[] = [
   { key: "spouse_special_needs", label: "ذوي همم (الزوج/ة)" },
   { key: "spouse_preg", label: "حامل/مرضعة (الزوجة)" },
   { key: "family_size", label: "عدد الأفراد" },
+  { key: "members_count", label: "عدد الأفراد الفعلي" },
   { key: "children_count", label: "عدد الأبناء" },
   { key: "original_residence", label: "السكن الأصلي" },
   { key: "original_landmark", label: "أقرب معلم أصلي" },
@@ -619,6 +637,8 @@ export const FAMILY_COLS: ColDef[] = [
   { key: "current_landmark", label: "المعلم الحالي" },
   { key: "has_martyr", label: "يوجد شهيد" },
   { key: "martyr_name", label: "اسم الشهيد" },
+  { key: "martyr_relationship", label: "صلة القرابة بالشهيد" },
+  { key: "camp_name", label: "اسم المخيم" },
   { key: "status", label: "حالة الطلب" },
 ];
 
@@ -628,29 +648,46 @@ const MEMBER_GETTERS: Record<string, (c: MemberCtx) => any> = {
   national_id: (c) => v(c.m.national_id),
   gender: (c) => G(c.m.gender),
   age: (c) => calcAge(c.m.birth_date),
+  age_months: (c) => calcAgeMonths(c.m.birth_date),
+  age_full: (c) => ageFull(c.m.birth_date),
   birth: (c) => v(c.m.birth_date),
-  relationship: (c) => relAr(c.m.relationship),
-  chronic: (c) => v(c.m.chronic_diseases),
+  relationship: (c) => (c.isHeadRow ? "رب الأسرة" : relAr(c.m.relationship)),
+  has_chronic: (c) => bool(hasChronic(c.m.chronic_diseases)),
+  chronic: (c) => chronicText(c.m.chronic_diseases),
   war_injured: (c) => bool(c.m.is_war_injured),
   special_needs: (c) => bool(c.m.is_special_needs),
   preg_breast: (c) => pregBreast(c.m),
   orphan: (c) => bool(isOrphan(c.m, c.app)),
-  father_martyr: (c) => bool(c.app.has_martyr),
+  father_martyr: (c) => bool(martyrIsParent(c.app)),
   martyr_name: (c) => v(c.app.martyr_name),
+  martyr_relationship: (c) => v(c.app.martyr_relationship),
   head_name: (c) => v(c.head.full_name),
   head_nid: (c) => v(c.head.national_id),
   head_phone: (c) => v(c.head.phone),
   current_camp: (c) => v(c.app.current_camp),
   current_landmark: (c) => v(c.app.current_landmark),
-  // ---- أعمدة تقرير الأفراد ----
-  health_status: (c) => healthStatus(c.m),
+  original_landmark: (c) => v(c.app.original_landmark),
+  health_status: (c) => healthStatus({ ...c.m, chronic_diseases: chronicText(c.m.chronic_diseases) === NA ? null : c.m.chronic_diseases }),
+  // رب الأسرة لا يوجد له «أب» في الكشف — نكتب «لا يوجد».
   father_name: (c) => {
+    if (c.isHeadRow) return NA;
     const father = c.head.gender === "male" ? c.head : c.spouse;
     return father ? v((father as any).full_name) : NA;
   },
   father_nid: (c) => {
+    if (c.isHeadRow) return NA;
     const father = c.head.gender === "male" ? c.head : c.spouse;
     return father ? v((father as any).national_id) : NA;
+  },
+  mother_name: (c) => {
+    if (c.isHeadRow) return NA;
+    const mother = c.head.gender === "female" ? c.head : c.spouse;
+    return mother ? v((mother as any).full_name) : NA;
+  },
+  mother_nid: (c) => {
+    if (c.isHeadRow) return NA;
+    const mother = c.head.gender === "female" ? c.head : c.spouse;
+    return mother ? v((mother as any).national_id) : NA;
   },
   contact_phone: (c) => v(c.head.phone),
   contact_alt_phone: (c) => v(c.head.alt_phone),
@@ -664,28 +701,35 @@ export const MEMBER_COLS: ColDef[] = [
   { key: "member_name", label: "اسم الفرد" },
   { key: "national_id", label: "رقم الهوية" },
   { key: "gender", label: "الجنس" },
-  { key: "age", label: "العمر" },
+  { key: "age", label: "العمر (سنوات)" },
+  { key: "age_full", label: "العمر (سنة وشهر)" },
+  { key: "age_months", label: "العمر بالشهور" },
   { key: "birth", label: "تاريخ الميلاد" },
   { key: "relationship", label: "صلة القرابة" },
-  { key: "chronic", label: "أمراض مزمنة" },
-  { key: "war_injured", label: "مصاب" },
+  { key: "has_chronic", label: "يعاني أمراض مزمنة" },
+  { key: "chronic", label: "الأمراض المزمنة" },
+  { key: "health_status", label: "الحالة الصحية" },
+  { key: "war_injured", label: "مصاب حرب" },
   { key: "special_needs", label: "ذوي همم" },
   { key: "preg_breast", label: "حامل/مرضعة" },
   { key: "orphan", label: "يتيم" },
-  { key: "father_martyr", label: "استشهاد الأب" },
+  { key: "father_martyr", label: "الشهيد أحد الوالدين" },
   { key: "martyr_name", label: "اسم الشهيد" },
-  { key: "head_name", label: "اسم المعيل" },
-  { key: "head_nid", label: "هوية المعيل" },
-  { key: "head_phone", label: "جوال المعيل" },
-  { key: "current_camp", label: "المخيم/مكان الإيواء" },
-  { key: "current_landmark", label: "المعلم الحالي" },
-  { key: "health_status", label: "الحالة الصحية" },
+  { key: "martyr_relationship", label: "صلة القرابة بالشهيد" },
   { key: "father_name", label: "اسم الأب" },
   { key: "father_nid", label: "رقم هوية الأب" },
+  { key: "mother_name", label: "اسم الأم" },
+  { key: "mother_nid", label: "رقم هوية الأم" },
+  { key: "head_name", label: "اسم رب الأسرة/المعيل" },
+  { key: "head_nid", label: "هوية رب الأسرة" },
+  { key: "head_phone", label: "جوال رب الأسرة" },
   { key: "contact_phone", label: "رقم التواصل" },
   { key: "contact_alt_phone", label: "رقم التواصل البديل" },
   { key: "original_residence", label: "مكان السكن الأصلي" },
+  { key: "original_landmark", label: "أقرب معلم للسكن الأصلي" },
   { key: "current_residence", label: "مكان السكن الحالي" },
+  { key: "current_camp", label: "المخيم/مكان الإيواء" },
+  { key: "current_landmark", label: "المعلم الحالي" },
   { key: "camp_name", label: "اسم المخيم" },
 ];
 
