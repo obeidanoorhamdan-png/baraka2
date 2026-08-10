@@ -173,6 +173,25 @@ const Admin = () => {
     return { total, pending, approved, rejected, totalMembers, injured: headInjured + memberInjured, martyrFamilies, pregnant };
   }, [rows, members, profiles]);
 
+  /** كشف مشاكل بيانات الأسرة (نقص هوية، نقص أفراد، تواريخ ميلاد ناقصة). */
+  const familyProblems = (r: any): string[] => {
+    const p: any = profiles[r.user_id] || {};
+    const mem: any[] = members[r.id] || [];
+    const out: string[] = [];
+    if (!p.national_id || String(p.national_id).replace(/\D/g, "").length !== 9) out.push("رقم هوية رب الأسرة ناقص أو غير صحيح");
+    if (!p.phone) out.push("رقم الجوال ناقص");
+    if (!p.birth_date) out.push("تاريخ ميلاد رب الأسرة ناقص");
+    const actual = mem.filter((m) => !m.is_head).length + 1;
+    if ((r.family_size || 0) !== actual) out.push(`عدد الأفراد المسجل (${r.family_size || 0}) لا يطابق الأفراد الفعليين (${actual})`);
+    const noNid = mem.filter((m) => !m.is_head && (!m.national_id || String(m.national_id).replace(/\D/g, "").length !== 9));
+    if (noNid.length) out.push(`${noNid.length} فرد بدون رقم هوية صحيح`);
+    const noDob = mem.filter((m) => !m.birth_date);
+    if (noDob.length) out.push(`${noDob.length} فرد بدون تاريخ ميلاد`);
+    if (!r.current_camp) out.push("المخيم/مكان الإيواء ناقص");
+    if (!r.original_residence) out.push("السكن الأصلي ناقص");
+    return out;
+  };
+
   const filtered = useMemo(() => {
     const list = rows.filter((r) => {
       if (statusFilter !== "all" && r.status !== statusFilter) return false;
@@ -763,6 +782,18 @@ const Admin = () => {
                           </TableCell>
                           <TableCell className="font-semibold">
                             <button className="text-start hover:text-accent hover:underline" onClick={() => openDetails(r)}>{p.full_name || "—"}</button>
+                            {(() => {
+                              const probs = familyProblems(r);
+                              if (!probs.length) return null;
+                              return (
+                                <span
+                                  title={probs.join(" • ")}
+                                  className="ms-2 inline-flex items-center gap-1 rounded-full bg-destructive/15 text-destructive border border-destructive/40 px-2 py-0.5 text-[10px] font-bold align-middle"
+                                >
+                                  <AlertTriangle className="h-3 w-3" /> يوجد مشكلة ({probs.length})
+                                </span>
+                              );
+                            })()}
                           </TableCell>
                           <TableCell dir="ltr">{p.national_id}</TableCell>
                           <TableCell dir="ltr">{p.phone}</TableCell>
