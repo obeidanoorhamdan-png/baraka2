@@ -37,6 +37,7 @@ export interface FamilyMember {
   is_pregnant?: boolean;
   is_breastfeeding?: boolean;
   is_special_needs?: boolean;
+  is_head?: boolean;
 }
 export interface Application {
   id: string;
@@ -87,12 +88,31 @@ export async function fetchApprovedDataset() {
 
 
 /* ---------- أدوات مساعدة ---------- */
-function calcAge(birthDate?: string | null): number | string {
-  if (!birthDate) return NA;
+/** تفصيل العمر بدقة: سنوات + شهور + إجمالي الشهور. */
+export function ageParts(birthDate?: string | null): { years: number; months: number; totalMonths: number } | null {
+  if (!birthDate) return null;
   const b = new Date(birthDate);
-  if (isNaN(b.getTime())) return NA;
-  const diff = Date.now() - b.getTime();
-  return Math.floor(diff / (1000 * 60 * 60 * 24 * 365.25));
+  if (isNaN(b.getTime())) return null;
+  const now = new Date();
+  let months = (now.getFullYear() - b.getFullYear()) * 12 + (now.getMonth() - b.getMonth());
+  if (now.getDate() < b.getDate()) months -= 1;
+  if (months < 0) months = 0;
+  return { years: Math.floor(months / 12), months: months % 12, totalMonths: months };
+}
+function calcAge(birthDate?: string | null): number | string {
+  const a = ageParts(birthDate);
+  return a ? a.years : NA;
+}
+/** العمر بالشهور (إجمالي). */
+function calcAgeMonths(birthDate?: string | null): number | string {
+  const a = ageParts(birthDate);
+  return a ? a.totalMonths : NA;
+}
+/** نص العمر التفصيلي: «0 سنة و8 شهور». */
+function ageFull(birthDate?: string | null): string {
+  const a = ageParts(birthDate);
+  if (!a) return NA;
+  return `${a.years} سنة و${a.months} شهر`;
 }
 function v(x: any): any {
   if (x === null || x === undefined || x === "") return NA;
@@ -101,14 +121,34 @@ function v(x: any): any {
 function bool(x: any): string {
   return x ? "نعم" : "لا";
 }
-function pregBreast(m: FamilyMember): string {
+/** قيم تعني «لا يوجد مرض مزمن» حتى إن كُتبت نصاً. */
+const NO_CHRONIC = [
+  "", "0", "لا", "لايوجد", "لا يوجد", "لاشيء", "لا شيء", "لاشئ", "لا شئ",
+  "الحمدلله", "الحمد لله", "بخير", "سليم", "سليمة", "معافى", "لا امراض", "لا أمراض",
+  "none", "no", "n/a", "na", "-",
+];
+export function hasChronic(text?: string | null): boolean {
+  if (!text) return false;
+  const t = String(text).trim().replace(/[.،,]/g, "").replace(/\s+/g, " ");
+  if (!t) return false;
+  return !NO_CHRONIC.includes(t) && !NO_CHRONIC.includes(t.replace(/ /g, ""));
+}
+/** نص الأمراض المزمنة المنقّى (لا يوجد إذا كان النص لا يعني مرضاً). */
+function chronicText(text?: string | null): string {
+  return hasChronic(text) ? String(text).trim() : NA;
+}
+function pregBreast(m: { is_pregnant?: boolean | null; is_breastfeeding?: boolean | null }): string {
   if (m.is_pregnant && m.is_breastfeeding) return "حامل ومرضعة";
   if (m.is_pregnant) return "حامل";
   if (m.is_breastfeeding) return "مرضعة";
   return "لا";
 }
 function findSpouse(appId: string, members: FamilyMember[]): FamilyMember | null {
-  return members.find((m) => m.application_id === appId && (m.relationship === "wife" || m.relationship === "husband")) || null;
+  return members.find((m) => m.application_id === appId && !m.is_head && (m.relationship === "wife" || m.relationship === "husband")) || null;
+}
+/** أفراد الأسرة بدون رب الأسرة (لتجنّب تكراره لأنه مسجّل في الملف الشخصي). */
+function famWithoutHead(appId: string, members: FamilyMember[]): FamilyMember[] {
+  return members.filter((m) => m.application_id === appId && !m.is_head);
 }
 
 /* ---------- تنسيق ورقة احترافي ---------- */
