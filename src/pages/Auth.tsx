@@ -402,7 +402,7 @@ const Auth = () => {
           marital_status: su.marital_status,
           marital_status_other: su.marital_status_other || null,
           is_war_injured: su.is_war_injured,
-          chronic_diseases: su.chronic_diseases || null,
+          chronic_diseases: su.chronic_diseases.trim() || null,
           health_notes: su.health_notes || null,
         },
       },
@@ -801,7 +801,34 @@ const Auth = () => {
                       </div>
                       <div>
                         <Label>{t("health.chronic")}</Label>
-                        <Textarea rows={2} value={su.chronic_diseases} onChange={(e) => setSu({ ...su, chronic_diseases: e.target.value })} />
+                        <div className="flex gap-2">
+                          {[{ v: true, l: "نعم" }, { v: false, l: "لا" }].map((opt) => {
+                            const on = !!su.chronic_diseases.trim() === opt.v;
+                            return (
+                              <button
+                                key={String(opt.v)}
+                                type="button"
+                                onClick={() =>
+                                  setSu({ ...su, chronic_diseases: opt.v ? (su.chronic_diseases.trim() || " ") : "" })
+                                }
+                                className={`rounded-full border px-4 py-1 text-xs font-bold transition-colors ${
+                                  on ? "bg-primary text-primary-foreground border-primary" : "hover:bg-accent"
+                                }`}
+                              >
+                                {opt.l}
+                              </button>
+                            );
+                          })}
+                        </div>
+                        {!!su.chronic_diseases && (
+                          <Textarea
+                            rows={2}
+                            className="mt-2"
+                            placeholder="اكتب اسم المرض المزمن"
+                            value={su.chronic_diseases.trim() ? su.chronic_diseases : ""}
+                            onChange={(e) => setSu({ ...su, chronic_diseases: e.target.value || " " })}
+                          />
+                        )}
                       </div>
                       <div>
                         <Label>{t("health.notes")}</Label>
