@@ -5,6 +5,7 @@ import { supabase } from "@/integrations/supabase/client";
 
 export interface CivilRecord {
   success: true;
+  message?: string;
   national_id: string;
   full_name: string;
   birth_date: string | null;
@@ -16,6 +17,8 @@ export interface CivilRecord {
 export interface CivilRecordError {
   success: false;
   message: string;
+  full_name?: undefined;
+  birth_date?: undefined;
 }
 
 const cache = new Map<string, CivilRecord | CivilRecordError>();
