@@ -18,7 +18,8 @@ import { ID_RE, PHONE_RE, isFullName, idToEmail, ADMIN_NID, PIN_RE, SIGNIN_ID_RE
 import { useConfirm } from "@/components/ConfirmDialog";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { DatePickerField } from "@/components/DatePickerField";
-import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus } from "lucide-react";
+import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus, Loader2 } from "lucide-react";
+import { lookupCivilRecord } from "@/lib/civilRegistry";
 
 // A deterministic, server-generated initial password for new users.
 // The user never sees or types it. After signup, they sign in via the
@@ -282,6 +283,29 @@ const Auth = () => {
     health_notes: "",
   });
   const [suBusy, setSuBusy] = useState(false);
+  const [civilBusy, setCivilBusy] = useState(false);
+  const [civilMsg, setCivilMsg] = useState("");
+
+  /** تعبئة الاسم وتاريخ الميلاد تلقائياً من السجل المدني. */
+  const autoFillFromRegistry = async (nidVal: string) => {
+    setCivilMsg("");
+    setCivilBusy(true);
+    const res = await lookupCivilRecord(nidVal);
+    setCivilBusy(false);
+    if (res.success) {
+      setSu((p) => ({
+        ...p,
+        national_id: nidVal,
+        full_name: res.full_name,
+        birth_date: res.birth_date || p.birth_date,
+      }));
+      setErrors((p) => ({ ...p, national_id: "", full_name: "", birth_date: "" }));
+      setCivilMsg("تم جلب البيانات من السجل المدني ✅");
+    } else {
+      setErrors((p) => ({ ...p, national_id: res.message }));
+      toast.error(res.message, { duration: 5000 });
+    }
+  };
   const [errors, setErrors] = useState<Record<string, string>>({});
   const age = calculateAge(su.birth_date);
 
