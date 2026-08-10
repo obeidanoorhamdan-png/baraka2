@@ -108,6 +108,8 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
   const [ds, setDs] = useState<Dataset | null>(null);
   const [loading, setLoading] = useState(false);
   const [exporting, setExporting] = useState(false);
+  /** يجب معاينة الكشف قبل السماح بالتنزيل. */
+  const [previewed, setPreviewed] = useState(false);
 
   // أداة بناء العمود الحسابي المخصص
   const [ccGender, setCcGender] = useState<"all" | "male" | "female">("all");
@@ -140,6 +142,10 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
     return String(cell);
   };
 
+  useEffect(() => {
+    setPreviewed(false);
+  }, [cfg]);
+
   const camps = useMemo(() => (ds ? listCamps(ds) : []), [ds]);
   const cols = cfg.entity === "family" ? FAMILY_COLS : MEMBER_COLS;
 
@@ -152,7 +158,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
     }
   }, [ds, cfg]);
 
-  function applyPreset(id: string, andExport = false) {
+  function applyPreset(id: string) {
     const p = PRESETS.find((x) => x.id === id);
     if (!p) return;
     const next = JSON.parse(JSON.stringify(p.config)) as ExportConfig;
@@ -162,11 +168,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
     setFamSizeMode(
       next.filters.familySizeMin != null ? "gt" : next.filters.familySizeMax != null ? "lt" : "all",
     );
-    if (andExport) {
-      doExport(next);
-    } else {
-      setStep(2);
-    }
+    setStep(2);
   }
 
   function setEntity(entity: Entity) {
@@ -312,19 +314,9 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                             <div className="font-bold text-sm truncate">{p.label}</div>
                             <div className="text-[11px] text-muted-foreground truncate">{p.desc}</div>
                           </div>
-                          <div className="flex flex-col gap-1">
-                            <Button size="sm" variant="ghost" className="h-7 px-2 text-xs" onClick={() => applyPreset(p.id)}>
-                              تخصيص
-                            </Button>
-                            <Button
-                              size="sm"
-                              className="h-7 px-2 text-xs gap-1"
-                              disabled={exporting}
-                              onClick={() => applyPreset(p.id, true)}
-                            >
-                              <Download className="h-3 w-3" /> تصدير
-                            </Button>
-                          </div>
+                          <Button size="sm" className="h-7 px-2 text-xs gap-1" onClick={() => applyPreset(p.id)}>
+                            <Columns3 className="h-3 w-3" /> اختيار وتخصيص
+                          </Button>
                         </div>
                       ))}
                     </div>
@@ -544,7 +536,24 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                   </div>
 
                   {cfg.entity === "member" && (
-                    <div className="grid grid-cols-2 gap-3">
+                    <div className="grid grid-cols-3 gap-3">
+                      <div>
+                        <Label className="text-xs">وحدة العمر</Label>
+                        <Select
+                          value={cfg.filters.ageUnit === "months" ? "months" : "years"}
+                          onValueChange={(v) =>
+                            setCfg((c) => ({ ...c, filters: { ...c.filters, ageUnit: v as any } }))
+                          }
+                        >
+                          <SelectTrigger className="mt-1">
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="years">بالسنوات</SelectItem>
+                            <SelectItem value="months">بالشهور</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
                       <div>
                         <Label className="text-xs">العمر من</Label>
                         <Input
@@ -671,6 +680,18 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                   )}
 
                   {cfg.entity === "member" && (
+                    <label className="flex items-center gap-2 text-xs">
+                      <Checkbox
+                        checked={cfg.filters.includeHead !== false}
+                        onCheckedChange={(v) =>
+                          setCfg((c) => ({ ...c, filters: { ...c.filters, includeHead: !!v } }))
+                        }
+                      />
+                      تضمين رب الأسرة كفرد (يظهر مرة واحدة فقط)
+                    </label>
+                  )}
+
+                  {cfg.entity === "member" && (
                     <div>
                       <Label className="text-xs mb-1.5 block">تصفية حسب الفئة</Label>
                       <div className="flex flex-wrap gap-1.5">
@@ -720,12 +741,12 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                     <h3 className="font-bold mb-2 flex items-center gap-2">
                       <Eye className="h-4 w-4 text-primary" /> معاينة حية
                       <span className="text-[11px] font-normal text-muted-foreground">
-                        (عرض أول 3 سجلات)
+                        (عرض أول 10 سجلات — راجع البيانات قبل التنزيل)
                       </span>
                     </h3>
-                    <div className="rounded-xl border overflow-auto max-h-56">
+                    <div className="rounded-xl border overflow-auto max-h-72">
                       <Table>
-                        <TableHeader className="sticky top-0 bg-muted">
+                        <TableHeader className="sticky top-0 bg-muted z-10">
                           <TableRow>
                             {preview.headers.map((h, i) => (
                               <TableHead key={i} className="text-xs whitespace-nowrap text-center font-bold">
@@ -735,7 +756,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                           </TableRow>
                         </TableHeader>
                         <TableBody>
-                          {preview.rows.slice(0, 3).map((r, ri) => (
+                          {preview.rows.slice(0, 10).map((r, ri) => (
                             <TableRow key={ri}>
                               {r.map((cell, ci) => (
                                 <TableCell key={ci} className="text-xs whitespace-nowrap text-center">
@@ -755,6 +776,23 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
                       </Table>
                     </div>
                   </div>
+
+                  <label
+                    className={cn(
+                      "flex items-start gap-2 rounded-xl border-2 p-3 text-xs cursor-pointer transition-colors",
+                      previewed ? "border-emerald-500/60 bg-emerald-500/5" : "border-amber-500/60 bg-amber-500/5",
+                    )}
+                  >
+                    <Checkbox
+                      checked={previewed}
+                      disabled={preview.rows.length === 0}
+                      onCheckedChange={(val) => setPreviewed(!!val)}
+                    />
+                    <span>
+                      <strong>راجعت المعاينة وأعتمد البيانات.</strong> التنزيل لا يعمل قبل مراجعة المعاينة
+                      لضمان دقة الكشف.
+                    </span>
+                  </label>
                 </div>
               )}
             </>
@@ -778,7 +816,7 @@ export function ExcelWizard({ open, onOpenChange, initialFilters }: Props) {
             </Button>
           ) : (
             <Button
-              disabled={exporting || preview.rows.length === 0}
+              disabled={exporting || preview.rows.length === 0 || !previewed}
               onClick={() => doExport()}
               className="gap-1 font-bold"
             >
