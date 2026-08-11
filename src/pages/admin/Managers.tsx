@@ -19,7 +19,6 @@ const ROLE_LABELS: Record<string, { label: string; cls: string }> = {
   super_admin: { label: "مدير أعلى", cls: "bg-destructive/15 text-destructive border-destructive/40" },
   admin: { label: "مدير", cls: "bg-destructive/10 text-destructive border-destructive/30" },
   reviewer: { label: "مراجع", cls: "bg-primary/15 text-primary border-primary/40" },
-  aid_distributor: { label: "موزع مساعدات", cls: "bg-success/15 text-success border-success/40" },
   viewer: { label: "مشاهد", cls: "bg-muted text-muted-foreground border-border" },
 };
 

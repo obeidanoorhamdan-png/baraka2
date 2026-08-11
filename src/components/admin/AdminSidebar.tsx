@@ -2,7 +2,7 @@ import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
   ClipboardList,
-  PackageCheck,
+  Wrench,
   Users2,
   ScrollText,
   Settings,
@@ -11,7 +11,6 @@ import {
   Megaphone,
   Wand2,
   FileSpreadsheet,
-  Truck,
   CheckSquare,
   Lock,
 } from "lucide-react";
@@ -33,8 +32,7 @@ const items = [
   { title: "لوحة التحكم", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "الطلبات", url: "/admin/applications", icon: ClipboardList },
   { title: "غير المكتملة", url: "/admin/incomplete", icon: AlertTriangle },
-  { title: "المساعدات", url: "/admin/aid", icon: PackageCheck },
-  { title: "حملات التوزيع", url: "/admin/campaigns", icon: Truck },
+  { title: "حل مشاكل الأسر", url: "/admin/issues", icon: Wrench },
   { title: "الموافقات", url: "/admin/approvals", icon: CheckSquare },
   { title: "قائمة الاعتماد", url: "/admin/camp-roster", icon: Lock },
   { title: "الإعلانات", url: "/admin/announcements", icon: Megaphone },

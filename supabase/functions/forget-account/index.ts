@@ -58,7 +58,6 @@ Deno.serve(async (req) => {
     const appIds = (apps || []).map((a: any) => a.id);
     if (appIds.length) {
       await admin.from("family_members").delete().in("application_id", appIds);
-      await admin.from("aid_distributions").delete().in("application_id", appIds);
     }
     await admin.from("applications").delete().eq("user_id", uid);
     await admin.from("application_drafts").delete().eq("user_id", uid);

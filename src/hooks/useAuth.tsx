@@ -2,7 +2,7 @@ import { createContext, useContext, useEffect, useState, ReactNode } from "react
 import type { Session, User } from "@supabase/supabase-js";
 import { supabase } from "@/integrations/supabase/client";
 
-export type AdminRole = "super_admin" | "admin" | "reviewer" | "aid_distributor" | "viewer" | null;
+export type AdminRole = "super_admin" | "admin" | "reviewer" | "viewer" | null;
 
 interface AuthState {
   user: User | null;
@@ -10,18 +10,17 @@ interface AuthState {
   isAdmin: boolean;          // any admin-tier role
   isSuperAdmin: boolean;     // admin or super_admin
   canReview: boolean;        // super_admin/admin/reviewer
-  canDistribute: boolean;    // super_admin/admin/aid_distributor
   adminRole: AdminRole;
   loading: boolean;
 }
 
 const AuthContext = createContext<AuthState>({
   user: null, session: null, isAdmin: false, isSuperAdmin: false,
-  canReview: false, canDistribute: false, adminRole: null, loading: true,
+  canReview: false, adminRole: null, loading: true,
 });
 
-const ADMIN_TIER = ["admin", "super_admin", "reviewer", "aid_distributor", "viewer"];
-const ROLE_PRIORITY: AdminRole[] = ["super_admin", "admin", "reviewer", "aid_distributor", "viewer"];
+const ADMIN_TIER = ["admin", "super_admin", "reviewer", "viewer"];
+const ROLE_PRIORITY: AdminRole[] = ["super_admin", "admin", "reviewer", "viewer"];
 
 export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const [session, setSession] = useState<Session | null>(null);
@@ -61,10 +60,9 @@ export const AuthProvider = ({ children }: { children: ReactNode }) => {
   const isAdmin = adminRole !== null;
   const isSuperAdmin = adminRole === "super_admin" || adminRole === "admin";
   const canReview = isSuperAdmin || adminRole === "reviewer";
-  const canDistribute = isSuperAdmin || adminRole === "aid_distributor";
 
   return (
-    <AuthContext.Provider value={{ user, session, isAdmin, isSuperAdmin, canReview, canDistribute, adminRole, loading }}>
+    <AuthContext.Provider value={{ user, session, isAdmin, isSuperAdmin, canReview, adminRole, loading }}>
       {children}
     </AuthContext.Provider>
   );
