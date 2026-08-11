@@ -96,7 +96,7 @@ const FamilyIssues = () => {
     if (!r.head.birth_date && rec.birth_date) patch.birth_date = rec.birth_date;
     if (!r.head.full_name && rec.full_name) patch.full_name = rec.full_name;
     if (Object.keys(patch).length === 0) { setBusy(null); toast.info("لا يوجد نقص يمكن تعبئته من السجل المدني"); return; }
-    const { error } = await supabase.from("profiles").update(patch).eq("id", r.app.user_id);
+    const { error } = await supabase.from("profiles").update(patch as any).eq("id", r.app.user_id);
     setBusy(null);
     if (error) { toast.error("تعذّر الحفظ"); return; }
     toast.success("تم التعبئة من السجل المدني");
