@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Link } from "react-router-dom";
 import {
   Users, ClipboardList, CheckCircle2, XCircle, Activity, Heart, Baby,
-  PackageCheck, AlertTriangle, ArrowLeft, TrendingUp,
+  AlertTriangle, ArrowLeft, TrendingUp,
 } from "lucide-react";
 import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card } from "@/components/ui/card";
@@ -231,7 +231,6 @@ const AdminDashboard = () => {
               <div className="p-3 rounded-lg bg-accent/10"><div className="text-2xl font-extrabold text-primary">{advanced.female_breadwinner ?? 0}</div><div className="text-[10px] text-muted-foreground">امرأة معيلة</div></div>
               <div className="p-3 rounded-lg bg-destructive/10"><div className="text-2xl font-extrabold text-primary">{advanced.special_needs_total ?? 0}</div><div className="text-[10px] text-muted-foreground">ذوو إعاقة</div></div>
               <div className="p-3 rounded-lg bg-warning/10"><div className="text-2xl font-extrabold text-primary">{advanced.chronic_total ?? 0}</div><div className="text-[10px] text-muted-foreground">أمراض مزمنة</div></div>
-              <div className="p-3 rounded-lg bg-success/10"><div className="text-2xl font-extrabold text-primary">{advanced.aid_count_30d ?? 0}</div><div className="text-[10px] text-muted-foreground">مساعدات (30 يوم)</div></div>
               <div className="p-3 rounded-lg bg-primary/10"><div className="text-2xl font-extrabold text-primary">{advanced.breastfeeding ?? 0}</div><div className="text-[10px] text-muted-foreground">مرضعات</div></div>
             </div>
             {advanced.by_camp && (
@@ -266,13 +265,13 @@ const AdminDashboard = () => {
               <div className="text-xs text-muted-foreground">مراجعة العائلات وقبول/رفض الطلبات</div>
             </Card>
           </Link>
-          <Link to="/admin/aid" className="block">
+          <Link to="/admin/issues" className="block">
             <Card className="p-4 shadow-card hover:shadow-elegant transition-all hover:-translate-y-0.5">
-              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-accent/15 text-accent-foreground mb-3">
-                <PackageCheck className="h-6 w-6" />
+              <div className="inline-flex items-center justify-center w-12 h-12 rounded-xl bg-destructive/10 text-destructive mb-3">
+                <AlertTriangle className="h-6 w-6" />
               </div>
-              <div className="font-extrabold text-primary">المساعدات</div>
-              <div className="text-xs text-muted-foreground">توزيع جماعي وتسجيل الإعانات</div>
+              <div className="font-extrabold text-primary">حل مشاكل الأسر</div>
+              <div className="text-xs text-muted-foreground">كشف بيانات ناقصة أو غير مطابقة وإصلاحها</div>
             </Card>
           </Link>
           <Link to="/admin/managers" className="block">

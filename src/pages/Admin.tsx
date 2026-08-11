@@ -19,12 +19,10 @@ import { toast } from "sonner";
 import { calculateAge } from "@/lib/age";
 import { formatBirthDate, formatDateShort } from "@/lib/formatDate";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { AidManager } from "@/components/AidManager";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
-import { BulkAidDistributor } from "@/components/BulkAidDistributor";
 import { ExcelWizard } from "@/components/ExcelWizard";
 import { FamilyEditDialog } from "@/components/admin/FamilyEditDialog";
-import { PackageCheck, Trash2, Wand2, Pencil, ShieldCheck, ShieldX } from "lucide-react";
+import { Trash2, Wand2, Pencil, ShieldCheck, ShieldX } from "lucide-react";
 
 type Row = any;
 
@@ -1078,7 +1076,6 @@ const Admin = () => {
                   </div>
                 </Card>
 
-                <AidManager applicationId={selected.id} currentUserId={user!.id} />
               </div>
             );
           })()}

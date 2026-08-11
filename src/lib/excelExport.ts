@@ -1079,19 +1079,6 @@ export interface Preset {
 
 export const PRESETS: Preset[] = [
   {
-    id: "aid",
-    label: "توزيع المساعدات",
-    emoji: "📦",
-    desc: "سطر لكل أسرة: الرقم، رب الأسرة، الهوية، الجوال، عدد الأفراد",
-    config: {
-      title: "كشف توزيع المساعدات",
-      entity: "family",
-      columns: ["family_no", "head_name", "national_id", "phone", "alt_phone", "members_count", "current_camp", "camp_name"],
-      computed: [],
-      filters: { status: "approved" },
-    },
-  },
-  {
     id: "families_full",
     label: "كشف الأسر الشامل",
     emoji: "🏠",

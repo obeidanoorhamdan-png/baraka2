@@ -20,7 +20,6 @@ import { ID_RE, isFullName } from "@/lib/validators";
 import { useAppSettings } from "@/hooks/useAppSettings";
 import { RegistrationClosedNotice } from "@/pages/RegistrationClosed";
 import { useConfirm } from "@/components/ConfirmDialog";
-import { AidPreview } from "@/pages/MyAid";
 import { friendlyError } from "@/lib/friendlyError";
 import { useUnsavedChangesGuard } from "@/hooks/useUnsavedChangesGuard";
 import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } from "@/lib/offlineOutbox";
@@ -1417,7 +1416,6 @@ const MyApplication = () => {
         </>
         )}
 
-        {appId && <AidPreview applicationId={appId} />}
       </section>
 
       {/* ============== Review Summary Dialog ============== */}
