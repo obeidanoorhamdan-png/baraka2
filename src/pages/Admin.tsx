@@ -22,7 +22,7 @@ import { useConfirm } from "@/components/ConfirmDialog";
 import { ImagePreviewDialog } from "@/components/ImagePreviewDialog";
 import { ExcelWizard } from "@/components/ExcelWizard";
 import { FamilyEditDialog } from "@/components/admin/FamilyEditDialog";
-import { PackageCheck, Trash2, Wand2, Pencil, ShieldCheck, ShieldX } from "lucide-react";
+import { Trash2, Wand2, Pencil, ShieldCheck, ShieldX } from "lucide-react";
 
 type Row = any;
 

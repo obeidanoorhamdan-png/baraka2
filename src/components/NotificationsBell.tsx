@@ -1,5 +1,5 @@
 import { useEffect, useState } from "react";
-import { Bell, PackageCheck, Trash2 } from "lucide-react";
+import { Bell, Trash2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { Button } from "@/components/ui/button";
@@ -136,7 +136,7 @@ export const NotificationsBell = () => {
                   <div className={`shrink-0 w-8 h-8 rounded-full flex items-center justify-center ${
                     n.kind === "aid" ? "bg-accent/15 text-accent" : "bg-primary/10 text-primary"
                   }`}>
-                    {n.kind === "aid" ? <PackageCheck className="h-4 w-4" /> : <Bell className="h-4 w-4" />}
+                    <Bell className="h-4 w-4" />
                   </div>
                   <div className="min-w-0 flex-1">
                     <div className="flex items-center gap-2">

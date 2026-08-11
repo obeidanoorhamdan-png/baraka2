@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import {
-  Home, FileText, PackageCheck, MessageCircle, ShieldCheck, HelpCircle, Phone,
+  Home, FileText, MessageCircle, ShieldCheck, HelpCircle, Phone,
   Users, CheckCircle2, Clock, XCircle, UserCog, MapPin, HeartPulse, Bell,
   CalendarDays, IdCard, Sparkles, Plus, Trash2, Crown, Tent, Navigation,
 } from "lucide-react";
@@ -38,7 +38,6 @@ const Dashboard = () => {
   const [profile, setProfile] = useState<any>(null);
   const [app, setApp] = useState<any>(null);
   const [members, setMembers] = useState<any[]>([]);
-  const [aids, setAids] = useState<any[]>([]);
   const [notifications, setNotifications] = useState<any[]>([]);
   const [pageLoading, setPageLoading] = useState(true);
 
@@ -58,10 +57,6 @@ const Dashboard = () => {
       if (a) {
         const { data: fm } = await supabase.from("family_members").select("*").eq("application_id", a.id).order("created_at");
         setMembers(fm || []);
-        const { data: ad } = await supabase
-          .from("aid_distributions").select("*").eq("application_id", a.id)
-          .order("delivered_at", { ascending: false });
-        setAids(ad || []);
       }
       const { data: notifs } = await supabase
         .from("notifications").select("*").eq("user_id", user.id)
@@ -237,7 +232,6 @@ const Dashboard = () => {
         {app && (
           <div className="grid gap-3 sm:grid-cols-3">
             <StatCard icon={Users} value={app.family_size ?? "—"} label={t("dashboard.family_count")} tone="accent" />
-            <StatCard icon={PackageCheck} value={aids.length} label={t("dashboard.aids_received")} tone="success" />
             <StatCard icon={MapPin} value={app.current_camp || "—"} label={t("residence.current_camp")} tone="primary" small />
           </div>
         )}
@@ -375,25 +369,6 @@ const Dashboard = () => {
               className="mt-4 w-full gap-2 border-dashed border-accent/40 text-accent hover:bg-accent-soft hover:text-accent">
               <Plus className="h-4 w-4" /> إضافة فرد جديد
             </Button>
-          </SectionCard>
-        )}
-
-        {/* Last aids */}
-        {app && (
-          <SectionCard icon={PackageCheck} title="آخر المساعدات المستلمة">
-            {aids.length === 0 && <p className="text-sm text-muted-foreground px-1">{t("aid.empty_user")}</p>}
-            <div className="space-y-2">
-              {aids.slice(0, 5).map((aid) => (
-                <div key={aid.id} className="flex items-center gap-3 rounded-xl border border-success/25 bg-success/5 p-3">
-                  <div className="rounded-full bg-success/15 p-2"><PackageCheck className="h-4 w-4 text-success" /></div>
-                  <div className="min-w-0 flex-1">
-                    <div className="text-sm font-bold text-primary truncate">{aid.title || "مساعدة"}</div>
-                    {aid.notes && <div className="text-xs text-muted-foreground truncate">{aid.notes}</div>}
-                  </div>
-                  <div className="text-xs text-muted-foreground shrink-0">{formatDateShort(aid.delivered_at)}</div>
-                </div>
-              ))}
-            </div>
           </SectionCard>
         )}
 

@@ -1,6 +1,5 @@
 // Idempotent bootstrap. Creates default accounts:
 //   - Super Admin: national_id "2026", PIN "1234"
-//   - Aid Distributor: national_id "2008", PIN "2004"
 import { createClient } from "https://esm.sh/@supabase/supabase-js@2.57.4";
 
 const corsHeaders = {
@@ -17,14 +16,13 @@ const pinToAuthPassword = (pin: string) => {
 type Seed = {
   nid: string;
   pin: string;
-  role: "admin" | "aid_distributor";
+  role: "admin";
   fullName: string;
   phone: string;
 };
 
 const SEEDS: Seed[] = [
   { nid: "2026", pin: "1234", role: "admin", fullName: "إدارة مخيم بركة 2", phone: "0599999999" },
-  { nid: "2008", pin: "2004", role: "aid_distributor", fullName: "مندوب توزيع المساعدات", phone: "0598888888" },
 ];
 
 Deno.serve(async (req) => {
