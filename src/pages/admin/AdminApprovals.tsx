@@ -21,29 +21,14 @@ type PendingEdit = {
   created_at: string;
 };
 
-type Supplement = {
-  id: string;
-  applicant_name: string;
-  applicant_national_id: string | null;
-  reason: string;
-  status: string;
-  created_at: string;
-  requested_by: string;
-};
-
 export default function AdminApprovals() {
   const { canReview } = useAuth();
   const [edits, setEdits] = useState<PendingEdit[]>([]);
-  const [supplements, setSupplements] = useState<Supplement[]>([]);
   const [notes, setNotes] = useState<Record<string, string>>({});
 
   const load = async () => {
-    const [e, s] = await Promise.all([
-      supabase.from("pending_edits").select("*").eq("status", "pending").order("created_at", { ascending: false }),
-      supabase.from("aid_supplement_requests").select("*").eq("status", "pending").order("created_at", { ascending: false }),
-    ]);
+    const e = await supabase.from("pending_edits").select("*").eq("status", "pending").order("created_at", { ascending: false });
     setEdits((e.data || []) as any);
-    setSupplements((s.data || []) as any);
   };
   useEffect(() => { load(); }, []);
 
@@ -58,15 +43,6 @@ export default function AdminApprovals() {
     const { error } = await supabase.rpc("reject_pending_edit", { _edit_id: id, _notes: notes[id] || null });
     if (error) { toast.error(error.message); return; }
     toast.success("تم الرفض");
-    load();
-  };
-
-  const updateSup = async (id: string, status: "approved" | "rejected") => {
-    const { error } = await supabase.from("aid_supplement_requests").update({
-      status, reviewer_notes: notes[id] || null, reviewed_at: new Date().toISOString(),
-    }).eq("id", id);
-    if (error) { toast.error(error.message); return; }
-    toast.success(status === "approved" ? "تمت الموافقة" : "تم الرفض");
     load();
   };
 
@@ -121,36 +97,6 @@ export default function AdminApprovals() {
           </CardContent>
         </Card>
 
-        <Card>
-          <CardHeader>
-            <CardTitle className="text-base flex items-center justify-between">
-              <span>طلبات تكميلية من المندوبين</span>
-              <Badge variant="outline">{supplements.length}</Badge>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {supplements.length === 0 && <p className="text-center text-sm text-muted-foreground py-4">لا توجد طلبات</p>}
-            {supplements.map(s => (
-              <Card key={s.id}>
-                <CardContent className="p-3 space-y-2">
-                  <div className="text-xs text-muted-foreground">{new Date(s.created_at).toLocaleString("ar-EG")}</div>
-                  <div className="font-bold">{s.applicant_name} {s.applicant_national_id && <span className="text-xs text-muted-foreground">({s.applicant_national_id})</span>}</div>
-                  <p className="text-sm">{s.reason}</p>
-                  <Textarea rows={1} placeholder="ملاحظة (اختياري)" value={notes[s.id] || ""}
-                    onChange={(ev) => setNotes({ ...notes, [s.id]: ev.target.value })} />
-                  <div className="flex gap-2">
-                    <Button size="sm" onClick={() => updateSup(s.id, "approved")} className="gap-1 bg-success hover:bg-success/90">
-                      <Check className="h-3.5 w-3.5" /> موافقة
-                    </Button>
-                    <Button size="sm" variant="destructive" onClick={() => updateSup(s.id, "rejected")} className="gap-1">
-                      <X className="h-3.5 w-3.5" /> رفض
-                    </Button>
-                  </div>
-                </CardContent>
-              </Card>
-            ))}
-          </CardContent>
-        </Card>
       </div>
     </AdminLayout>
   );
