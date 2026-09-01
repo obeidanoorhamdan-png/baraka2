@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Cairo:wght@400;500;600;700;800&family=Inter:wght@400;500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Arabic:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800&display=swap');
 
 @tailwind base;
 @tailwind components;
@@ -6,66 +6,77 @@
 
 @layer base {
   :root {
-    /* Camp brand: deep navy + gold + parchment */
-    --background: 40 33% 96%;
-    --foreground: 220 45% 15%;
+    /* Baraka 2 brand — warm orange on soft white (iOS-like surfaces) */
+    --background: 28 60% 98%;
+    --foreground: 24 25% 15%;
 
-    --card: 40 40% 99%;
-    --card-foreground: 220 45% 15%;
+    --card: 0 0% 100%;
+    --card-foreground: 24 25% 15%;
 
-    --popover: 40 40% 99%;
-    --popover-foreground: 220 45% 15%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 24 25% 15%;
 
-    --primary: 220 50% 18%;
-    --primary-foreground: 40 40% 98%;
-    --primary-glow: 220 55% 32%;
+    --primary: 24 94% 50%;
+    --primary-foreground: 0 0% 100%;
+    --primary-glow: 32 96% 60%;
 
-    --secondary: 40 40% 92%;
-    --secondary-foreground: 220 45% 18%;
+    --secondary: 28 70% 96%;
+    --secondary-foreground: 24 40% 22%;
 
-    --accent: 41 55% 52%;
-    --accent-foreground: 220 50% 12%;
-    --accent-soft: 41 65% 88%;
+    --accent: 24 94% 53%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 28 85% 94%;
 
-    --muted: 40 25% 90%;
-    --muted-foreground: 220 15% 38%;
+    --muted: 28 40% 95%;
+    --muted-foreground: 24 12% 45%;
 
-    --destructive: 0 72% 45%;
-    --destructive-foreground: 40 40% 98%;
+    --destructive: 0 74% 51%;
+    --destructive-foreground: 0 0% 100%;
 
-    --success: 142 60% 35%;
-    --success-foreground: 40 40% 98%;
+    --success: 152 62% 38%;
+    --success-foreground: 0 0% 100%;
 
-    --warning: 38 92% 50%;
-    --warning-foreground: 220 50% 12%;
+    --warning: 40 96% 52%;
+    --warning-foreground: 24 40% 18%;
 
-    --border: 40 20% 84%;
-    --input: 40 20% 84%;
-    --ring: 41 55% 52%;
+    --border: 28 35% 90%;
+    --input: 28 35% 90%;
+    --ring: 24 94% 53%;
 
-    --radius: 0.75rem;
+    --radius: 1rem;
 
-    --gradient-hero: linear-gradient(135deg, hsl(220 50% 18%) 0%, hsl(220 55% 28%) 100%);
-    --gradient-gold: linear-gradient(135deg, hsl(41 55% 52%) 0%, hsl(36 65% 45%) 100%);
-    --gradient-parchment: radial-gradient(ellipse at top, hsl(40 50% 97%) 0%, hsl(38 35% 92%) 100%);
+    --gradient-hero: repeating-linear-gradient(135deg, hsl(24 94% 52%) 0px, hsl(24 94% 52%) 10px, hsl(26 96% 56%) 10px, hsl(26 96% 56%) 20px);
+    --gradient-gold: linear-gradient(135deg, hsl(24 94% 53%) 0%, hsl(32 96% 60%) 100%);
+    --gradient-parchment: radial-gradient(ellipse at top, hsl(28 70% 99%) 0%, hsl(28 55% 96%) 100%);
 
-    --shadow-elegant: 0 10px 40px -12px hsl(220 50% 18% / 0.25);
-    --shadow-gold: 0 8px 30px -8px hsl(41 55% 52% / 0.4);
-    --shadow-card: 0 2px 12px -4px hsl(220 45% 15% / 0.08);
+    --shadow-elegant: 0 12px 40px -14px hsl(24 60% 40% / 0.18);
+    --shadow-gold: 0 10px 28px -10px hsl(24 94% 53% / 0.35);
+    --shadow-card: 0 1px 3px hsl(24 30% 30% / 0.06), 0 8px 24px -12px hsl(24 40% 35% / 0.10);
 
-    /* Sidebar — solid deep-navy surface (fixes transparent sidebar) */
-    --sidebar-background: 220 50% 15%;
-    --sidebar-foreground: 40 40% 94%;
-    --sidebar-primary: 41 55% 52%;
-    --sidebar-primary-foreground: 220 50% 12%;
-    --sidebar-accent: 220 42% 24%;
-    --sidebar-accent-foreground: 40 40% 98%;
-    --sidebar-border: 220 38% 26%;
-    --sidebar-ring: 41 55% 52%;
+    /* Sidebar — solid white surface with orange accents */
+    --sidebar-background: 0 0% 100%;
+    --sidebar-foreground: 24 25% 20%;
+    --sidebar-primary: 24 94% 53%;
+    --sidebar-primary-foreground: 0 0% 100%;
+    --sidebar-accent: 28 85% 95%;
+    --sidebar-accent-foreground: 24 90% 40%;
+    --sidebar-border: 28 35% 90%;
+    --sidebar-ring: 24 94% 53%;
   }
 
-  html[lang="ar"] body { font-family: 'Cairo', system-ui, sans-serif; }
-  html[lang="en"] body { font-family: 'Inter', system-ui, sans-serif; }
+  /* iOS-like typography: San Francisco on Apple devices, closest Arabic match elsewhere */
+  html {
+    -webkit-text-size-adjust: 100%;
+    -webkit-tap-highlight-color: transparent;
+  }
+  html[lang="ar"] body,
+  html[lang="en"] body {
+    font-family: -apple-system, BlinkMacSystemFont, "SF Pro Text", "SF Pro Display",
+      "SF Arabic", "IBM Plex Sans Arabic", "Segoe UI", Inter, system-ui, sans-serif;
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+    letter-spacing: -0.01em;
+  }
 
   * { @apply border-border; }
   body { @apply bg-background text-foreground; min-height: 100vh; }
@@ -79,7 +90,12 @@
     pointer-events: none;
   }
 
-  h1, h2, h3, h4 { @apply font-bold tracking-tight; }
+  h1, h2, h3, h4 { @apply font-bold; letter-spacing: -0.02em; }
+
+  /* Comfortable tap targets + no zoom-on-focus on iOS */
+  @media (max-width: 640px) {
+    input, select, textarea { font-size: 16px !important; }
+  }
 }
 
 @layer components {
@@ -88,4 +104,21 @@
   .shadow-elegant { box-shadow: var(--shadow-elegant); }
   .shadow-gold { box-shadow: var(--shadow-gold); }
   .shadow-card { box-shadow: var(--shadow-card); }
+
+  /* iOS-style grouped field tile (label above, value below, orange side rail) */
+  .ios-tile {
+    @apply rounded-2xl bg-secondary/60 border border-border/70 px-3 py-2.5;
+    border-inline-end: 3px solid hsl(var(--primary) / 0.75);
+  }
+  .ios-tile-label {
+    @apply text-[11px] font-semibold text-primary/80 flex items-center gap-1.5;
+  }
+  .ios-tile-value {
+    @apply text-sm font-semibold text-foreground mt-0.5 break-words;
+  }
+  /* Horizontally scrollable table wrapper for small screens */
+  .table-scroll {
+    @apply w-full overflow-x-auto rounded-2xl border border-border bg-card;
+    -webkit-overflow-scrolling: touch;
+  }
 }

@@ -18,15 +18,19 @@ interface SigninBody {
     question_id?: string;
     value: string;
   };
+  /** Optional: after verification, set the account code (4 digits) to this value. */
+  new_code?: string;
 }
 
 const ADMIN_NID = "2026";
+const AUTH_PW_PREFIX = "Baraka2#";
 
 const randomPassword = () => {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return "PW-" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
@@ -86,12 +90,16 @@ Deno.serve(async (req) => {
 
     if (!verified) return fail("الإجابة غير صحيحة، حاول مرة أخرى أو اطلب سؤالاً آخر", "wrong_answer");
 
-    // Generate a fresh random password and apply it
-    const newPassword = randomPassword();
+    // If the caller supplied a new 4-digit code, adopt it as the account password.
+    // Otherwise rotate to a fresh random one (single-use sign-in).
+    const code = (body.new_code || "").trim();
+    if (code && !/^\d{4}$/.test(code)) return fail("كلمة المرور يجب أن تكون 4 أرقام فقط", "invalid_code");
+    const newPassword = code ? `${AUTH_PW_PREFIX}${code}` : randomPassword();
     const { error: updErr } = await admin.auth.admin.updateUserById(uid as string, { password: newPassword });
     if (updErr) return fail("تعذّر إنشاء جلسة الدخول، حاول لاحقاً", "update_failed");
 
     return json({ ok: true, password: newPassword });
+
   } catch (e) {
     return fail("حدث خطأ غير متوقع، حاول مرة أخرى", "unexpected_error");
   }
