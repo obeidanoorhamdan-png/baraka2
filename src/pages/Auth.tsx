@@ -162,13 +162,11 @@ const Auth = () => {
     }
 
     if (exists === true) {
-      // Existing user — try to fetch a security question. If no questions
-      // available yet (e.g. no family members registered), inform user.
-      const q = await fetchQuestion();
-      if (!q) return;
-      setQuestion(q);
-      setAnswer("");
-      setStage("question");
+      // Existing head of family — ask for the password (default = birth year).
+      setPwd("");
+      setAnswerErr("");
+      setStage("password");
+      setBusy(false);
     } else {
       // New user — check camp approval BEFORE letting them into signup.
       if (!settingsLoading && !settings.registration_open) {
@@ -200,62 +198,78 @@ const Auth = () => {
     toast.info(t("toast.new_question_loaded"));
   };
 
+  // ---- Password sign-in (national ID + password) ----
   const performSignin = async () => {
+    setAnswerErr("");
+    if (!pwd.trim()) {
+      const m = "يرجى إدخال كلمة المرور";
+      setAnswerErr(m); toast.error(m, { duration: 5000 });
+      return;
+    }
     setBusy(true);
-    try {
-      if (isAdminFlow && !PIN_RE.test(adminPin)) {
-        toast.error(t("form.invalid_pin"));
-        setBusy(false);
-        return;
-      }
-      if (!isAdminFlow && !answer.trim()) {
-        toast.error(t("form.required"));
-        setBusy(false);
-        return;
-      }
-      const payload = isAdminFlow
-        ? { national_id: nid, answer: { kind: "admin_pin" as const, value: adminPin } }
-        : {
-            national_id: nid,
-            answer: {
-              kind: question!.kind,
-              question_id: question!.question_id,
-              value: answer.trim(),
-            },
-          };
-      const { data, error } = await supabase.functions.invoke("passwordless-signin", { body: payload });
-      if (error || !(data as any)?.ok) {
-        const reason = (data as any)?.error || error?.message;
-        const m = reason || "كلمة المرور / الإجابة غير صحيحة";
-        setAnswerErr(m);
-        toast.error(m, {
-          duration: 5000,
-          description: !isAdminFlow ? t("toast.try_another_question") : undefined,
-        });
-        setBusy(false);
-        return;
-      }
-      setAnswerErr("");
-      toast.success(t("toast.answer_verified"));
-      const password = (data as any).password as string;
-      const { error: signInErr } = await supabase.auth.signInWithPassword({
-        email: idToEmail(nid),
-        password,
-      });
+    const { error } = await supabase.auth.signInWithPassword({
+      email: idToEmail(nid),
+      password: toAuthPassword(pwd),
+    });
+    setBusy(false);
+    if (error) {
+      const m = "كلمة المرور غير صحيحة — كلمة المرور الافتراضية هي سنة ميلاد رب الأسرة (4 أرقام)";
+      setAnswerErr(m);
+      toast.error("كلمة المرور غير صحيحة", { description: m, duration: 6000 });
+      return;
+    }
+    toast.success(t("toast.signin_success"));
+  };
+
+  // ---- Forgot password: security question → set a new 4-digit password ----
+  const startRecovery = async () => {
+    setAnswerErr("");
+    const q = await fetchQuestion();
+    if (!q) return;
+    setQuestion(q);
+    setAnswer("");
+    setNewCode("");
+    setNewCode2("");
+    setStage("recover");
+  };
+
+  const performRecovery = async () => {
+    setAnswerErr("");
+    if (!answer.trim()) {
+      setAnswerErr("يرجى الإجابة على السؤال الأمني"); return;
+    }
+    if (!FAMILY_CODE_RE.test(newCode)) {
+      setAnswerErr("كلمة المرور الجديدة يجب أن تكون 4 أرقام فقط"); return;
+    }
+    if (newCode !== newCode2) {
+      setAnswerErr("كلمتا المرور غير متطابقتين"); return;
+    }
+    setBusy(true);
+    const { data, error } = await supabase.functions.invoke("passwordless-signin", {
+      body: {
+        national_id: nid,
+        answer: { kind: question!.kind, question_id: question!.question_id, value: answer.trim() },
+        new_code: newCode,
+      },
+    });
+    if (error || !(data as any)?.ok) {
       setBusy(false);
-      if (signInErr) {
-        const m = "بيانات الدخول غير صحيحة — تحقق وحاول مرة أخرى";
-        setAnswerErr(m);
-        toast.error(m, { duration: 5000 });
-        return;
-      }
-      toast.success(t("toast.signin_success"));
-    } catch (e: any) {
-      setBusy(false);
-      const m = e?.message || t("toast.error");
+      const m = (data as any)?.error || "الإجابة غير صحيحة، حاول مرة أخرى أو اطلب سؤالاً آخر";
       setAnswerErr(m);
       toast.error(m, { duration: 5000 });
+      return;
     }
+    const { error: signInErr } = await supabase.auth.signInWithPassword({
+      email: idToEmail(nid),
+      password: (data as any).password as string,
+    });
+    setBusy(false);
+    if (signInErr) {
+      setAnswerErr("تم تغيير كلمة المرور، لكن تعذّر الدخول — حاول تسجيل الدخول من جديد");
+      setStage("password");
+      return;
+    }
+    toast.success("تم تعيين كلمة المرور الجديدة بنجاح");
   };
 
   const resetFlow = () => {
@@ -263,7 +277,10 @@ const Auth = () => {
     setQuestion(null);
     setAnswer("");
     setAdminPin("");
+    setPwd("");
+    setAnswerErr("");
   };
+
 
   // ============== Sign-up state ==============
   const [su, setSu] = useState({
