@@ -21,13 +21,10 @@ import { DatePickerField } from "@/components/DatePickerField";
 import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus, Loader2 } from "lucide-react";
 import { lookupCivilRecord } from "@/lib/civilRegistry";
 
-// A deterministic, server-generated initial password for new users.
-// The user never sees or types it. After signup, they sign in via the
-// passwordless-signin edge function which rotates this to a fresh value.
-const initialSignupPassword = (nid: string) =>
-  `Baraka2-Init-${nid}-${nid.split("").reverse().join("")}-2026`;
+// New heads of family get a default password = their birth year (4 digits).
+// They can change it later from their dashboard.
+type Stage = "id" | "password" | "recover" | "signup";
 
-type Stage = "id" | "question" | "signup";
 
 const Auth = () => {
   const { t } = useTranslation();
