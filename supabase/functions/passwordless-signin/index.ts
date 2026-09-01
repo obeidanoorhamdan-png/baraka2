@@ -18,15 +18,19 @@ interface SigninBody {
     question_id?: string;
     value: string;
   };
+  /** Optional: after verification, set the account code (4 digits) to this value. */
+  new_code?: string;
 }
 
 const ADMIN_NID = "2026";
+const AUTH_PW_PREFIX = "Baraka2#";
 
 const randomPassword = () => {
   const bytes = new Uint8Array(24);
   crypto.getRandomValues(bytes);
   return "PW-" + Array.from(bytes).map((b) => b.toString(16).padStart(2, "0")).join("");
 };
+
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
