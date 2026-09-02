@@ -20,6 +20,7 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { DatePickerField } from "@/components/DatePickerField";
 import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus, Loader2 } from "lucide-react";
 import { lookupCivilRecord } from "@/lib/civilRegistry";
+import { toAuthPassword, birthYearCode, FAMILY_CODE_RE } from "@/lib/authPassword";
 
 // New heads of family get a default password = their birth year (4 digits).
 // They can change it later from their dashboard.
