@@ -372,6 +372,9 @@ const Dashboard = () => {
           </SectionCard>
         )}
 
+        {/* Change password (4 digits) */}
+        <PasswordCard />
+
         {/* Quick contact */}
         <Card className="p-5 shadow-card border-accent/20">
           <h2 className="font-bold text-primary mb-3 inline-flex items-center gap-2">
