@@ -406,6 +406,64 @@ const Dashboard = () => {
   );
 };
 
+const PasswordCard = () => {
+  const [cur, setCur] = useState("");
+  const [a, setA] = useState("");
+  const [b, setB] = useState("");
+  const [busy, setBusy] = useState(false);
+  const [err, setErr] = useState("");
+
+  const save = async () => {
+    setErr("");
+    if (!FAMILY_CODE_RE.test(cur)) return setErr("أدخل كلمة المرور الحالية (4 أرقام)");
+    if (!FAMILY_CODE_RE.test(a)) return setErr("كلمة المرور الجديدة يجب أن تكون 4 أرقام فقط");
+    if (a !== b) return setErr("كلمتا المرور غير متطابقتين");
+    setBusy(true);
+    const { error } = await supabase.auth.updateUser({
+      password: toAuthPassword(a),
+      current_password: toAuthPassword(cur),
+    } as any);
+    setBusy(false);
+    if (error) {
+      setErr("تعذّر التغيير — تأكد من كلمة المرور الحالية");
+      return;
+    }
+    setCur(""); setA(""); setB("");
+    toast.success("تم تغيير كلمة المرور بنجاح");
+  };
+
+  return (
+    <Card className="p-4 sm:p-5 shadow-card border-accent/20">
+      <h2 className="mb-3 font-bold text-primary inline-flex items-center gap-2">
+        <span className="rounded-lg bg-accent/10 p-1.5"><KeyRound className="h-4 w-4 text-accent" /></span>
+        تغيير كلمة المرور
+      </h2>
+      <p className="mb-3 text-xs text-muted-foreground">
+        كلمة المرور مكوّنة من 4 أرقام. الافتراضية هي سنة ميلاد رب الأسرة.
+      </p>
+      <div className="grid gap-3 sm:grid-cols-3">
+        <input type="password" inputMode="numeric" maxLength={4} placeholder="الحالية"
+          className="h-11 rounded-xl border border-input bg-background px-3 text-center tracking-[0.4em]"
+          value={cur} onChange={(e) => { setErr(""); setCur(e.target.value.replace(/\D/g, "").slice(0, 4)); }} />
+        <input type="password" inputMode="numeric" maxLength={4} placeholder="الجديدة"
+          className="h-11 rounded-xl border border-input bg-background px-3 text-center tracking-[0.4em]"
+          value={a} onChange={(e) => { setErr(""); setA(e.target.value.replace(/\D/g, "").slice(0, 4)); }} />
+        <input type="password" inputMode="numeric" maxLength={4} placeholder="تأكيد الجديدة"
+          className="h-11 rounded-xl border border-input bg-background px-3 text-center tracking-[0.4em]"
+          value={b} onChange={(e) => { setErr(""); setB(e.target.value.replace(/\D/g, "").slice(0, 4)); }} />
+      </div>
+      {err && (
+        <div className="mt-3 rounded-md border border-destructive/40 bg-destructive/10 p-2 text-sm font-semibold text-destructive text-center">
+          {err}
+        </div>
+      )}
+      <Button onClick={save} disabled={busy} className="mt-3 w-full gap-2">
+        <KeyRound className="h-4 w-4" /> {busy ? "جارٍ الحفظ..." : "حفظ كلمة المرور"}
+      </Button>
+    </Card>
+  );
+};
+
 const StatCard = ({ icon: Icon, value, label, tone, small }: any) => (
   <Card className="p-4 shadow-card flex items-center gap-3 border-accent/15">
     <div className={`rounded-full p-2.5 ${tone === "accent" ? "bg-accent/15 text-accent" : tone === "success" ? "bg-success/15 text-success" : "bg-primary/10 text-primary"}`}>
