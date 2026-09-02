@@ -10,7 +10,8 @@ import { ShieldCheck, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ADMIN_NID, PIN_RE, idToEmail } from "@/lib/validators";
+import { ADMIN_NID, idToEmail } from "@/lib/validators";
+import { ADMIN_PW_RE } from "@/lib/authPassword";
 
 const AdminLogin = () => {
   const { t } = useTranslation();
@@ -27,9 +28,9 @@ const AdminLogin = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrMsg("");
-    if (!PIN_RE.test(pin)) {
-      setErrMsg("رمز غير صالح — يجب أن يكون 4 إلى 6 أرقام");
-      toast.error(t("form.invalid_pin"), { duration: 5000 });
+    if (!ADMIN_PW_RE.test(pin)) {
+      setErrMsg("كلمة المرور غير صالحة — 4 أحرف على الأقل (أرقام أو حروف أو رموز)");
+      toast.error("كلمة مرور غير صالحة", { duration: 5000 });
       return;
     }
     setBusy(true);
@@ -96,17 +97,19 @@ const AdminLogin = () => {
           <form onSubmit={submit} className="space-y-4">
             <div>
               <Label className="flex items-center gap-1.5">
-                <KeyRound className="h-4 w-4 text-accent" /> رمز الإدارة (PIN)
+                <KeyRound className="h-4 w-4 text-accent" /> كلمة مرور الإدارة
               </Label>
               <Input
                 type="password"
-                inputMode="numeric"
                 autoFocus
                 value={pin}
-                onChange={(e) => { setErrMsg(""); setPin(e.target.value.replace(/\D/g, "").slice(0, 6)); }}
-                placeholder="••••"
-                className={`text-center text-lg tracking-[0.5em] font-bold ${errMsg ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                onChange={(e) => { setErrMsg(""); setPin(e.target.value.slice(0, 64)); }}
+                placeholder="••••••"
+                className={`text-center text-lg font-bold ${errMsg ? "border-destructive focus-visible:ring-destructive" : ""}`}
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                يمكن أن تكون أرقاماً أو حروفاً أو رموزاً (4 خانات على الأقل).
+              </p>
               {errMsg && (
                 <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
                   {errMsg}

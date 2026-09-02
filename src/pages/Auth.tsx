@@ -20,6 +20,7 @@ import { useAppSettings } from "@/hooks/useAppSettings";
 import { DatePickerField } from "@/components/DatePickerField";
 import { ShieldCheck, KeyRound, Sparkles, RefreshCw, ArrowRight, Search, UserPlus, Loader2 } from "lucide-react";
 import { lookupCivilRecord } from "@/lib/civilRegistry";
+import { toAuthPassword, birthYearCode, FAMILY_CODE_RE } from "@/lib/authPassword";
 
 // New heads of family get a default password = their birth year (4 digits).
 // They can change it later from their dashboard.
@@ -68,6 +69,10 @@ const Auth = () => {
   } | null>(null);
   const [answer, setAnswer] = useState("");
   const [adminPin, setAdminPin] = useState("");
+  // Password sign-in + recovery state
+  const [pwd, setPwd] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [newCode2, setNewCode2] = useState("");
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotPhone, setForgotPhone] = useState("");
   const [forgotHint, setForgotHint] = useState<string>("");
@@ -403,7 +408,7 @@ const Auth = () => {
     }
     const { error } = await supabase.auth.signUp({
       email: idToEmail(su.national_id),
-      password: initialSignupPassword(su.national_id),
+      password: toAuthPassword(birthYearCode(su.birth_date)),
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
@@ -448,7 +453,8 @@ const Auth = () => {
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-primary">
               {stage === "id" && t("auth.signin_title")}
-              {stage === "question" && t("auth.passwordless_title")}
+              {stage === "password" && "تسجيل الدخول"}
+              {stage === "recover" && "استعادة كلمة المرور"}
               {stage === "signup" && t("auth.signup_title")}
             </h1>
             {stage === "id" && (
@@ -503,13 +509,10 @@ const Auth = () => {
             </form>
           )}
 
-          {/* ============== STAGE 2: Security question (or admin PIN) ============== */}
-          {stage === "question" && (
+          {/* ============== STAGE 2: Password sign-in ============== */}
+          {stage === "password" && (
             <form
-              onSubmit={(e) => {
-                e.preventDefault();
-                performSignin();
-              }}
+              onSubmit={(e) => { e.preventDefault(); performSignin(); }}
               className="space-y-4 animate-fade-in"
             >
               <div className="rounded-xl border border-success/30 bg-success/5 p-4 flex items-start gap-3">
@@ -524,79 +527,25 @@ const Auth = () => {
                 </div>
               </div>
 
-              {isAdminFlow ? (
-                <div>
-                  <Label className="flex items-center gap-2">
-                    <KeyRound className="h-4 w-4 text-accent" />
-                    {t("auth.admin_pin_label")}
-                  </Label>
-                  <Input
-                    type="password"
-                    inputMode="numeric"
-                    maxLength={4}
-                    required
-                    autoFocus
-                    placeholder="••••"
-                    value={adminPin}
-                    onChange={(e) => { setAnswerErr(""); setAdminPin(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
-                  />
-                </div>
-              ) : (
-                <>
-                  <div>
-                    <Label className="flex items-center gap-2">
-                      <KeyRound className="h-4 w-4 text-accent" />
-                      {question?.kind === "national_id"
-                        ? t("forgot.q_nid", { name: question?.label })
-                        : question?.kind === "self_birth_date"
-                        ? t("forgot.q_self_birth", { name: question?.label })
-                        : t("forgot.q_birth", { name: question?.label })}
-                    </Label>
-                    {question?.kind === "national_id" ? (
-                      <Input
-                        autoFocus
-                        type="text"
-                        inputMode="numeric"
-                        maxLength={9}
-                        value={answer}
-                        onChange={(e) => { setAnswerErr(""); setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9)); }}
-                      />
-                    ) : (
-                      <>
-                        <DatePickerField
-                          value={answer}
-                          disableFuture
-                          minYear={1900}
-                          autoOpen
-                          onChange={setAnswer}
-                          placeholder="اضغط هنا لفتح التقويم واختيار تاريخ الميلاد"
-                        />
-                        <p className="text-[11px] text-muted-foreground mt-1">
-                          اختر التاريخ من التقويم — اختر السنة ثم الشهر ثم اليوم.
-                        </p>
-                      </>
-                    )}
-                  </div>
-                  <div className="flex items-center justify-between gap-2 flex-wrap">
-                    <button
-                      type="button"
-                      onClick={askAnotherQuestion}
-                      disabled={busy}
-                      className="text-xs text-accent hover:underline inline-flex items-center gap-1"
-                    >
-                      <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
-                    </button>
-                    <button
-                      type="button"
-                      onClick={openForgot}
-                      disabled={busy}
-                      className="text-xs text-destructive hover:underline inline-flex items-center gap-1"
-                    >
-                      {t("forgot_data.btn")}
-                    </button>
-                  </div>
-                </>
-              )}
+              <div>
+                <Label className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-accent" /> كلمة المرور
+                </Label>
+                <Input
+                  type="password"
+                  inputMode="numeric"
+                  maxLength={4}
+                  autoFocus
+                  required
+                  placeholder="••••"
+                  className={`mt-1 text-lg tracking-[0.5em] text-center ${answerErr ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                  value={pwd}
+                  onChange={(e) => { setAnswerErr(""); setPwd(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
+                />
+                <p className="text-[11px] text-muted-foreground mt-1">
+                  كلمة المرور الافتراضية هي سنة ميلاد رب الأسرة (4 أرقام) — يمكنك تغييرها من لوحة الأسرة.
+                </p>
+              </div>
 
               {answerErr && (
                 <div className="rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
@@ -604,27 +553,117 @@ const Auth = () => {
                 </div>
               )}
 
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <button type="button" onClick={startRecovery} disabled={busy}
+                  className="text-xs text-accent hover:underline inline-flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3" /> نسيت كلمة المرور؟
+                </button>
+                <button type="button" onClick={openForgot} disabled={busy}
+                  className="text-xs text-destructive hover:underline inline-flex items-center gap-1">
+                  {t("forgot_data.btn")}
+                </button>
+              </div>
+
               <div className="flex gap-2">
-                <Button
-                  type="button"
-                  variant="outline"
-                  onClick={resetFlow}
-                  className="flex-shrink-0"
-                >
+                <Button type="button" variant="outline" onClick={resetFlow} className="flex-shrink-0">
                   {t("auth.change_id")}
                 </Button>
-                <Button
-                  type="submit"
-                  disabled={busy}
-                  className="flex-1 brand-gradient text-primary-foreground gap-2"
-                >
-                  {busy ? "..." : (
-                    <>
-                      <ShieldCheck className="h-4 w-4" /> {t("auth.verify_signin")}
-                    </>
-                  )}
+                <Button type="submit" disabled={busy} className="flex-1 brand-gradient text-primary-foreground gap-2">
+                  {busy ? "..." : (<><ShieldCheck className="h-4 w-4" /> دخول</>)}
                 </Button>
               </div>
+            </form>
+          )}
+
+          {/* ============== STAGE 2b: Recover password via security question ============== */}
+          {stage === "recover" && (
+            <form
+              onSubmit={(e) => { e.preventDefault(); performRecovery(); }}
+              className="space-y-4 animate-fade-in"
+            >
+              <div className="rounded-xl border border-accent/30 bg-accent/5 p-4 text-sm">
+                <div className="font-bold text-primary">تحقّق من هويتك لتعيين كلمة مرور جديدة</div>
+                <div className="text-xs text-muted-foreground mt-1" dir="ltr">
+                  {t("form.national_id")}: <strong>{nid}</strong>
+                </div>
+              </div>
+
+              <div>
+                <Label className="flex items-center gap-2">
+                  <KeyRound className="h-4 w-4 text-accent" />
+                  {question?.kind === "national_id"
+                    ? t("forgot.q_nid", { name: question?.label })
+                    : question?.kind === "self_birth_date"
+                    ? t("forgot.q_self_birth", { name: question?.label })
+                    : t("forgot.q_birth", { name: question?.label })}
+                </Label>
+                {question?.kind === "national_id" ? (
+                  <Input
+                    autoFocus
+                    type="text"
+                    inputMode="numeric"
+                    maxLength={9}
+                    value={answer}
+                    onChange={(e) => { setAnswerErr(""); setAnswer(e.target.value.replace(/\D/g, "").slice(0, 9)); }}
+                  />
+                ) : (
+                  <>
+                    <DatePickerField
+                      value={answer}
+                      disableFuture
+                      minYear={1900}
+                      autoOpen
+                      onChange={setAnswer}
+                      placeholder="اضغط هنا لفتح التقويم واختيار تاريخ الميلاد"
+                    />
+                    <p className="text-[11px] text-muted-foreground mt-1">
+                      اختر التاريخ من التقويم — اختر السنة ثم الشهر ثم اليوم.
+                    </p>
+                  </>
+                )}
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div>
+                  <Label>كلمة المرور الجديدة (4 أرقام)</Label>
+                  <Input
+                    type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+                    className="mt-1 text-center tracking-[0.5em]"
+                    value={newCode}
+                    onChange={(e) => { setAnswerErr(""); setNewCode(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
+                  />
+                </div>
+                <div>
+                  <Label>تأكيد كلمة المرور</Label>
+                  <Input
+                    type="password" inputMode="numeric" maxLength={4} placeholder="••••"
+                    className="mt-1 text-center tracking-[0.5em]"
+                    value={newCode2}
+                    onChange={(e) => { setAnswerErr(""); setNewCode2(e.target.value.replace(/\D/g, "").slice(0, 4)); }}
+                  />
+                </div>
+              </div>
+
+              <div className="flex items-center justify-between gap-2 flex-wrap">
+                <button type="button" onClick={askAnotherQuestion} disabled={busy}
+                  className="text-xs text-accent hover:underline inline-flex items-center gap-1">
+                  <RefreshCw className="h-3 w-3" /> {t("auth.another_question")}
+                </button>
+                <button type="button" onClick={() => setStage("password")} disabled={busy}
+                  className="text-xs text-muted-foreground hover:underline">
+                  رجوع لتسجيل الدخول
+                </button>
+              </div>
+
+              {answerErr && (
+                <div className="rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
+                  {answerErr}
+                </div>
+              )}
+
+              <Button type="submit" disabled={busy} className="w-full brand-gradient text-primary-foreground gap-2">
+                {busy ? "..." : (<><ShieldCheck className="h-4 w-4" /> تعيين كلمة المرور والدخول</>)}
+              </Button>
             </form>
           )}
 

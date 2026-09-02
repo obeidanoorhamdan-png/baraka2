@@ -60,7 +60,7 @@ const Settings = () => {
   };
 
   const savePin = async () => {
-    if (!/^\d{4}$/.test(current) || !/^\d{4}$/.test(next)) { toast.error("PIN غير صالح"); return; }
+    if (current.length < 4 || next.length < 4) { toast.error("كلمة المرور يجب أن تكون 4 خانات على الأقل"); return; }
     if (next !== next2) { toast.error("لا تتطابق التأكيدات"); return; }
     const { data } = await supabase.from("admin_secrets").select("admin_pin").eq("id", 1).maybeSingle();
     const actual = (data as any)?.admin_pin || "1234";
@@ -130,25 +130,29 @@ const Settings = () => {
 
         <Card className="p-4 shadow-card">
           <div className="flex items-center gap-2 text-primary font-bold mb-3">
-            <KeyRound className="h-5 w-5" /> تغيير رمز دخول الإدارة (PIN)
+            <KeyRound className="h-5 w-5" /> تغيير كلمة مرور دخول الإدارة
           </div>
+          <p className="text-xs text-muted-foreground mb-3">
+            يمكن أن تكون أرقاماً أو حروفاً أو رموزاً (4 خانات على الأقل).
+          </p>
           <div className="grid gap-3 md:grid-cols-3">
             <div>
-              <Label className="text-xs">الرمز الحالي</Label>
-              <Input type="password" inputMode="numeric" maxLength={4} value={current}
-                onChange={(e) => setCurrent(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+              <Label className="text-xs">كلمة المرور الحالية</Label>
+              <Input type="password" maxLength={64} value={current}
+                onChange={(e) => setCurrent(e.target.value.slice(0, 64))} />
             </div>
             <div>
-              <Label className="text-xs">الرمز الجديد</Label>
-              <Input type="password" inputMode="numeric" maxLength={4} value={next}
-                onChange={(e) => setNext(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+              <Label className="text-xs">كلمة المرور الجديدة</Label>
+              <Input type="password" maxLength={64} value={next}
+                onChange={(e) => setNext(e.target.value.slice(0, 64))} />
             </div>
             <div>
-              <Label className="text-xs">تأكيد الجديد</Label>
-              <Input type="password" inputMode="numeric" maxLength={4} value={next2}
-                onChange={(e) => setNext2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+              <Label className="text-xs">تأكيد كلمة المرور</Label>
+              <Input type="password" maxLength={64} value={next2}
+                onChange={(e) => setNext2(e.target.value.slice(0, 64))} />
             </div>
           </div>
+
           <div className="flex justify-end mt-3">
             <Button onClick={savePin} disabled={busy} className="brand-gradient text-primary-foreground gap-2">
               <KeyRound className="h-4 w-4" /> {busy ? "..." : "حفظ الرمز"}
