@@ -15,6 +15,7 @@ import { supabase } from "@/integrations/supabase/client";
 import { toast } from "sonner";
 import { InlineEdit } from "@/components/dashboard/InlineEdit";
 import { formatBirthDate, formatDateShort } from "@/lib/formatDate";
+import { toAuthPassword, FAMILY_CODE_RE } from "@/lib/authPassword";
 import {
   ADMIN_WHATSAPP, ADMIN_WHATSAPP_DISPLAY,
   SUPPORT_WHATSAPP, SUPPORT_WHATSAPP_DISPLAY, waLink,
