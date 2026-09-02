@@ -27,9 +27,9 @@ const AdminLogin = () => {
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
     setErrMsg("");
-    if (!PIN_RE.test(pin)) {
-      setErrMsg("رمز غير صالح — يجب أن يكون 4 إلى 6 أرقام");
-      toast.error(t("form.invalid_pin"), { duration: 5000 });
+    if (!ADMIN_PW_RE.test(pin)) {
+      setErrMsg("كلمة المرور غير صالحة — 4 أحرف على الأقل (أرقام أو حروف أو رموز)");
+      toast.error("كلمة مرور غير صالحة", { duration: 5000 });
       return;
     }
     setBusy(true);
