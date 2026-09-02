@@ -97,17 +97,19 @@ const AdminLogin = () => {
           <form onSubmit={submit} className="space-y-4">
             <div>
               <Label className="flex items-center gap-1.5">
-                <KeyRound className="h-4 w-4 text-accent" /> رمز الإدارة (PIN)
+                <KeyRound className="h-4 w-4 text-accent" /> كلمة مرور الإدارة
               </Label>
               <Input
                 type="password"
-                inputMode="numeric"
                 autoFocus
                 value={pin}
-                onChange={(e) => { setErrMsg(""); setPin(e.target.value.replace(/\D/g, "").slice(0, 6)); }}
-                placeholder="••••"
-                className={`text-center text-lg tracking-[0.5em] font-bold ${errMsg ? "border-destructive focus-visible:ring-destructive" : ""}`}
+                onChange={(e) => { setErrMsg(""); setPin(e.target.value.slice(0, 64)); }}
+                placeholder="••••••"
+                className={`text-center text-lg font-bold ${errMsg ? "border-destructive focus-visible:ring-destructive" : ""}`}
               />
+              <p className="mt-1 text-[11px] text-muted-foreground">
+                يمكن أن تكون أرقاماً أو حروفاً أو رموزاً (4 خانات على الأقل).
+              </p>
               {errMsg && (
                 <div className="mt-2 rounded-md bg-destructive/10 border border-destructive/40 p-2 text-sm text-destructive font-semibold text-center">
                   {errMsg}
