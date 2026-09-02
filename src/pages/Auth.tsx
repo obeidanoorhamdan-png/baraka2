@@ -448,7 +448,8 @@ const Auth = () => {
             </div>
             <h1 className="text-2xl md:text-3xl font-extrabold text-primary">
               {stage === "id" && t("auth.signin_title")}
-              {stage === "question" && t("auth.passwordless_title")}
+              {stage === "password" && "تسجيل الدخول"}
+              {stage === "recover" && "استعادة كلمة المرور"}
               {stage === "signup" && t("auth.signup_title")}
             </h1>
             {stage === "id" && (
