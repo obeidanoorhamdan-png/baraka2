@@ -407,7 +407,7 @@ const Auth = () => {
     }
     const { error } = await supabase.auth.signUp({
       email: idToEmail(su.national_id),
-      password: initialSignupPassword(su.national_id),
+      password: toAuthPassword(birthYearCode(su.birth_date)),
       options: {
         emailRedirectTo: `${window.location.origin}/`,
         data: {
