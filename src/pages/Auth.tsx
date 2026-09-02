@@ -68,6 +68,10 @@ const Auth = () => {
   } | null>(null);
   const [answer, setAnswer] = useState("");
   const [adminPin, setAdminPin] = useState("");
+  // Password sign-in + recovery state
+  const [pwd, setPwd] = useState("");
+  const [newCode, setNewCode] = useState("");
+  const [newCode2, setNewCode2] = useState("");
   const [forgotOpen, setForgotOpen] = useState(false);
   const [forgotPhone, setForgotPhone] = useState("");
   const [forgotHint, setForgotHint] = useState<string>("");
