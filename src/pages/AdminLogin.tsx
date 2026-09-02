@@ -10,7 +10,8 @@ import { ShieldCheck, KeyRound } from "lucide-react";
 import { supabase } from "@/integrations/supabase/client";
 import { useAuth } from "@/hooks/useAuth";
 import { toast } from "sonner";
-import { ADMIN_NID, PIN_RE, idToEmail } from "@/lib/validators";
+import { ADMIN_NID, idToEmail } from "@/lib/validators";
+import { ADMIN_PW_RE } from "@/lib/authPassword";
 
 const AdminLogin = () => {
   const { t } = useTranslation();
