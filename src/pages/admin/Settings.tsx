@@ -60,7 +60,7 @@ const Settings = () => {
   };
 
   const savePin = async () => {
-    if (!/^\d{4}$/.test(current) || !/^\d{4}$/.test(next)) { toast.error("PIN غير صالح"); return; }
+    if (current.length < 4 || next.length < 4) { toast.error("كلمة المرور يجب أن تكون 4 خانات على الأقل"); return; }
     if (next !== next2) { toast.error("لا تتطابق التأكيدات"); return; }
     const { data } = await supabase.from("admin_secrets").select("admin_pin").eq("id", 1).maybeSingle();
     const actual = (data as any)?.admin_pin || "1234";
