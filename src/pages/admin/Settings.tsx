@@ -135,18 +135,9 @@ const Settings = () => {
           <div className="grid gap-3 md:grid-cols-3">
             <div>
               <Label className="text-xs">الرمز الحالي</Label>
-              <Input type="password" inputMode="numeric" maxLength={4} value={current}
-                onChange={(e) => setCurrent(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-            </div>
-            <div>
-              <Label className="text-xs">الرمز الجديد</Label>
-              <Input type="password" inputMode="numeric" maxLength={4} value={next}
-                onChange={(e) => setNext(e.target.value.replace(/\D/g, "").slice(0, 4))} />
-            </div>
-            <div>
-              <Label className="text-xs">تأكيد الجديد</Label>
-              <Input type="password" inputMode="numeric" maxLength={4} value={next2}
-                onChange={(e) => setNext2(e.target.value.replace(/\D/g, "").slice(0, 4))} />
+              <Input type="password" maxLength={64} value={current}
+                onChange={(e) => setCurrent(e.target.value.slice(0, 64))} />
+
             </div>
           </div>
           <div className="flex justify-end mt-3">
