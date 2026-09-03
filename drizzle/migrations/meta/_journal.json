@@ -1,0 +1,13 @@
+{
+  "version": "7",
+  "dialect": "postgresql",
+  "entries": [
+    {
+      "idx": 0,
+      "version": "7",
+      "when": 1788430301666,
+      "tag": "0000_family_panel_fields_and_complaints",
+      "breakpoints": true
+    }
+  ]
+}
