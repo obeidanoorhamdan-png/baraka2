@@ -812,6 +812,10 @@ export type Database = {
         }
         Returns: boolean
       }
+      admin_update_head_json: {
+        Args: { _patch: Json; _user_id: string }
+        Returns: boolean
+      }
       apply_pending_edit: {
         Args: { _edit_id: string; _notes?: string }
         Returns: boolean
