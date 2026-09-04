@@ -747,7 +747,21 @@ const MyApplication = () => {
 
   if (pageLoading) return <Layout><div className="container py-20 text-center text-muted-foreground">...</div></Layout>;
 
+  // Family already registered → show the unified family control panel
+  // (same interface as the dashboard), which is where data-update request
+  // notifications land.
+  if (appId && user && !editMode) {
+    return (
+      <Layout>
+        <section className="container max-w-4xl py-4">
+          <FamilyDashboard userId={user.id} />
+        </section>
+      </Layout>
+    );
+  }
+
   return (
+
     <Layout>
       <section className="container py-8 max-w-4xl">
         {!appId && !settings.registration_open && !settingsLoading && (
