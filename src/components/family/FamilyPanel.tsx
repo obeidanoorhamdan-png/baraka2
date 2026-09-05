@@ -353,24 +353,28 @@ const EditorActions = ({ onCancel, onSave, busy }: any) => (
 /* ================= editors ================= */
 
 const PersonalEditor = ({ np, profile, onSave, onCancel }: any) => {
-  const [f, setF] = useState({ ...np });
-  const [p, setP] = useState({
+  const pk = `baraka2:edit:head:${profile?.id || "me"}`;
+  const [f, setF, clearF] = usePersistedForm(`${pk}:name`, { ...np } as any);
+  const [p, setP, clearP] = usePersistedForm(`${pk}:data`, {
     national_id: profile?.national_id || "",
     birth_date: profile?.birth_date || "",
     phone: profile?.phone || "",
     alt_phone: profile?.alt_phone || "",
     gender: profile?.gender || "",
-  });
+  } as any);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     const full = joinName(f);
     if (!full) { toast.error("الاسم مطلوب"); return; }
-    if (p.national_id && !ID_RE.test(p.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
+    if (!p.national_id) { toast.error("رقم الهوية مطلوب"); return; }
+    if (!ID_RE.test(p.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
     setBusy(true);
-    await onSave({ ...p, full_name: full });
+    const ok = await onSave({ ...p, full_name: full });
+    if (ok !== false) { clearF(); clearP(); }
     setBusy(false);
   };
+
 
   return (
     <div>
