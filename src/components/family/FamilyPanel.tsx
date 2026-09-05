@@ -573,8 +573,9 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
 
 const MemberEditor = ({ member, onSave, onCancel }: any) => {
   const np = nameParts(member?.full_name);
-  const [f, setF] = useState({ ...np });
-  const [m, setM] = useState({
+  const mk = `baraka2:edit:member:${member?.id || "new"}`;
+  const [f, setF, clearF] = usePersistedForm(`${mk}:name`, { ...np } as any);
+  const [m, setM, clearM] = usePersistedForm(`${mk}:data`, {
     national_id: member?.national_id || "",
     birth_date: member?.birth_date || "",
     gender: member?.gender || "male",
@@ -584,8 +585,9 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
     is_war_injured: !!member?.is_war_injured,
     is_special_needs: !!member?.is_special_needs,
     chronic_diseases: member?.chronic_diseases || "",
-  });
+  } as any);
   const [busy, setBusy] = useState(false);
+
 
   return (
     <div className="mt-4 rounded-xl border border-accent/30 bg-accent-soft/20 p-3 sm:p-4">
