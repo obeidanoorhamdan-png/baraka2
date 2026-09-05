@@ -326,11 +326,16 @@ const MyApplication = () => {
           ((d.residence?.original_residence || d.residence?.original_landmark || d.residence?.current_landmark) ||
             (Array.isArray(d.members) && d.members.length > 0));
         if (hasContent) {
-          setPendingDraft({
-            residence: d.residence,
-            members: Array.isArray(d.members) ? d.members : [],
-            savedAt: d.savedAt ? new Date(d.savedAt).toLocaleString("ar") : "",
-          });
+          // استعادة تلقائية للمسودة (من الخادم أو الجهاز) بدون أي سؤال،
+          // حتى لو خرج المستخدم من الموقع وعاد إليه.
+          const dm = Array.isArray(d.members) ? d.members : [];
+          if (d.residence) {
+            setResidence(d.residence);
+            setFamilySizeInput(String(d.residence.family_size || 1));
+          }
+          setMembers(dm);
+          setLastSavedSig(JSON.stringify({ residence: d.residence, members: dm }));
+          if (d.savedAt) setLastDraftSavedAt(new Date(d.savedAt).toLocaleTimeString("ar"));
         } else {
           // Mark current empty state as the baseline so we don't flag it
           // as dirty before the user starts editing.
