@@ -636,17 +636,21 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
       <EditorActions onCancel={onCancel} busy={busy} onSave={async () => {
         const full = joinName(f);
         if (!full) { toast.error("اسم الفرد مطلوب"); return; }
-        if (m.national_id && !ID_RE.test(m.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
+        if (!m.national_id) { toast.error("رقم الهوية مطلوب لكل فرد — حتى الأطفال"); return; }
+        if (!ID_RE.test(m.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
+        if (!m.birth_date) { toast.error("تاريخ الميلاد مطلوب"); return; }
         setBusy(true);
-        await onSave({
+        const ok = await onSave({
           ...m,
           full_name: full,
-          national_id: m.national_id || null,
+          national_id: m.national_id,
           is_pregnant: m.gender === "female" ? m.is_pregnant : false,
           is_breastfeeding: m.gender === "female" ? m.is_breastfeeding : false,
         });
+        if (ok !== false) { clearF(); clearM(); }
         setBusy(false);
       }} />
+
     </div>
   );
 };
