@@ -219,11 +219,14 @@ const MyApplication = () => {
             if (raw) localDraft = JSON.parse(raw);
           } catch {}
           if (localDraft && (localDraft.residence?.original_residence || localDraft.members?.length)) {
-            setPendingDraft({
-              residence: localDraft.residence,
-              members: Array.isArray(localDraft.members) ? localDraft.members : [],
-              savedAt: localDraft.savedAt ? new Date(localDraft.savedAt).toLocaleString("ar") : "",
-            });
+            // استعادة تلقائية بدون سؤال — البيانات لا تُفقد أبداً.
+            const dm = Array.isArray(localDraft.members) ? localDraft.members : [];
+            if (localDraft.residence) {
+              setResidence(localDraft.residence);
+              setFamilySizeInput(String(localDraft.residence.family_size || 1));
+            }
+            setMembers(dm);
+            setLastSavedSig(JSON.stringify({ residence: localDraft.residence, members: dm }));
           } else {
             setLastSavedSig(JSON.stringify({ residence, members: [] }));
           }
