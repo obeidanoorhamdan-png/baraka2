@@ -1,4 +1,23 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+/**
+ * حالة محفوظة تلقائياً في الجهاز — أي بيانات يكتبها المستخدم في نموذج
+ * التعديل تبقى موجودة إذا خرج من الموقع وعاد إليه، حتى قبل الحفظ.
+ */
+function usePersistedForm<T extends Record<string, any>>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return { ...initial, ...JSON.parse(raw) };
+    } catch {}
+    return initial;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }, [key, value]);
+  const clear = () => { try { localStorage.removeItem(key); } catch {} };
+  return [value, setValue, clear] as const;
+}
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
