@@ -141,7 +141,8 @@ const MyApplication = () => {
         if (!isFullName(m.full_name)) return t("field_errors.name_format");
         return "";
       case "national_id":
-        if (m.national_id && !ID_RE.test(m.national_id)) return t("field_errors.id_format");
+        if (!m.national_id?.trim()) return t("field_errors.id_required");
+        if (!ID_RE.test(m.national_id)) return t("field_errors.id_format");
         return "";
       case "birth_date":
         if (!m.birth_date) return t("field_errors.birth_required");
