@@ -1,4 +1,23 @@
-import { useMemo, useState, type ReactNode } from "react";
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+
+/**
+ * حالة محفوظة تلقائياً في الجهاز — أي بيانات يكتبها المستخدم في نموذج
+ * التعديل تبقى موجودة إذا خرج من الموقع وعاد إليه، حتى قبل الحفظ.
+ */
+function usePersistedForm<T extends Record<string, any>>(key: string, initial: T) {
+  const [value, setValue] = useState<T>(() => {
+    try {
+      const raw = localStorage.getItem(key);
+      if (raw) return { ...initial, ...JSON.parse(raw) };
+    } catch {}
+    return initial;
+  });
+  useEffect(() => {
+    try { localStorage.setItem(key, JSON.stringify(value)); } catch {}
+  }, [key, value]);
+  const clear = () => { try { localStorage.removeItem(key); } catch {} };
+  return [value, setValue, clear] as const;
+}
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -334,24 +353,28 @@ const EditorActions = ({ onCancel, onSave, busy }: any) => (
 /* ================= editors ================= */
 
 const PersonalEditor = ({ np, profile, onSave, onCancel }: any) => {
-  const [f, setF] = useState({ ...np });
-  const [p, setP] = useState({
+  const pk = `baraka2:edit:head:${profile?.id || "me"}`;
+  const [f, setF, clearF] = usePersistedForm(`${pk}:name`, { ...np } as any);
+  const [p, setP, clearP] = usePersistedForm(`${pk}:data`, {
     national_id: profile?.national_id || "",
     birth_date: profile?.birth_date || "",
     phone: profile?.phone || "",
     alt_phone: profile?.alt_phone || "",
     gender: profile?.gender || "",
-  });
+  } as any);
   const [busy, setBusy] = useState(false);
 
   const submit = async () => {
     const full = joinName(f);
     if (!full) { toast.error("الاسم مطلوب"); return; }
-    if (p.national_id && !ID_RE.test(p.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
+    if (!p.national_id) { toast.error("رقم الهوية مطلوب"); return; }
+    if (!ID_RE.test(p.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
     setBusy(true);
-    await onSave({ ...p, full_name: full });
+    const ok = await onSave({ ...p, full_name: full });
+    if (ok !== false) { clearF(); clearP(); }
     setBusy(false);
   };
+
 
   return (
     <div>
@@ -550,8 +573,9 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
 
 const MemberEditor = ({ member, onSave, onCancel }: any) => {
   const np = nameParts(member?.full_name);
-  const [f, setF] = useState({ ...np });
-  const [m, setM] = useState({
+  const mk = `baraka2:edit:member:${member?.id || "new"}`;
+  const [f, setF, clearF] = usePersistedForm(`${mk}:name`, { ...np } as any);
+  const [m, setM, clearM] = usePersistedForm(`${mk}:data`, {
     national_id: member?.national_id || "",
     birth_date: member?.birth_date || "",
     gender: member?.gender || "male",
@@ -561,8 +585,9 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
     is_war_injured: !!member?.is_war_injured,
     is_special_needs: !!member?.is_special_needs,
     chronic_diseases: member?.chronic_diseases || "",
-  });
+  } as any);
   const [busy, setBusy] = useState(false);
+
 
   return (
     <div className="mt-4 rounded-xl border border-accent/30 bg-accent-soft/20 p-3 sm:p-4">
@@ -611,17 +636,21 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
       <EditorActions onCancel={onCancel} busy={busy} onSave={async () => {
         const full = joinName(f);
         if (!full) { toast.error("اسم الفرد مطلوب"); return; }
-        if (m.national_id && !ID_RE.test(m.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
+        if (!m.national_id) { toast.error("رقم الهوية مطلوب لكل فرد — حتى الأطفال"); return; }
+        if (!ID_RE.test(m.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
+        if (!m.birth_date) { toast.error("تاريخ الميلاد مطلوب"); return; }
         setBusy(true);
-        await onSave({
+        const ok = await onSave({
           ...m,
           full_name: full,
-          national_id: m.national_id || null,
+          national_id: m.national_id,
           is_pregnant: m.gender === "female" ? m.is_pregnant : false,
           is_breastfeeding: m.gender === "female" ? m.is_breastfeeding : false,
         });
+        if (ok !== false) { clearF(); clearM(); }
         setBusy(false);
       }} />
+
     </div>
   );
 };

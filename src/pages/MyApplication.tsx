@@ -26,6 +26,7 @@ import { enqueueOp, cacheGet, cacheSet, logHistory, listOps, onOutboxChange } fr
 import { drainOutbox, onSyncState } from "@/lib/syncEngine";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { LocationCascade, parseLocation, formatLocation } from "@/components/LocationCascade";
+import { FamilyDashboard } from "@/components/family/FamilyDashboard";
 
 // Fields locked on the head-of-family card — only national_id is permanently
 // locked since it's the auth identity. The rest can be edited from the form.
@@ -140,7 +141,8 @@ const MyApplication = () => {
         if (!isFullName(m.full_name)) return t("field_errors.name_format");
         return "";
       case "national_id":
-        if (m.national_id && !ID_RE.test(m.national_id)) return t("field_errors.id_format");
+        if (!m.national_id?.trim()) return t("field_errors.id_required");
+        if (!ID_RE.test(m.national_id)) return t("field_errors.id_format");
         return "";
       case "birth_date":
         if (!m.birth_date) return t("field_errors.birth_required");
@@ -217,11 +219,14 @@ const MyApplication = () => {
             if (raw) localDraft = JSON.parse(raw);
           } catch {}
           if (localDraft && (localDraft.residence?.original_residence || localDraft.members?.length)) {
-            setPendingDraft({
-              residence: localDraft.residence,
-              members: Array.isArray(localDraft.members) ? localDraft.members : [],
-              savedAt: localDraft.savedAt ? new Date(localDraft.savedAt).toLocaleString("ar") : "",
-            });
+            // استعادة تلقائية بدون سؤال — البيانات لا تُفقد أبداً.
+            const dm = Array.isArray(localDraft.members) ? localDraft.members : [];
+            if (localDraft.residence) {
+              setResidence(localDraft.residence);
+              setFamilySizeInput(String(localDraft.residence.family_size || 1));
+            }
+            setMembers(dm);
+            setLastSavedSig(JSON.stringify({ residence: localDraft.residence, members: dm }));
           } else {
             setLastSavedSig(JSON.stringify({ residence, members: [] }));
           }
@@ -321,11 +326,16 @@ const MyApplication = () => {
           ((d.residence?.original_residence || d.residence?.original_landmark || d.residence?.current_landmark) ||
             (Array.isArray(d.members) && d.members.length > 0));
         if (hasContent) {
-          setPendingDraft({
-            residence: d.residence,
-            members: Array.isArray(d.members) ? d.members : [],
-            savedAt: d.savedAt ? new Date(d.savedAt).toLocaleString("ar") : "",
-          });
+          // استعادة تلقائية للمسودة (من الخادم أو الجهاز) بدون أي سؤال،
+          // حتى لو خرج المستخدم من الموقع وعاد إليه.
+          const dm = Array.isArray(d.members) ? d.members : [];
+          if (d.residence) {
+            setResidence(d.residence);
+            setFamilySizeInput(String(d.residence.family_size || 1));
+          }
+          setMembers(dm);
+          setLastSavedSig(JSON.stringify({ residence: d.residence, members: dm }));
+          if (d.savedAt) setLastDraftSavedAt(new Date(d.savedAt).toLocaleTimeString("ar"));
         } else {
           // Mark current empty state as the baseline so we don't flag it
           // as dirty before the user starts editing.
