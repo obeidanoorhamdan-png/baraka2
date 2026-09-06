@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from "react";
+import { Link } from "react-router-dom";
 
 /**
  * حالة محفوظة تلقائياً في الجهاز — أي بيانات يكتبها المستخدم في نموذج
@@ -17,6 +18,10 @@ function usePersistedForm<T extends Record<string, any>>(key: string, initial: T
   }, [key, value]);
   const clear = () => { try { localStorage.removeItem(key); } catch {} };
   return [value, setValue, clear] as const;
+}
+
+function hasPersistedForm(key: string) {
+  try { return !!localStorage.getItem(key); } catch { return false; }
 }
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -173,6 +178,7 @@ export const FamilyPanel = ({
 
       {/* ============ البيانات الشخصية ============ */}
       <SectionShell id="sec-personal" icon={User} title="البيانات الشخصية"
+        initiallyOpen={hasPersistedForm(`baraka2:edit:head:${profile?.id || "me"}:name`) || hasPersistedForm(`baraka2:edit:head:${profile?.id || "me"}:data`)}
         editor={({ close }) => (
           <PersonalEditor np={np} profile={profile} onCancel={close}
             onSave={async (patch) => { const ok = await saveProfile(patch); if (ok) close(); }} />
@@ -192,6 +198,7 @@ export const FamilyPanel = ({
 
       {/* ============ البيانات الاجتماعية والعمل ============ */}
       <SectionShell id="sec-social" icon={Briefcase} title="البيانات الاجتماعية والعمل"
+        initiallyOpen={hasPersistedForm(`baraka2:edit:social:${profile?.id || "me"}`)}
         editor={({ close }) => (
           <SocialEditor profile={profile} app={app} onCancel={close}
             onSave={async (pPatch, aPatch) => {
@@ -209,6 +216,7 @@ export const FamilyPanel = ({
 
       {/* ============ الحالة الصحية ============ */}
       <SectionShell id="sec-health" icon={HeartPulse} title="الحالة الصحية"
+        initiallyOpen={hasPersistedForm(`baraka2:edit:health:${profile?.id || "me"}`)}
         editor={({ close }) => (
           <HealthEditor profile={profile} onCancel={close}
             onSave={async (patch) => { const ok = await saveProfile(patch); if (ok) close(); }} />
@@ -227,6 +235,7 @@ export const FamilyPanel = ({
       {/* ============ بيانات السكن ============ */}
       {app && (
         <SectionShell id="sec-home" icon={Home} title="بيانات السكن"
+          initiallyOpen={hasPersistedForm(`baraka2:edit:residence:${app?.id || "new"}`)}
           editor={({ close }) => (
             <ResidenceEditor app={app} onCancel={close}
               onSave={async (patch) => { const ok = await saveApp(patch); if (ok) close(); }} />
@@ -276,12 +285,13 @@ export const FamilyPanel = ({
 /* ================= layout primitives ================= */
 
 const SectionShell = ({
-  id, icon: Icon, title, children, editor,
+  id, icon: Icon, title, children, editor, initiallyOpen = false,
 }: {
   id?: string; icon: any; title: string; children: ReactNode;
   editor?: (ctx: { close: () => void }) => ReactNode;
+  initiallyOpen?: boolean;
 }) => {
-  const [open, setOpen] = useState(false);
+  const [open, setOpen] = useState(initiallyOpen);
   return (
     <Card id={id} className="p-4 sm:p-5 shadow-card border-accent/20 scroll-mt-24">
       <div className="flex items-center justify-between gap-2 border-b border-accent/25 pb-3">
@@ -404,25 +414,27 @@ const PersonalEditor = ({ np, profile, onSave, onCancel }: any) => {
 };
 
 const SocialEditor = ({ profile, app, onSave, onCancel }: any) => {
-  const [marital, setMarital] = useState(profile?.marital_status || "");
-  const [work, setWork] = useState(profile?.work_status || "");
-  const [size, setSize] = useState(String(app?.family_size ?? ""));
+  const key = `baraka2:edit:social:${profile?.id || "me"}`;
+  const [draft, setDraft, clearDraft] = usePersistedForm(key, {
+    marital: profile?.marital_status || "", work: profile?.work_status || "", size: String(app?.family_size ?? ""),
+  });
   const [busy, setBusy] = useState(false);
   return (
     <div>
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <Field label="الحالة الاجتماعية"><Sel value={marital} options={MARITAL} onChange={setMarital} /></Field>
+        <Field label="الحالة الاجتماعية"><Sel value={draft.marital} options={MARITAL} onChange={(marital: string) => setDraft({ ...draft, marital })} /></Field>
         <Field label="عدد أفراد الأسرة">
-          <Input type="number" min={1} dir="ltr" value={size} onChange={(e) => setSize(e.target.value)} />
+          <Input type="number" min={1} dir="ltr" value={draft.size} onChange={(e) => setDraft({ ...draft, size: e.target.value })} />
         </Field>
-        <Field label="حالة العمل"><Sel value={work} options={WORK} onChange={setWork} /></Field>
+        <Field label="حالة العمل"><Sel value={draft.work} options={WORK} onChange={(work: string) => setDraft({ ...draft, work })} /></Field>
       </div>
-      <EditorActions onCancel={onCancel} busy={busy} onSave={async () => {
+      <EditorActions onCancel={() => { clearDraft(); onCancel(); }} busy={busy} onSave={async () => {
         setBusy(true);
-        await onSave(
-          { marital_status: marital, work_status: work },
-          { family_size: size ? parseInt(size) : app?.family_size },
+        const ok = await onSave(
+          { marital_status: draft.marital, work_status: draft.work },
+          { family_size: draft.size ? parseInt(draft.size) : app?.family_size },
         );
+        if (ok !== false) clearDraft();
         setBusy(false);
       }} />
     </div>
@@ -430,32 +442,35 @@ const SocialEditor = ({ profile, app, onSave, onCancel }: any) => {
 };
 
 const HealthEditor = ({ profile, onSave, onCancel }: any) => {
-  const [has, setHas] = useState(
-    profile?.chronic_diseases || profile?.health_notes || profile?.is_war_injured ? "yes" : "no");
-  const [desc, setDesc] = useState(profile?.chronic_diseases || profile?.health_notes || "");
-  const [injured, setInjured] = useState(profile?.is_war_injured ? "yes" : "no");
-  const [special, setSpecial] = useState(profile?.is_special_needs ? "yes" : "no");
+  const key = `baraka2:edit:health:${profile?.id || "me"}`;
+  const [draft, setDraft, clearDraft] = usePersistedForm(key, {
+    has: profile?.chronic_diseases || profile?.health_notes || profile?.is_war_injured ? "yes" : "no",
+    desc: profile?.chronic_diseases || profile?.health_notes || "",
+    injured: profile?.is_war_injured ? "yes" : "no",
+    special: profile?.is_special_needs ? "yes" : "no",
+  });
   const [busy, setBusy] = useState(false);
   return (
     <div>
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-3">
-        <Field label="هل يعاني من حالة صحية؟"><Sel value={has} options={YESNO} onChange={setHas} /></Field>
-        <Field label="مصاب حرب"><Sel value={injured} options={YESNO} onChange={setInjured} /></Field>
-        <Field label="احتياجات خاصة"><Sel value={special} options={YESNO} onChange={setSpecial} /></Field>
+        <Field label="هل يعاني من حالة صحية؟"><Sel value={draft.has} options={YESNO} onChange={(has: string) => setDraft({ ...draft, has })} /></Field>
+        <Field label="مصاب حرب"><Sel value={draft.injured} options={YESNO} onChange={(injured: string) => setDraft({ ...draft, injured })} /></Field>
+        <Field label="احتياجات خاصة"><Sel value={draft.special} options={YESNO} onChange={(special: string) => setDraft({ ...draft, special })} /></Field>
       </div>
       <div className="mt-3">
         <Field label="وصف الحالة الصحية">
-          <Textarea rows={3} value={desc} onChange={(e) => setDesc(e.target.value)}
-            placeholder="اكتب وصف الحالة الصحية أو «لا يوجد»" disabled={has === "no"} />
+          <Textarea rows={3} value={draft.desc} onChange={(e) => setDraft({ ...draft, desc: e.target.value })}
+            placeholder="اكتب وصف الحالة الصحية أو «لا يوجد»" disabled={draft.has === "no"} />
         </Field>
       </div>
-      <EditorActions onCancel={onCancel} busy={busy} onSave={async () => {
+      <EditorActions onCancel={() => { clearDraft(); onCancel(); }} busy={busy} onSave={async () => {
         setBusy(true);
-        await onSave({
-          chronic_diseases: has === "yes" ? desc : "",
-          is_war_injured: injured === "yes",
-          is_special_needs: special === "yes",
+        const ok = await onSave({
+          chronic_diseases: draft.has === "yes" ? draft.desc : "",
+          is_war_injured: draft.injured === "yes",
+          is_special_needs: draft.special === "yes",
         });
+        if (ok !== false) clearDraft();
         setBusy(false);
       }} />
     </div>
@@ -463,7 +478,8 @@ const HealthEditor = ({ profile, onSave, onCancel }: any) => {
 };
 
 const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
-  const [a, setA] = useState({
+  const key = `baraka2:edit:residence:${app?.id || "new"}`;
+  const [a, setA, clearA] = usePersistedForm(key, {
     original_residence: app.original_residence || "",
     original_landmark: app.original_landmark || "",
     prev_housing_status: app.prev_housing_status || "",
@@ -484,7 +500,9 @@ const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
         <Field label="الحي السكني الحالي"><Input value={a.current_camp} onChange={(e) => setA({ ...a, current_camp: e.target.value })} /></Field>
         <Field label="أقرب معلم (الحالي)"><Input value={a.current_landmark} onChange={(e) => setA({ ...a, current_landmark: e.target.value })} /></Field>
       </div>
-      <EditorActions onCancel={onCancel} busy={busy} onSave={async () => { setBusy(true); await onSave(a); setBusy(false); }} />
+      <EditorActions onCancel={() => { clearA(); onCancel(); }} busy={busy} onSave={async () => {
+        setBusy(true); const ok = await onSave(a); if (ok !== false) clearA(); setBusy(false);
+      }} />
     </div>
   );
 };
@@ -492,7 +510,10 @@ const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
 /* ================= members ================= */
 
 const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
-  const [editId, setEditId] = useState<string | null>(null);
+  const [editId, setEditId] = useState<string | null>(() => {
+    const found = members.find((m: any) => hasPersistedForm(`baraka2:edit:member:${m.id}:name`) || hasPersistedForm(`baraka2:edit:member:${m.id}:data`));
+    return found?.id || null;
+  });
   return (
     <Card id="sec-members" className="p-4 sm:p-5 shadow-card border-accent/20 scroll-mt-24">
       <div className="flex items-center justify-between gap-2 border-b border-accent/25 pb-3">
@@ -633,7 +654,7 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
         </Field>
       </div>
 
-      <EditorActions onCancel={onCancel} busy={busy} onSave={async () => {
+      <EditorActions onCancel={() => { clearF(); clearM(); onCancel(); }} busy={busy} onSave={async () => {
         const full = joinName(f);
         if (!full) { toast.error("اسم الفرد مطلوب"); return; }
         if (!m.national_id) { toast.error("رقم الهوية مطلوب لكل فرد — حتى الأطفال"); return; }
@@ -822,12 +843,17 @@ const MenuCard = ({ hasApp, showSettings }: { hasApp: boolean; showSettings: boo
       <div className="mt-3 space-y-2">
         {items.map((g) => (
           <div key={g.title} className="rounded-xl border-e-4 border-accent bg-accent-soft/25 p-3">
-            <button onClick={() => go(g.id)} className="w-full text-start">
+            {g.id === "family-settings" ? <Button asChild variant="ghost" className="h-auto w-full justify-start p-0 text-start hover:bg-transparent">
+              <Link to="/family-settings" className="block">
+                <div className="flex items-center gap-2 text-sm font-extrabold text-accent"><g.icon className="h-4 w-4" /> {g.title}</div>
+                <div className="text-[11px] text-muted-foreground">{g.sub}</div>
+              </Link>
+            </Button> : <button onClick={() => go(g.id)} className="w-full text-start">
               <div className="flex items-center gap-2 text-sm font-extrabold text-accent">
                 <g.icon className="h-4 w-4" /> {g.title}
               </div>
               <div className="text-[11px] text-muted-foreground">{g.sub}</div>
-            </button>
+            </button>}
             {!!g.children?.length && (
               <div className="mt-2 space-y-1.5">
                 {g.children.map((c) => (
