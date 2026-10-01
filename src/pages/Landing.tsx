@@ -1,8 +1,7 @@
 import { useTranslation } from "react-i18next";
-import { Link } from "react-router-dom";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Compass, ShieldCheck } from "lucide-react";
 import { Layout } from "@/components/Layout";
-import { Button } from "@/components/ui/button";
+import { FamilyLookup } from "@/components/FamilyLookup";
 import { Card } from "@/components/ui/card";
 import { NewsStrip } from "@/components/NewsStrip";
 import { AnnouncementPopup } from "@/components/AnnouncementPopup";
@@ -39,12 +38,8 @@ const Landing = () => {
             </h1>
             <p className="text-lg opacity-90 max-w-xl">{t("landing.tagline")}</p>
             <p className="text-sm opacity-75 max-w-xl">{t("landing.intro")}</p>
-            <div className="flex flex-wrap gap-3 pt-3">
-              <Button asChild size="lg" className="gold-gradient text-accent-foreground hover:opacity-90 shadow-gold">
-                <Link to="/auth" className="gap-2">
-                  ابدأ الآن — سجِّل أو ادخل ببيانات عائلتك <Arrow className="h-4 w-4" />
-                </Link>
-              </Button>
+            <div className="pt-3 text-foreground">
+              <FamilyLookup />
             </div>
           </div>
           <div className="flex justify-center md:justify-end">

@@ -500,6 +500,7 @@ export type Database = {
       family_members: {
         Row: {
           application_id: string
+          birth_certificate_url: string | null
           birth_date: string
           chronic_disease_report_url: string | null
           chronic_diseases: string | null
@@ -513,15 +514,20 @@ export type Database = {
           is_head: boolean
           is_pregnant: boolean
           is_special_needs: boolean
+          is_university_student: boolean
           is_war_injured: boolean
           national_id: string | null
           pregnancy_report_url: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other: string | null
           special_needs_report_url: string | null
+          university_major: string | null
+          university_name: string | null
+          university_year: string | null
         }
         Insert: {
           application_id: string
+          birth_certificate_url?: string | null
           birth_date: string
           chronic_disease_report_url?: string | null
           chronic_diseases?: string | null
@@ -535,15 +541,20 @@ export type Database = {
           is_head?: boolean
           is_pregnant?: boolean
           is_special_needs?: boolean
+          is_university_student?: boolean
           is_war_injured?: boolean
           national_id?: string | null
           pregnancy_report_url?: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
           special_needs_report_url?: string | null
+          university_major?: string | null
+          university_name?: string | null
+          university_year?: string | null
         }
         Update: {
           application_id?: string
+          birth_certificate_url?: string | null
           birth_date?: string
           chronic_disease_report_url?: string | null
           chronic_diseases?: string | null
@@ -557,12 +568,16 @@ export type Database = {
           is_head?: boolean
           is_pregnant?: boolean
           is_special_needs?: boolean
+          is_university_student?: boolean
           is_war_injured?: boolean
           national_id?: string | null
           pregnancy_report_url?: string | null
           relationship?: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
           special_needs_report_url?: string | null
+          university_major?: string | null
+          university_name?: string | null
+          university_year?: string | null
         }
         Relationships: [
           {
@@ -664,8 +679,10 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           health_notes: string | null
           id: string
+          id_card_url: string | null
           injury_report_url: string | null
           is_special_needs: boolean
+          is_university_student: boolean
           is_war_injured: boolean
           marital_status: Database["public"]["Enums"]["marital_status"]
           marital_status_other: string | null
@@ -673,6 +690,9 @@ export type Database = {
           phone: string
           special_needs_report_url: string | null
           two_fa_enabled: boolean
+          university_major: string | null
+          university_name: string | null
+          university_year: string | null
           updated_at: string
           work_status: string | null
         }
@@ -687,8 +707,10 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           health_notes?: string | null
           id: string
+          id_card_url?: string | null
           injury_report_url?: string | null
           is_special_needs?: boolean
+          is_university_student?: boolean
           is_war_injured?: boolean
           marital_status: Database["public"]["Enums"]["marital_status"]
           marital_status_other?: string | null
@@ -696,6 +718,9 @@ export type Database = {
           phone: string
           special_needs_report_url?: string | null
           two_fa_enabled?: boolean
+          university_major?: string | null
+          university_name?: string | null
+          university_year?: string | null
           updated_at?: string
           work_status?: string | null
         }
@@ -710,8 +735,10 @@ export type Database = {
           gender?: Database["public"]["Enums"]["gender"]
           health_notes?: string | null
           id?: string
+          id_card_url?: string | null
           injury_report_url?: string | null
           is_special_needs?: boolean
+          is_university_student?: boolean
           is_war_injured?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"]
           marital_status_other?: string | null
@@ -719,6 +746,9 @@ export type Database = {
           phone?: string
           special_needs_report_url?: string | null
           two_fa_enabled?: boolean
+          university_major?: string | null
+          university_name?: string | null
+          university_year?: string | null
           updated_at?: string
           work_status?: string | null
         }
@@ -810,6 +840,10 @@ export type Database = {
           _phone?: string
           _user_id: string
         }
+        Returns: boolean
+      }
+      admin_update_head_extra: {
+        Args: { _patch: Json; _user_id: string }
         Returns: boolean
       }
       admin_update_head_json: {
@@ -918,6 +952,7 @@ export type Database = {
         Args: { _exclude_member?: string; _exclude_user?: string; _nid: string }
         Returns: boolean
       }
+      public_family_lookup: { Args: { _nid: string }; Returns: Json }
       reject_pending_edit: {
         Args: { _edit_id: string; _notes?: string }
         Returns: boolean
