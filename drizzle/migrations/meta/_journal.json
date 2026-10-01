@@ -15,6 +15,13 @@
       "when": 1788430336860,
       "tag": "0001_admin_update_head_json",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1790852694375,
+      "tag": "0002_family_docs_students_lookup",
+      "breakpoints": true
     }
   ]
 }
