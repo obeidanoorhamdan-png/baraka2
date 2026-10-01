@@ -38,6 +38,7 @@ import {
   Crown, ClipboardList, Menu,
 } from "lucide-react";
 import { PasswordCard } from "@/components/family/PasswordCard";
+import { DocsStudySection } from "@/components/family/DocsStudySection";
 
 /* ---------------- option lists ---------------- */
 const GENDERS = [{ v: "male", l: "ذكر" }, { v: "female", l: "أنثى" }];
@@ -262,6 +263,10 @@ export const FamilyPanel = ({
           onSave={saveMember}
         />
       )}
+
+      {/* ============ المستندات والدراسة (تعديل الإدارة فقط) ============ */}
+      <DocsStudySection profile={profile} members={visibleMembers} adminMode={adminMode} onReload={onReload} />
+
 
       {/* ============ الشكاوى ============ */}
       <ComplaintsSection
