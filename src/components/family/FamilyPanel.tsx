@@ -304,7 +304,7 @@ const SectionShell = ({
           <Icon className="h-5 w-5 shrink-0" />
           <span className="truncate">{title}</span>
         </h2>
-        {editor && (
+        {editor && !locked && (
           open ? (
             <Button size="sm" variant="outline" className="h-8 gap-1 text-xs" onClick={() => setOpen(false)}>
               <X className="h-3.5 w-3.5" /> إغلاق
@@ -454,6 +454,7 @@ const HealthEditor = ({ profile, onSave, onCancel }: any) => {
     injured: profile?.is_war_injured ? "yes" : "no",
     special: profile?.is_special_needs ? "yes" : "no",
   });
+  const [inj, setInj, clearInj] = usePersistedForm<InjuryData>(`${key}:injury`, injuryFrom(profile));
   const [busy, setBusy] = useState(false);
   return (
     <div>
@@ -462,19 +463,23 @@ const HealthEditor = ({ profile, onSave, onCancel }: any) => {
         <Field label="مصاب حرب"><Sel value={draft.injured} options={YESNO} onChange={(injured: string) => setDraft({ ...draft, injured })} /></Field>
         <Field label="احتياجات خاصة"><Sel value={draft.special} options={YESNO} onChange={(special: string) => setDraft({ ...draft, special })} /></Field>
       </div>
+      {draft.injured === "yes" && <WarInjuryFields value={inj} onChange={setInj} ownerId={profile?.id || "me"} />}
       <div className="mt-3">
         <Field label="وصف الحالة الصحية">
           <Textarea rows={3} value={draft.desc} onChange={(e) => setDraft({ ...draft, desc: e.target.value })}
             placeholder="اكتب وصف الحالة الصحية أو «لا يوجد»" disabled={draft.has === "no"} />
         </Field>
       </div>
-      <EditorActions onCancel={() => { clearDraft(); onCancel(); }} busy={busy} onSave={async () => {
+      <EditorActions onCancel={() => { clearDraft(); clearInj(); onCancel(); }} busy={busy} onSave={async () => {
+        if (draft.injured === "yes") { const err = validateInjury(inj); if (err) { toast.error(err); return; } }
         setBusy(true);
         const ok = await onSave({
           chronic_diseases: draft.has === "yes" ? draft.desc : "",
           is_war_injured: draft.injured === "yes",
           is_special_needs: draft.special === "yes",
+          ...(draft.injured === "yes" ? inj : clearedInjury),
         });
+        if (ok !== false) clearInj();
         if (ok !== false) clearDraft();
         setBusy(false);
       }} />
@@ -515,6 +520,7 @@ const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
 /* ================= members ================= */
 
 const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
+  const locked = useEditLocked();
   const [editId, setEditId] = useState<string | null>(() => {
     const found = members.find((m: any) => hasPersistedForm(`baraka2:edit:member:${m.id}:name`) || hasPersistedForm(`baraka2:edit:member:${m.id}:data`));
     return found?.id || null;
@@ -525,9 +531,11 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
         <h2 className="inline-flex items-center gap-2 text-base font-extrabold text-accent">
           <Users className="h-5 w-5" /> بيانات أفراد الأسرة ({members.length})
         </h2>
-        <Button size="sm" className="h-8 gap-1 text-xs" onClick={onAdd}>
-          <Plus className="h-3.5 w-3.5" /> إضافة فرد جديد
-        </Button>
+        {!locked && (
+          <Button size="sm" className="h-8 gap-1 text-xs" onClick={onAdd}>
+            <Plus className="h-3.5 w-3.5" /> إضافة فرد جديد
+          </Button>
+        )}
       </div>
 
       <div className="mt-3 rounded-xl border border-accent/25 bg-accent-soft/25 p-3">
@@ -568,6 +576,7 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
                 <td className="px-2 py-2">{m.chronic_diseases || m.is_war_injured || m.is_special_needs ? "نعم" : "لا"}</td>
                 <td className="max-w-[200px] truncate px-2 py-2">{m.chronic_diseases || "لا يوجد"}</td>
                 <td className="px-2 py-2">
+                  {locked ? <span className="text-muted-foreground">مقفل</span> : (
                   <div className="flex items-center justify-center gap-1">
                     <Button size="icon" variant="ghost" className="h-7 w-7 text-accent"
                       onClick={() => setEditId(editId === m.id ? null : m.id)}>
@@ -578,6 +587,7 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
+                  )}
                 </td>
               </tr>
             ))}
@@ -597,7 +607,7 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
   );
 };
 
-const MemberEditor = ({ member, onSave, onCancel }: any) => {
+const MemberEditor = ({ member, onSave, onCancel, ownerId }: any) => {
   const np = nameParts(member?.full_name);
   const mk = `baraka2:edit:member:${member?.id || "new"}`;
   const [f, setF, clearF] = usePersistedForm(`${mk}:name`, { ...np } as any);
@@ -612,6 +622,7 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
     is_special_needs: !!member?.is_special_needs,
     chronic_diseases: member?.chronic_diseases || "",
   } as any);
+  const [inj, setInj, clearInj] = usePersistedForm<InjuryData>(`${mk}:injury`, injuryFrom(member));
   const [busy, setBusy] = useState(false);
 
 
@@ -652,6 +663,10 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
         </div>
       )}
 
+      {m.is_war_injured && (
+        <WarInjuryFields value={inj} onChange={setInj} ownerId={ownerId || member?.id || "member"} />
+      )}
+
       <div className="mt-3">
         <Field label="وصف الحالة الصحية">
           <Textarea rows={2} value={m.chronic_diseases}
@@ -659,21 +674,23 @@ const MemberEditor = ({ member, onSave, onCancel }: any) => {
         </Field>
       </div>
 
-      <EditorActions onCancel={() => { clearF(); clearM(); onCancel(); }} busy={busy} onSave={async () => {
+      <EditorActions onCancel={() => { clearF(); clearM(); clearInj(); onCancel(); }} busy={busy} onSave={async () => {
         const full = joinName(f);
         if (!full) { toast.error("اسم الفرد مطلوب"); return; }
         if (!m.national_id) { toast.error("رقم الهوية مطلوب لكل فرد — حتى الأطفال"); return; }
         if (!ID_RE.test(m.national_id)) { toast.error("رقم الهوية يجب أن يكون 9 أرقام"); return; }
         if (!m.birth_date) { toast.error("تاريخ الميلاد مطلوب"); return; }
+        if (m.is_war_injured) { const err = validateInjury(inj); if (err) { toast.error(err); return; } }
         setBusy(true);
         const ok = await onSave({
           ...m,
+          ...(m.is_war_injured ? inj : clearedInjury),
           full_name: full,
           national_id: m.national_id,
           is_pregnant: m.gender === "female" ? m.is_pregnant : false,
           is_breastfeeding: m.gender === "female" ? m.is_breastfeeding : false,
         });
-        if (ok !== false) { clearF(); clearM(); }
+        if (ok !== false) { clearF(); clearM(); clearInj(); }
         setBusy(false);
       }} />
 
