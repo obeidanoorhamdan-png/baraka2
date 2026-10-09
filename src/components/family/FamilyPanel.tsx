@@ -39,6 +39,8 @@ import {
 } from "lucide-react";
 import { PasswordCard } from "@/components/family/PasswordCard";
 import { DocsStudySection } from "@/components/family/DocsStudySection";
+import { EditLockCtx, useEditLocked, useEditGrant, EditCountdownBanner, AdminEditGrantControl } from "@/components/family/editLock";
+import { WarInjuryFields, injuryFrom, validateInjury, clearedInjury, type InjuryData } from "@/components/family/WarInjuryFields";
 
 /* ---------------- option lists ---------------- */
 const GENDERS = [{ v: "male", l: "ذكر" }, { v: "female", l: "أنثى" }];
@@ -95,15 +97,26 @@ export const FamilyPanel = ({
   showHero = true, showSettings = true, onReload,
 }: FamilyPanelProps) => {
   const visibleMembers = useMemo(() => (members || []).filter((m) => !m.is_head), [members]);
+  const grant = useEditGrant(adminMode ? null : profile?.id);
+  const locked = !adminMode && !grant.active;
 
   /* ---------------- persistence ---------------- */
   const saveProfile = async (patch: Record<string, any>) => {
     if (adminMode) {
+      const INJ = ["injury_report_url", "injury_location", "injury_severity", "needs_treatment", "treatment_supplies"];
+      const injPatch: Record<string, any> = {};
+      const rest: Record<string, any> = {};
+      Object.entries(patch).forEach(([k, v]) => { (INJ.includes(k) ? injPatch : rest)[k] = v ?? ""; });
       const { error } = await supabase.rpc("admin_update_head_json", {
-        _user_id: profile.id, _patch: patch as any,
+        _user_id: profile.id, _patch: rest as any,
       } as any);
       if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
+      if (Object.keys(injPatch).length) {
+        const { error: e2 } = await supabase.rpc("admin_update_head_injury", { _user_id: profile.id, _patch: injPatch as any });
+        if (e2) { toast.error(e2.message || "تعذّر الحفظ"); return false; }
+      }
     } else {
+      if (locked) { toast.error("التعديل مقفل — انتهت المدة المسموحة"); return false; }
       const { error } = await supabase.from("profiles").update(patch as any).eq("id", profile.id);
       if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
     }
@@ -160,7 +173,11 @@ export const FamilyPanel = ({
   const hasHealth = !!(profile?.chronic_diseases || profile?.health_notes || profile?.is_war_injured);
 
   return (
+    <EditLockCtx.Provider value={locked}>
     <div className="space-y-4 sm:space-y-5">
+      {adminMode
+        ? profile?.id && <AdminEditGrantControl userId={profile.id} />
+        : <EditCountdownBanner active={grant.active} remaining={grant.remaining} />}
       {showHero && (
         <Card className="overflow-hidden border-accent/30 shadow-elegant">
           <div
@@ -226,6 +243,13 @@ export const FamilyPanel = ({
           <Pill icon={HeartPulse} label="هل يعاني من حالة صحية؟" value={hasHealth ? "نعم" : "لا"} />
           <Pill icon={HeartPulse} label="مصاب حرب" value={profile?.is_war_injured ? "نعم" : "لا"} />
           <Pill icon={HeartPulse} label="احتياجات خاصة" value={profile?.is_special_needs ? "نعم" : "لا"} />
+          {profile?.is_war_injured && (<>
+            <Pill icon={HeartPulse} label="مكان الإصابة" value={profile?.injury_location} />
+            <Pill icon={HeartPulse} label="صعوبة الإصابة" value={profile?.injury_severity} />
+            <Pill icon={HeartPulse} label="يحتاج علاج" value={profile?.needs_treatment ? "نعم" : "لا"} />
+            {profile?.needs_treatment && <Pill icon={ClipboardList} label="المستلزمات العلاجية" value={profile?.treatment_supplies} />}
+            <Pill icon={ClipboardList} label="تقرير الإصابة" value={profile?.injury_report_url ? "مرفوع" : "غير مرفوع"} />
+          </>)}
         </FieldGrid>
         <div className="mt-2">
           <Pill icon={ClipboardList} label="وصف الحالة الصحية"
@@ -284,6 +308,7 @@ export const FamilyPanel = ({
       {/* ============ القائمة ============ */}
       <MenuCard hasApp={!!app} showSettings={showSettings && !adminMode} />
     </div>
+    </EditLockCtx.Provider>
   );
 };
 
@@ -598,6 +623,7 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
       {editId && (
         <MemberEditor
           key={editId}
+          ownerId={head?.id}
           member={members.find((m: any) => m.id === editId)}
           onCancel={() => setEditId(null)}
           onSave={async (patch: any) => { const ok = await onSave(editId, patch); if (ok) setEditId(null); }}
