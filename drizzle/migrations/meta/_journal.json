@@ -43,6 +43,13 @@
       "when": 1791543924796,
       "tag": "0005_head_json_injury",
       "breakpoints": true
+    },
+    {
+      "idx": 6,
+      "version": "7",
+      "when": 1791620835545,
+      "tag": "0006_enforce_edit_lock",
+      "breakpoints": true
     }
   ]
 }
