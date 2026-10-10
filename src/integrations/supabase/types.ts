@@ -921,6 +921,7 @@ export type Database = {
       camp_id_allowed: { Args: { _nid: string }; Returns: boolean }
       camp_id_removed: { Args: { _nid: string }; Returns: boolean }
       can_review: { Args: { _user_id: string }; Returns: boolean }
+      edit_grant_active: { Args: { _user_id: string }; Returns: boolean }
       find_duplicate_persons: {
         Args: never
         Returns: {

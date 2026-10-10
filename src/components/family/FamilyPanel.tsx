@@ -322,6 +322,7 @@ const SectionShell = ({
   initiallyOpen?: boolean;
 }) => {
   const [open, setOpen] = useState(initiallyOpen);
+  const locked = useEditLocked();
   return (
     <Card id={id} className="p-4 sm:p-5 shadow-card border-accent/20 scroll-mt-24">
       <div className="flex items-center justify-between gap-2 border-b border-accent/25 pb-3">
