@@ -497,33 +497,6 @@ export type Database = {
         }
         Relationships: []
       }
-      edit_grants: {
-        Row: {
-          created_at: string
-          expires_at: string
-          granted_by: string | null
-          id: string
-          revoked: boolean
-          user_id: string
-        }
-        Insert: {
-          created_at?: string
-          expires_at: string
-          granted_by?: string | null
-          id?: string
-          revoked?: boolean
-          user_id: string
-        }
-        Update: {
-          created_at?: string
-          expires_at?: string
-          granted_by?: string | null
-          id?: string
-          revoked?: boolean
-          user_id?: string
-        }
-        Relationships: []
-      }
       family_members: {
         Row: {
           application_id: string
@@ -536,9 +509,7 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           health_notes: string | null
           id: string
-          injury_location: string | null
           injury_report_url: string | null
-          injury_severity: string | null
           is_breastfeeding: boolean
           is_head: boolean
           is_pregnant: boolean
@@ -546,12 +517,10 @@ export type Database = {
           is_university_student: boolean
           is_war_injured: boolean
           national_id: string | null
-          needs_treatment: boolean
           pregnancy_report_url: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other: string | null
           special_needs_report_url: string | null
-          treatment_supplies: string | null
           university_major: string | null
           university_name: string | null
           university_year: string | null
@@ -567,9 +536,7 @@ export type Database = {
           gender: Database["public"]["Enums"]["gender"]
           health_notes?: string | null
           id?: string
-          injury_location?: string | null
           injury_report_url?: string | null
-          injury_severity?: string | null
           is_breastfeeding?: boolean
           is_head?: boolean
           is_pregnant?: boolean
@@ -577,12 +544,10 @@ export type Database = {
           is_university_student?: boolean
           is_war_injured?: boolean
           national_id?: string | null
-          needs_treatment?: boolean
           pregnancy_report_url?: string | null
           relationship: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
           special_needs_report_url?: string | null
-          treatment_supplies?: string | null
           university_major?: string | null
           university_name?: string | null
           university_year?: string | null
@@ -598,9 +563,7 @@ export type Database = {
           gender?: Database["public"]["Enums"]["gender"]
           health_notes?: string | null
           id?: string
-          injury_location?: string | null
           injury_report_url?: string | null
-          injury_severity?: string | null
           is_breastfeeding?: boolean
           is_head?: boolean
           is_pregnant?: boolean
@@ -608,12 +571,10 @@ export type Database = {
           is_university_student?: boolean
           is_war_injured?: boolean
           national_id?: string | null
-          needs_treatment?: boolean
           pregnancy_report_url?: string | null
           relationship?: Database["public"]["Enums"]["relationship"]
           relationship_other?: string | null
           special_needs_report_url?: string | null
-          treatment_supplies?: string | null
           university_major?: string | null
           university_name?: string | null
           university_year?: string | null
@@ -719,19 +680,15 @@ export type Database = {
           health_notes: string | null
           id: string
           id_card_url: string | null
-          injury_location: string | null
           injury_report_url: string | null
-          injury_severity: string | null
           is_special_needs: boolean
           is_university_student: boolean
           is_war_injured: boolean
           marital_status: Database["public"]["Enums"]["marital_status"]
           marital_status_other: string | null
           national_id: string
-          needs_treatment: boolean
           phone: string
           special_needs_report_url: string | null
-          treatment_supplies: string | null
           two_fa_enabled: boolean
           university_major: string | null
           university_name: string | null
@@ -751,19 +708,15 @@ export type Database = {
           health_notes?: string | null
           id: string
           id_card_url?: string | null
-          injury_location?: string | null
           injury_report_url?: string | null
-          injury_severity?: string | null
           is_special_needs?: boolean
           is_university_student?: boolean
           is_war_injured?: boolean
           marital_status: Database["public"]["Enums"]["marital_status"]
           marital_status_other?: string | null
           national_id: string
-          needs_treatment?: boolean
           phone: string
           special_needs_report_url?: string | null
-          treatment_supplies?: string | null
           two_fa_enabled?: boolean
           university_major?: string | null
           university_name?: string | null
@@ -783,19 +736,15 @@ export type Database = {
           health_notes?: string | null
           id?: string
           id_card_url?: string | null
-          injury_location?: string | null
           injury_report_url?: string | null
-          injury_severity?: string | null
           is_special_needs?: boolean
           is_university_student?: boolean
           is_war_injured?: boolean
           marital_status?: Database["public"]["Enums"]["marital_status"]
           marital_status_other?: string | null
           national_id?: string
-          needs_treatment?: boolean
           phone?: string
           special_needs_report_url?: string | null
-          treatment_supplies?: string | null
           two_fa_enabled?: boolean
           university_major?: string | null
           university_name?: string | null
@@ -870,16 +819,11 @@ export type Database = {
           status: string
         }[]
       }
-      admin_grant_edit: {
-        Args: { _minutes: number; _user_id: string }
-        Returns: string
-      }
       admin_promote_to_review: { Args: { _user_id: string }; Returns: boolean }
       admin_remove_family_member: {
         Args: { _member_id: string }
         Returns: boolean
       }
-      admin_revoke_edit: { Args: { _user_id: string }; Returns: boolean }
       admin_set_family_no: {
         Args: { _app_id: string; _family_no: number }
         Returns: boolean
@@ -902,10 +846,6 @@ export type Database = {
         Args: { _patch: Json; _user_id: string }
         Returns: boolean
       }
-      admin_update_head_injury: {
-        Args: { _patch: Json; _user_id: string }
-        Returns: boolean
-      }
       admin_update_head_json: {
         Args: { _patch: Json; _user_id: string }
         Returns: boolean
@@ -921,7 +861,6 @@ export type Database = {
       camp_id_allowed: { Args: { _nid: string }; Returns: boolean }
       camp_id_removed: { Args: { _nid: string }; Returns: boolean }
       can_review: { Args: { _user_id: string }; Returns: boolean }
-      edit_grant_active: { Args: { _user_id: string }; Returns: boolean }
       find_duplicate_persons: {
         Args: never
         Returns: {

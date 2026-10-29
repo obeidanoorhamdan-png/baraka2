@@ -39,7 +39,7 @@ export const DocsStudySection = ({ profile, members, adminMode, onReload }: any)
   }
   (members || []).forEach((m: any) => {
     const age = calculateAge(m.birth_date);
-    if (age < 5 || (age >= 16 && age <= 30)) {
+    if (age < 5 || age >= 18) {
       rows.push({
         kind: "member", id: m.id, name: m.full_name || "—", age,
         docField: age < 5 ? "birth_certificate_url" : null,
@@ -70,7 +70,7 @@ export const DocsStudySection = ({ profile, members, adminMode, onReload }: any)
 
 const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; onReload: () => any }) => {
   const d = row.data;
-  const isAdult = row.age >= 16 && row.age <= 30;
+  const isAdult = row.age >= 18;
   const [edit, setEdit] = useState(false);
   const [busy, setBusy] = useState(false);
   const [s, setS] = useState({
