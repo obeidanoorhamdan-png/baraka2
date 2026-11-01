@@ -1,7 +1,7 @@
 import { useTranslation } from "react-i18next";
 import { ArrowLeft, ArrowRight, MapPin, Phone, Compass, ShieldCheck } from "lucide-react";
 import { Layout } from "@/components/Layout";
-import { FamilyLookup } from "@/components/FamilyLookup";
+import { FamilySignIn } from "@/components/family/FamilySignIn";
 import { Card } from "@/components/ui/card";
 import { NewsStrip } from "@/components/NewsStrip";
 import { AnnouncementPopup } from "@/components/AnnouncementPopup";
@@ -39,7 +39,7 @@ const Landing = () => {
             <p className="text-lg opacity-90 max-w-xl">{t("landing.tagline")}</p>
             <p className="text-sm opacity-75 max-w-xl">{t("landing.intro")}</p>
             <div className="pt-3 text-foreground">
-              <FamilyLookup />
+              <FamilySignIn />
             </div>
           </div>
           <div className="flex justify-center md:justify-end">

@@ -53,22 +53,15 @@ export const DocsStudySection = ({ profile, members, adminMode, onReload }: any)
       <h2 className="inline-flex items-center gap-2 border-b border-accent/25 pb-3 w-full text-base font-extrabold text-accent">
         <GraduationCap className="h-5 w-5" /> المستندات والدراسة الجامعية
       </h2>
-      {!adminMode && (
-        <a href={waLink(EDIT_WHATSAPP, "مرحباً، أرغب بطلب تعديل بيانات أسرتي")} target="_blank" rel="noreferrer"
-          className="mt-3 flex items-center gap-2 rounded-lg border border-accent/30 bg-accent-soft/30 p-2.5 text-xs font-semibold text-primary">
-          <MessageCircle className="h-4 w-4 text-accent shrink-0" />
-          التعديل على هذا القسم من الإدارة فقط — للطلب تواصل واتساب مع {EDIT_CONTACT_NAME} <span dir="ltr">{EDIT_WHATSAPP_DISPLAY}</span>
-        </a>
-      )}
       <div className="mt-3 space-y-2">
         {rows.length === 0 && <p className="text-sm text-muted-foreground">لا يوجد</p>}
-        {rows.map((r) => <RowItem key={r.kind + r.id} row={r} adminMode={adminMode} onReload={onReload} />)}
+        {rows.map((r) => <RowItem key={r.kind + r.id} row={r} ownerId={profile.id} adminMode={adminMode} onReload={onReload} />)}
       </div>
     </Card>
   );
 };
 
-const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; onReload: () => any }) => {
+const RowItem = ({ row, ownerId, adminMode, onReload }: { row: Row; ownerId: string; adminMode: boolean; onReload: () => any }) => {
   const d = row.data;
   const isAdult = row.age >= 16 && row.age <= 30;
   const [edit, setEdit] = useState(false);
@@ -83,7 +76,9 @@ const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; o
   const save = async (patch: Record<string, any>) => {
     setBusy(true);
     const { error } = row.kind === "head"
-      ? await supabase.rpc("admin_update_head_extra" as any, { _user_id: row.id, _patch: patch } as any)
+      ? adminMode
+        ? await supabase.rpc("admin_update_head_extra" as any, { _user_id: row.id, _patch: patch } as any)
+        : await supabase.from("profiles").update(patch as any).eq("id", row.id)
       : await supabase.from("family_members").update(patch as any).eq("id", row.id);
     setBusy(false);
     if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
@@ -98,8 +93,7 @@ const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; o
     try {
       const p = await prepareUpload(file);
       const ext = p.file.type === "application/pdf" ? "pdf" : "jpg";
-      const owner = row.kind === "head" ? row.id : (d.user_id || row.id);
-      const path = `${owner}/${Date.now()}-${row.docField}.${ext}`;
+      const path = `${ownerId}/${Date.now()}-${row.docField}.${ext}`;
       const { error } = await supabase.storage.from("medical-reports").upload(path, p.file, { upsert: true, contentType: p.file.type });
       if (error) throw error;
       setBusy(false);
@@ -120,7 +114,7 @@ const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; o
           <span className="truncate">{row.name}</span>
           <span className="text-xs text-muted-foreground">({row.age} سنة)</span>
         </div>
-        {adminMode && isAdult && (
+        {isAdult && (
           <Button size="sm" variant={edit ? "outline" : "default"} className="h-8 gap-1 text-xs" onClick={() => setEdit(!edit)}>
             {edit ? <><X className="h-3.5 w-3.5" /> إغلاق</> : <><Pencil className="h-3.5 w-3.5" /> تعديل الدراسة</>}
           </Button>
@@ -136,7 +130,7 @@ const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; o
               <Eye className="h-3.5 w-3.5" /> عرض
             </Button>
           ) : <span className="text-muted-foreground">لم يُرفع</span>}
-          {adminMode && (
+          {(
             <label className="inline-flex h-7 cursor-pointer items-center gap-1 rounded-md bg-accent px-2 font-semibold text-accent-foreground">
               {busy ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Upload className="h-3.5 w-3.5" />}
               {docPath ? "استبدال" : "رفع"}
@@ -156,7 +150,7 @@ const RowItem = ({ row, adminMode, onReload }: { row: Row; adminMode: boolean; o
         </div>
       )}
 
-      {isAdult && edit && adminMode && (
+      {isAdult && edit && (
         <div className="mt-3 space-y-3 rounded-lg border border-accent/25 bg-accent-soft/20 p-3">
           <label className="flex items-center gap-2 text-sm font-semibold">
             <input type="checkbox" className="h-4 w-4" checked={s.is_university_student}
