@@ -39,7 +39,8 @@ import {
 } from "lucide-react";
 import { PasswordCard } from "@/components/family/PasswordCard";
 import { DocsStudySection } from "@/components/family/DocsStudySection";
-import { EditLockCtx, useEditLocked, useEditGrant, EditCountdownBanner, AdminEditGrantControl } from "@/components/family/editLock";
+import { EditLockCtx, useEditLocked } from "@/components/family/editLock";
+import { familyEditingAllowed } from "@/lib/familyAccess";
 import { WarInjuryFields, injuryFrom, validateInjury, clearedInjury, type InjuryData } from "@/components/family/WarInjuryFields";
 
 /* ---------------- option lists ---------------- */
@@ -97,8 +98,8 @@ export const FamilyPanel = ({
   showHero = true, showSettings = true, onReload,
 }: FamilyPanelProps) => {
   const visibleMembers = useMemo(() => (members || []).filter((m) => !m.is_head), [members]);
-  const grant = useEditGrant(adminMode ? null : profile?.id);
-  const locked = !adminMode && !grant.active;
+  const locked = !familyEditingAllowed(!!profile?.id);
+  const [newMember, setNewMember] = useState(false);
 
   /* ---------------- persistence ---------------- */
   const saveProfile = async (patch: Record<string, any>) => {
@@ -116,7 +117,7 @@ export const FamilyPanel = ({
         if (e2) { toast.error(e2.message || "تعذّر الحفظ"); return false; }
       }
     } else {
-      if (locked) { toast.error("التعديل مقفل — انتهت المدة المسموحة"); return false; }
+      if (locked) { toast.error("سجّل الدخول أولاً"); return false; }
       const { error } = await supabase.from("profiles").update(patch as any).eq("id", profile.id);
       if (error) { toast.error(error.message || "تعذّر الحفظ"); return false; }
     }
@@ -142,20 +143,19 @@ export const FamilyPanel = ({
     return true;
   };
 
-  const addMember = async () => {
-    if (!app) return;
+  const addMember = async (patch: Record<string, any>) => {
+    if (!app) return false;
     const { error } = await supabase.from("family_members").insert({
+      ...patch,
       application_id: app.id,
-      full_name: "",
-      birth_date: new Date().toISOString().slice(0, 10),
-      gender: "male",
-      relationship: "son",
     } as any);
-    if (error) { toast.error(error.message || "تعذّر إضافة فرد"); return; }
+    if (error) { toast.error(error.message || "تعذّر إضافة فرد"); return false; }
     const newSize = visibleMembers.length + 2; // members + new + head
     await supabase.from("applications").update({ family_size: newSize } as any).eq("id", app.id);
-    toast.success("تمت إضافة فرد جديد — أكمل بياناته");
+    setNewMember(false);
+    toast.success("تم حفظ الفرد الجديد");
     await onReload();
+    return true;
   };
 
   const removeMember = async (id: string) => {
@@ -175,24 +175,20 @@ export const FamilyPanel = ({
   return (
     <EditLockCtx.Provider value={locked}>
     <div className="space-y-4 sm:space-y-5">
-      {adminMode
-        ? profile?.id && <AdminEditGrantControl userId={profile.id} />
-        : <EditCountdownBanner active={grant.active} remaining={grant.remaining} />}
       {showHero && (
-        <Card className="overflow-hidden border-accent/30 shadow-elegant">
-          <div
-            className="p-5 sm:p-7 text-center"
-            style={{
-              background:
-                "repeating-linear-gradient(135deg, hsl(var(--accent)) 0 14px, hsl(var(--accent) / 0.82) 14px 28px)",
-            }}
-          >
-            <h1 className="text-lg sm:text-2xl font-extrabold text-accent-foreground drop-shadow-sm">
-              مرحباً، {profile?.full_name || "—"}
-            </h1>
+        <section className="border-b border-border pb-5 pt-3">
+          <p className="mb-2 text-sm font-semibold text-accent">بركة 2 · لوحة الأسرة</p>
+          <h1 className="break-words text-xl font-extrabold text-foreground sm:text-2xl">مرحباً، {profile?.full_name || "—"}</h1>
+          <div className="mt-4 flex flex-wrap gap-x-6 gap-y-2 text-sm">
+            <span className="inline-flex items-center gap-2"><Users className="h-4 w-4 text-accent" /> {visibleMembers.length + 1} أفراد</span>
+            <span className="inline-flex items-center gap-2"><Tent className="h-4 w-4 text-accent" /> رقم الأسرة: {app?.family_no ?? "غير محدد"}</span>
+            <span className="text-success">{app?.status === "approved" ? "مقبولة" : app?.status === "rejected" ? "مرفوضة" : "قيد المراجعة"}</span>
           </div>
-        </Card>
+        </section>
       )}
+      <nav aria-label="أقسام الأسرة" className="sticky top-16 z-20 flex gap-1 overflow-x-auto border-b border-border bg-background py-2">
+        {[["sec-personal", "الشخصية"], ["sec-social", "الاجتماعية"], ["sec-health", "الصحية"], ...(app ? [["sec-home", "السكن"], ["sec-members", "الأفراد"]] : []), ["sec-docs", "المستندات"], ["sec-complaints", "الشكاوى"]].map(([id, label]) => <Button key={id} variant="ghost" size="sm" className="shrink-0" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })}>{label}</Button>)}
+      </nav>
 
       {/* ============ البيانات الشخصية ============ */}
       <SectionShell id="sec-personal" icon={User} title="البيانات الشخصية"
@@ -282,9 +278,12 @@ export const FamilyPanel = ({
         <MembersSection
           members={visibleMembers}
           head={profile}
-          onAdd={addMember}
+          onAdd={() => setNewMember(true)}
           onRemove={removeMember}
           onSave={saveMember}
+          newMember={newMember}
+          onCreate={addMember}
+          onCancelNew={() => setNewMember(false)}
         />
       )}
 
@@ -324,7 +323,7 @@ const SectionShell = ({
   const [open, setOpen] = useState(initiallyOpen);
   const locked = useEditLocked();
   return (
-    <Card id={id} className="p-4 sm:p-5 shadow-card border-accent/20 scroll-mt-24">
+    <section id={id} className="border-b border-border px-1 py-4 sm:py-5 scroll-mt-32">
       <div className="flex items-center justify-between gap-2 border-b border-accent/25 pb-3">
         <h2 className="inline-flex min-w-0 items-center gap-2 text-base font-extrabold text-accent">
           <Icon className="h-5 w-5 shrink-0" />
@@ -345,7 +344,7 @@ const SectionShell = ({
       <div className="pt-3">
         {open && editor ? editor({ close: () => setOpen(false) }) : children}
       </div>
-    </Card>
+    </section>
   );
 };
 
@@ -545,17 +544,17 @@ const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
 
 /* ================= members ================= */
 
-const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
+const MembersSection = ({ members, head, onAdd, onRemove, onSave, newMember, onCreate, onCancelNew }: any) => {
   const locked = useEditLocked();
   const [editId, setEditId] = useState<string | null>(() => {
     const found = members.find((m: any) => hasPersistedForm(`baraka2:edit:member:${m.id}:name`) || hasPersistedForm(`baraka2:edit:member:${m.id}:data`));
     return found?.id || null;
   });
   return (
-    <Card id="sec-members" className="p-4 sm:p-5 shadow-card border-accent/20 scroll-mt-24">
-      <div className="flex items-center justify-between gap-2 border-b border-accent/25 pb-3">
+    <section id="sec-members" className="border-b border-border px-1 py-4 sm:py-5 scroll-mt-32">
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-accent/25 pb-3">
         <h2 className="inline-flex items-center gap-2 text-base font-extrabold text-accent">
-          <Users className="h-5 w-5" /> بيانات أفراد الأسرة ({members.length})
+          <Users className="h-5 w-5" /> أفراد الأسرة ({members.length + 1})
         </h2>
         {!locked && (
           <Button size="sm" className="h-8 gap-1 text-xs" onClick={onAdd}>
@@ -577,7 +576,20 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
         </p>
       </div>
 
-      <div className="mt-3 overflow-x-auto">
+      <div className="mt-3 grid gap-3 sm:grid-cols-2 lg:hidden">
+        {members.map((m: any) => <Card key={m.id} className="rounded-lg p-3">
+          <div className="flex items-start justify-between gap-2">
+            <h3 className="min-w-0 break-words font-bold">{m.full_name || "لا يوجد"}</h3>
+            <div className="flex shrink-0 gap-1">
+              <Button size="icon" variant="ghost" aria-label={`تعديل ${m.full_name}`} className="h-8 w-8 text-accent" onClick={() => setEditId(editId === m.id ? null : m.id)}><Pencil className="h-4 w-4" /></Button>
+              <Button size="icon" variant="ghost" aria-label={`حذف ${m.full_name}`} className="h-8 w-8 text-destructive" onClick={() => { if (window.confirm("هل تريد حذف هذا الفرد؟")) onRemove(m.id); }}><Trash2 className="h-4 w-4" /></Button>
+            </div>
+          </div>
+          <p className="mt-1 text-sm text-muted-foreground">{RELATIONS.find((r) => r.v === m.relationship)?.l} · {GENDERS.find((g) => g.v === m.gender)?.l}</p>
+          <dl className="mt-3 grid grid-cols-2 gap-2 text-xs"><div><dt className="text-muted-foreground">رقم الهوية</dt><dd dir="ltr">{m.national_id || "لا يوجد"}</dd></div><div><dt className="text-muted-foreground">تاريخ الميلاد</dt><dd dir="ltr">{formatBirthDate(m.birth_date)}</dd></div><div className="col-span-2"><dt className="text-muted-foreground">الحالة الصحية</dt><dd className="break-words">{m.chronic_diseases || (m.is_war_injured ? "مصاب حرب" : "لا يوجد")}{m.is_pregnant ? " · حامل" : ""}{m.is_breastfeeding ? " · مرضعة" : ""}</dd></div></dl>
+        </Card>)}
+      </div>
+      <div className="mt-3 hidden overflow-x-auto lg:block">
         <table className="w-full min-w-[860px] text-center text-xs">
           <thead>
             <tr className="bg-accent text-accent-foreground">
@@ -604,12 +616,12 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
                 <td className="px-2 py-2">
                   {locked ? <span className="text-muted-foreground">مقفل</span> : (
                   <div className="flex items-center justify-center gap-1">
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-accent"
+                    <Button size="icon" variant="ghost" aria-label={`تعديل ${m.full_name}`} className="h-7 w-7 text-accent"
                       onClick={() => setEditId(editId === m.id ? null : m.id)}>
                       <Pencil className="h-3.5 w-3.5" />
                     </Button>
-                    <Button size="icon" variant="ghost" className="h-7 w-7 text-destructive"
-                      onClick={() => onRemove(m.id)}>
+                    <Button size="icon" variant="ghost" aria-label={`حذف ${m.full_name}`} className="h-7 w-7 text-destructive"
+                      onClick={() => { if (window.confirm("هل تريد حذف هذا الفرد؟")) onRemove(m.id); }}>
                       <Trash2 className="h-3.5 w-3.5" />
                     </Button>
                   </div>
@@ -621,7 +633,8 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
         </table>
       </div>
 
-      {editId && (
+      {newMember && <MemberEditor key={`new-${head?.id}`} ownerId={head?.id} onCancel={onCancelNew} onSave={onCreate} />}
+      {editId && !newMember && (
         <MemberEditor
           key={editId}
           ownerId={head?.id}
@@ -630,13 +643,13 @@ const MembersSection = ({ members, head, onAdd, onRemove, onSave }: any) => {
           onSave={async (patch: any) => { const ok = await onSave(editId, patch); if (ok) setEditId(null); }}
         />
       )}
-    </Card>
+    </section>
   );
 };
 
 const MemberEditor = ({ member, onSave, onCancel, ownerId }: any) => {
   const np = nameParts(member?.full_name);
-  const mk = `baraka2:edit:member:${member?.id || "new"}`;
+  const mk = `baraka2:edit:member:${member?.id || `new:${ownerId}`}`;
   const [f, setF, clearF] = usePersistedForm(`${mk}:name`, { ...np } as any);
   const [m, setM, clearM] = usePersistedForm(`${mk}:data`, {
     national_id: member?.national_id || "",
@@ -655,7 +668,7 @@ const MemberEditor = ({ member, onSave, onCancel, ownerId }: any) => {
 
   return (
     <div className="mt-4 rounded-xl border border-accent/30 bg-accent-soft/20 p-3 sm:p-4">
-      <h3 className="mb-3 text-sm font-extrabold text-accent">تعديل بيانات الفرد</h3>
+      <h3 className="mb-3 text-sm font-extrabold text-accent">{member ? "تعديل بيانات الفرد" : "إضافة فرد جديد"}</h3>
       <div className="grid gap-3 grid-cols-1 sm:grid-cols-2 lg:grid-cols-3">
         <Field label="الاسم الأول"><Input value={f.first} onChange={(e) => setF({ ...f, first: e.target.value })} /></Field>
         <Field label="اسم الأب"><Input value={f.father} onChange={(e) => setF({ ...f, father: e.target.value })} /></Field>
