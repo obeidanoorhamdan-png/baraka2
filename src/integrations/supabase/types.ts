@@ -805,6 +805,69 @@ export type Database = {
         }
         Relationships: []
       }
+      public_requests: {
+        Row: {
+          admin_reply: string | null
+          body: string
+          category: string | null
+          created_at: string
+          family_user_id: string | null
+          handled_at: string | null
+          handled_by: string | null
+          handled_by_name: string | null
+          head_name: string | null
+          id: string
+          kind: string
+          national_id: string
+          phone: string | null
+          priority: string
+          status: string
+          subject: string
+          ticket_no: string
+          updated_at: string
+        }
+        Insert: {
+          admin_reply?: string | null
+          body: string
+          category?: string | null
+          created_at?: string
+          family_user_id?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          handled_by_name?: string | null
+          head_name?: string | null
+          id?: string
+          kind?: string
+          national_id: string
+          phone?: string | null
+          priority?: string
+          status?: string
+          subject: string
+          ticket_no?: string
+          updated_at?: string
+        }
+        Update: {
+          admin_reply?: string | null
+          body?: string
+          category?: string | null
+          created_at?: string
+          family_user_id?: string | null
+          handled_at?: string | null
+          handled_by?: string | null
+          handled_by_name?: string | null
+          head_name?: string | null
+          id?: string
+          kind?: string
+          national_id?: string
+          phone?: string | null
+          priority?: string
+          status?: string
+          subject?: string
+          ticket_no?: string
+          updated_at?: string
+        }
+        Relationships: []
+      }
       saved_filters: {
         Row: {
           created_at: string
@@ -1019,6 +1082,30 @@ export type Database = {
         Returns: boolean
       }
       revoke_admin: { Args: { _uid: string }; Returns: boolean }
+      submit_public_request: {
+        Args: {
+          _body: string
+          _category: string
+          _kind: string
+          _nid: string
+          _phone: string
+          _priority: string
+          _subject: string
+        }
+        Returns: Json
+      }
+      track_public_requests: {
+        Args: { _nid: string }
+        Returns: {
+          admin_reply: string
+          created_at: string
+          handled_at: string
+          kind: string
+          status: string
+          subject: string
+          ticket_no: string
+        }[]
+      }
       verify_security_answers: {
         Args: {
           _k1: string
