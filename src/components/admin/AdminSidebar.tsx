@@ -1,6 +1,7 @@
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard,
+  Inbox,
   ClipboardList,
   Wrench,
   Users2,
@@ -32,6 +33,7 @@ const items = [
   { title: "لوحة التحكم", url: "/admin", icon: LayoutDashboard, end: true },
   { title: "الطلبات", url: "/admin/applications", icon: ClipboardList },
   { title: "غير المكتملة", url: "/admin/incomplete", icon: AlertTriangle },
+  { title: "الشكاوى والمساعدة", url: "/admin/requests", icon: Inbox },
   { title: "حل مشاكل الأسر", url: "/admin/issues", icon: Wrench },
   { title: "الموافقات", url: "/admin/approvals", icon: CheckSquare },
   { title: "قائمة الاعتماد", url: "/admin/camp-roster", icon: Lock },

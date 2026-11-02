@@ -25,6 +25,7 @@ import PowerTools from "./pages/admin/PowerTools";
 import ExcelExport from "./pages/admin/ExcelExport";
 import AdminApprovals from "./pages/admin/AdminApprovals";
 import FamilyIssues from "./pages/admin/FamilyIssues";
+import PublicRequests from "./pages/admin/PublicRequests";
 import CampRoster from "./pages/admin/CampRoster";
 import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
@@ -62,6 +63,7 @@ const App = () => {
                 <Route path="/admin/applications" element={<Admin />} />
                 <Route path="/admin/incomplete" element={<Incomplete />} />
                 <Route path="/admin/issues" element={<FamilyIssues />} />
+                <Route path="/admin/requests" element={<PublicRequests />} />
                 <Route path="/admin/announcements" element={<AnnouncementsAdmin />} />
                 <Route path="/admin/managers" element={<Managers />} />
                 <Route path="/admin/audit" element={<AuditLog />} />

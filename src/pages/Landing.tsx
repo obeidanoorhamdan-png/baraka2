@@ -4,6 +4,7 @@ import { Layout } from "@/components/Layout";
 import { FamilySignIn } from "@/components/family/FamilySignIn";
 import { Card } from "@/components/ui/card";
 import { NewsStrip } from "@/components/NewsStrip";
+import { PublicRequestBox } from "@/components/PublicRequestBox";
 import { AnnouncementPopup } from "@/components/AnnouncementPopup";
 import logo from "@/assets/baraka-logo.jpg";
 import bannerAsset from "@/assets/baraka-banner.jpg.asset.json";
@@ -50,6 +51,8 @@ const Landing = () => {
           </div>
         </div>
       </section>
+
+      <PublicRequestBox />
 
       <NewsStrip />
 
