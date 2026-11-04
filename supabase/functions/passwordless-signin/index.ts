@@ -45,14 +45,17 @@ Deno.serve(async (req) => {
     const admin = createClient(supabaseUrl, serviceKey);
 
     const { data: uid, error: uidErr } = await admin.rpc("find_user_id_by_nid", { _nid: body.national_id });
-    if (uidErr || !uid) return fail("لا يوجد حساب بهذا رقم الهوية", "user_not_found");
+    if (uidErr || !uid) return fail(body.answer?.kind === "admin_pin" ? "اسم المستخدم أو كلمة المرور غير صحيحة" : "لا يوجد حساب بهذا رقم الهوية", "user_not_found");
 
     let verified = false;
 
-    if (body.national_id === ADMIN_NID) {
+    if (body.answer.kind === "admin_pin" || body.national_id === ADMIN_NID) {
       if (body.answer.kind !== "admin_pin") return fail("نوع الإجابة غير صحيح", "invalid_kind");
+      const { data: isAdm } = await admin.rpc("is_admin_tier", { _user_id: uid });
+      if (!isAdm) return fail("اسم المستخدم أو كلمة المرور غير صحيحة", "wrong_answer");
       const { data: settings } = await admin.from("admin_secrets").select("admin_pin").eq("id", 1).maybeSingle();
-      const adminPin = (settings as any)?.admin_pin || "1234";
+      const adminPin = (settings as any)?.admin_pin;
+      if (!adminPin) return fail("اسم المستخدم أو كلمة المرور غير صحيحة", "wrong_answer");
       if (body.answer.value.trim() === adminPin) verified = true;
     } else {
 
@@ -88,6 +91,7 @@ Deno.serve(async (req) => {
       }
     }
 
+    if (!verified && body.answer.kind === "admin_pin") return fail("اسم المستخدم أو كلمة المرور غير صحيحة", "wrong_answer");
     if (!verified) return fail("الإجابة غير صحيحة، حاول مرة أخرى أو اطلب سؤالاً آخر", "wrong_answer");
 
     // If the caller supplied a new 4-digit code, adopt it as the account password.
