@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { MessageSquareWarning, LifeBuoy, Send, Search, CheckCircle2, Clock, XCircle, Loader2, Ticket } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -37,6 +37,20 @@ export const PublicRequestBox = () => {
   const [tracked, setTracked] = useState<any[] | null>(null);
 
   const validNid = /^\d{9}$/.test(nid);
+  const [flash, setFlash] = useState(false);
+
+  useEffect(() => {
+    const h = (e: Event) => {
+      const t = (e as CustomEvent).detail as "new" | "track";
+      if (t) { setTab(t); setDone(null); }
+      setFlash(true); setTimeout(() => setFlash(false), 1400);
+    };
+    window.addEventListener("baraka:requests", h);
+    return () => window.removeEventListener("baraka:requests", h);
+  }, []);
+
+  const seenKey = "baraka2:seen-replies";
+  const seen: string[] = (() => { try { return JSON.parse(localStorage.getItem(seenKey) || "[]"); } catch { return []; } })();
 
   const submit = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -60,12 +74,23 @@ export const PublicRequestBox = () => {
     const { data, error } = await (supabase.rpc as any)("track_public_requests", { _nid: nid });
     setBusy(false);
     if (error) return toast.error(error.message);
-    setTracked(data || []);
+    const rows = (data || []) as any[];
+    setTracked(rows);
+    const fresh = rows.filter((r) => r.admin_reply && !seen.includes(r.ticket_no));
+    if (fresh.length) toast.success(`لديك ${fresh.length} رد جديد من إدارة المخيم`);
+    localStorage.setItem(seenKey, JSON.stringify([...new Set([...seen, ...rows.filter((r) => r.admin_reply).map((r) => r.ticket_no)])]));
+    localStorage.setItem("baraka2:track-nid", nid);
   };
 
+  useEffect(() => {
+    const saved = localStorage.getItem("baraka2:track-nid");
+    if (saved && !nid) setNid(saved);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   return (
-    <section className="container py-10 md:py-14">
-      <Card className="overflow-hidden shadow-elegant border-primary/10">
+    <section id="requests" className="container py-10 md:py-14 scroll-mt-20">
+      <Card className={`overflow-hidden shadow-elegant border-primary/10 transition-all duration-500 ${flash ? "ring-4 ring-accent/60 scale-[1.01]" : ""}`}>
         <div className="bg-gradient-to-l from-primary to-primary/80 text-primary-foreground p-6 md:p-8">
           <div className="flex items-center gap-3">
             <div className="h-12 w-12 rounded-2xl bg-accent/20 grid place-items-center"><LifeBuoy className="h-6 w-6 text-accent" /></div>
@@ -161,7 +186,7 @@ export const PublicRequestBox = () => {
                   return (
                     <div key={r.ticket_no} className="rounded-xl border p-4 space-y-2">
                       <div className="flex flex-wrap items-center justify-between gap-2">
-                        <div className="font-bold">{r.subject}</div>
+                        <div className="font-bold flex items-center gap-2">{r.subject}{r.admin_reply && !seen.includes(r.ticket_no) && <span className="rounded-full bg-accent text-accent-foreground text-[10px] px-2 py-0.5 animate-pulse">رد جديد</span>}</div>
                         <Badge variant="outline" className={`gap-1 ${m.cls}`}><m.icon className="h-3 w-3" />{m.label}</Badge>
                       </div>
                       <div className="text-xs text-muted-foreground flex gap-3">
@@ -169,6 +194,7 @@ export const PublicRequestBox = () => {
                         <span>{r.kind === "help" ? "طلب مساعدة" : "شكوى"}</span>
                         <span>{formatDateShort(r.created_at)}</span>
                       </div>
+                      {!r.admin_reply && <div className="text-xs text-muted-foreground">بانتظار رد الإدارة…</div>}
                       {r.admin_reply && <div className="rounded-lg bg-muted p-3 text-sm"><span className="font-semibold text-primary">رد الإدارة: </span>{r.admin_reply}</div>}
                     </div>
                   );
