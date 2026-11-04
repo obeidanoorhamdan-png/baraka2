@@ -14,7 +14,7 @@ export const WhatsAppFab = () => {
   const [open, setOpen] = useState(false);
 
   return (
-    <div className="fixed bottom-5 end-5 z-50 print:hidden">
+    <div className="fixed bottom-28 end-4 z-50 print:hidden">
       {open && (
         <div
           className="absolute bottom-16 end-0 w-72 rounded-2xl border border-border bg-card shadow-elegant p-3 space-y-2 animate-fade-in"

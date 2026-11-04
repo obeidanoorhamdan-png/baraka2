@@ -47,7 +47,7 @@ export const OfflineStatusBar = () => {
         <div
           role="status"
           aria-live="polite"
-          className="fixed bottom-3 left-1/2 -translate-x-1/2 z-[60] max-w-[95vw] animate-fade-in"
+          className="fixed bottom-28 left-1/2 -translate-x-1/2 z-[60] max-w-[95vw] animate-fade-in"
         >
           <div
             className={`flex items-center gap-2 rounded-full ${tone} shadow-lg px-3 py-2 text-sm font-bold border border-white/20 backdrop-blur`}
