@@ -5,6 +5,7 @@ import { FamilySignIn } from "@/components/family/FamilySignIn";
 import { Card } from "@/components/ui/card";
 import { NewsStrip } from "@/components/NewsStrip";
 import { PublicRequestBox } from "@/components/PublicRequestBox";
+import { BottomNav } from "@/components/BottomNav";
 import { AnnouncementPopup } from "@/components/AnnouncementPopup";
 import logo from "@/assets/baraka-logo.jpg";
 import bannerAsset from "@/assets/baraka-banner.jpg.asset.json";
@@ -39,7 +40,7 @@ const Landing = () => {
             </h1>
             <p className="text-lg opacity-90 max-w-xl">{t("landing.tagline")}</p>
             <p className="text-sm opacity-75 max-w-xl">{t("landing.intro")}</p>
-            <div className="pt-3 text-foreground">
+            <div id="signin" className="pt-3 text-foreground scroll-mt-24 rounded-2xl transition-all duration-500">
               <FamilySignIn />
             </div>
           </div>
@@ -86,6 +87,7 @@ const Landing = () => {
           </Card>
         </div>
       </section>
+      <BottomNav />
     </Layout>
   );
 };
