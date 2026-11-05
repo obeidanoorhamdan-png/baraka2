@@ -1,9 +1,9 @@
 import { ReactNode, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import { LogOut, Home as HomeIcon } from "lucide-react";
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar";
 import { Button } from "@/components/ui/button";
-import { AdminSidebar } from "./AdminSidebar";
+import { AdminBottomNav } from "./AdminBottomNav";
+import logo from "@/assets/baraka-logo.jpg";
 import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/components/ConfirmDialog";
@@ -63,13 +63,12 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title?: 
   }
 
   return (
-    <SidebarProvider>
+    <>
       <div className="min-h-screen flex w-full bg-muted/20">
-        <AdminSidebar />
         <div className="flex-1 flex flex-col min-w-0">
           <header className="sticky top-0 z-30 h-14 flex items-center justify-between gap-2 border-b border-border bg-background/90 backdrop-blur px-3">
             <div className="flex items-center gap-2 min-w-0">
-              <SidebarTrigger />
+              <img src={logo} alt="" className="h-8 w-8 rounded-full ring-2 ring-accent/40" />
               {title && <h1 className="text-sm md:text-base font-bold text-primary truncate">{title}</h1>}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
@@ -85,9 +84,10 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title?: 
               </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-x-hidden animate-fade-in">{children}</main>
+          <main className="flex-1 overflow-x-hidden pb-28 animate-fade-in">{children}</main>
         </div>
       </div>
-    </SidebarProvider>
+      <AdminBottomNav />
+    </>
   );
 };

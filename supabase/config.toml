@@ -8,3 +8,6 @@ verify_jwt = false
 
 [functions.civil-record]
 verify_jwt = false
+
+[functions.family-register]
+verify_jwt = false
