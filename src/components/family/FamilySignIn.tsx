@@ -7,7 +7,7 @@ import { Label } from "@/components/ui/label";
 import { ID_RE, idToEmail } from "@/lib/validators";
 import { FAMILY_CODE_RE, toAuthPassword } from "@/lib/authPassword";
 import { Eye, EyeOff, ArrowLeft, ArrowRight, Loader2, LockKeyhole, Search, UserPlus, ShieldAlert, MessageCircle } from "lucide-react";
-import { waLink } from "@/lib/contact";
+import { waLink, SUPPORT_WHATSAPP } from "@/lib/contact";
 
 type Step = "id" | "password" | "register" | "blocked";
 
@@ -170,7 +170,7 @@ export const FamilySignIn = () => {
             <h3 className="text-lg font-bold">رقم الهوية غير معتمد في المخيم</h3>
             <p className="text-sm text-muted-foreground">لا يمكن التسجيل إلا للأسر المعتمدة في سجل مخيم بركة 2. تواصل مع الإدارة لإضافتك.</p>
             <Button asChild className="h-12 w-full gap-2">
-              <a href={waLink(`السلام عليكم، أرغب بإضافة أسرتي لسجل مخيم بركة 2. رقم الهوية: ${nid}`)} target="_blank" rel="noopener noreferrer">
+              <a href={waLink(SUPPORT_WHATSAPP, `السلام عليكم، أرغب بإضافة أسرتي لسجل مخيم بركة 2. رقم الهوية: ${nid}`)} target="_blank" rel="noopener noreferrer">
                 <MessageCircle className="h-4 w-4" /> تواصل عبر واتساب
               </a>
             </Button>
