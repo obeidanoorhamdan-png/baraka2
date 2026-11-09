@@ -524,6 +524,39 @@ export type Database = {
         }
         Relationships: []
       }
+      family_edit_log: {
+        Row: {
+          action: string
+          actor_id: string | null
+          changed_fields: string[]
+          created_at: string
+          family_user_id: string
+          id: string
+          target: string
+          target_label: string | null
+        }
+        Insert: {
+          action: string
+          actor_id?: string | null
+          changed_fields?: string[]
+          created_at?: string
+          family_user_id: string
+          id?: string
+          target: string
+          target_label?: string | null
+        }
+        Update: {
+          action?: string
+          actor_id?: string | null
+          changed_fields?: string[]
+          created_at?: string
+          family_user_id?: string
+          id?: string
+          target?: string
+          target_label?: string | null
+        }
+        Relationships: []
+      }
       family_members: {
         Row: {
           application_id: string

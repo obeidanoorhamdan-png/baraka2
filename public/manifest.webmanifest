@@ -1,0 +1,16 @@
+{
+  "name": "مخيم بركة 2",
+  "short_name": "بركة 2",
+  "description": "منصة تسجيل ومتابعة العائلات في مخيم بركة 2",
+  "lang": "ar",
+  "dir": "rtl",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#fffaf5",
+  "theme_color": "#f26b0f",
+  "icons": [
+    { "src": "/favicon.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/pwa-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}
