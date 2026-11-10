@@ -43,7 +43,7 @@ const App = () => {
     // Idempotently bootstrap the admin account on first load. Silent — never
     // expose admin credentials to end users in any visible toast or UI.
     supabase.functions.invoke("seed-admin").catch(() => {});
-    // Start draining any queued offline mutations.
+    <ThemeProvider attribute="class" defaultTheme="light" enableSystem={false}><QueryClientProvider client={queryClient}>
     startSyncEngine();
   }, []);
   return (
@@ -78,7 +78,7 @@ const App = () => {
                 <Route path="/admin/settings" element={<AdminSettings />} />
                 <Route path="/admin/stats" element={<StatsPage />} />
                 <Route path="/admin/print" element={<PrintReport />} />
-                <Route path="/admin/whatsapp" element={<BulkWhatsApp />} />
+    </QueryClientProvider></ThemeProvider>
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ConfirmProvider>
