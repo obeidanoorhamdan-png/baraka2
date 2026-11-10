@@ -268,7 +268,7 @@ export const FamilyPanel = ({
             <Pill icon={Home} label="حالة السكن السابق" value={app.prev_housing_status} />
             <Pill icon={MapPin} label="المحافظة الحالية" value={app.current_governorate} />
             <Pill icon={Tent} label="نوع السكن الحالي" value={app.current_housing_type} />
-            <Pill icon={Tent} label="الحي السكني الحالي" value={app.current_camp} />
+            <Pill icon={Tent} label="المخيم / مكان الإيواء" value="بركة 2" />
             <Pill icon={Navigation} label="أقرب معلم" value={app.current_landmark} />
             <Pill icon={Navigation} label="أقرب معلم (الأصلي)" value={app.original_landmark} />
           </FieldGrid>
@@ -522,7 +522,7 @@ const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
     prev_housing_status: app.prev_housing_status || "",
     current_governorate: app.current_governorate || "",
     current_housing_type: app.current_housing_type || "",
-    current_camp: app.current_camp || "",
+    current_camp: "بركة 2",
     current_landmark: app.current_landmark || "",
   });
   const [busy, setBusy] = useState(false);
@@ -534,7 +534,7 @@ const ResidenceEditor = ({ app, onSave, onCancel }: any) => {
         <Field label="حالة السكن السابق"><Sel value={a.prev_housing_status} options={DAMAGE} onChange={(v: string) => setA({ ...a, prev_housing_status: v })} /></Field>
         <Field label="المحافظة الحالية"><Sel value={a.current_governorate} options={GOVS} onChange={(v: string) => setA({ ...a, current_governorate: v })} /></Field>
         <Field label="نوع السكن الحالي"><Sel value={a.current_housing_type} options={HOUSING} onChange={(v: string) => setA({ ...a, current_housing_type: v })} /></Field>
-        <Field label="الحي السكني الحالي"><Input value={a.current_camp} onChange={(e) => setA({ ...a, current_camp: e.target.value })} /></Field>
+        <Field label="المخيم / مكان الإيواء"><div className="flex h-10 items-center rounded-md border border-input bg-muted/50 px-3 text-sm font-semibold text-primary">بركة 2</div></Field>
         <Field label="أقرب معلم (الحالي)"><Input value={a.current_landmark} onChange={(e) => setA({ ...a, current_landmark: e.target.value })} /></Field>
       </div>
       <EditorActions onCancel={() => { clearA(); onCancel(); }} busy={busy} onSave={async () => {
