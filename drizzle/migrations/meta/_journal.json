@@ -78,6 +78,13 @@
       "when": 1794224260727,
       "tag": "0010_family_edit_log",
       "breakpoints": true
+    },
+    {
+      "idx": 11,
+      "version": "7",
+      "when": 1794315106828,
+      "tag": "0011_restrict_announcement_media_read",
+      "breakpoints": true
     }
   ]
 }
