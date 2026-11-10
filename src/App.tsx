@@ -31,6 +31,10 @@ import Announcements from "./pages/Announcements";
 import Dashboard from "./pages/Dashboard";
 import Contact from "./pages/Contact";
 import NotFound from "./pages/NotFound";
+import StatsPage from "./pages/admin/StatsPage";
+import PrintReport from "./pages/admin/PrintReport";
+import BulkWhatsApp from "./pages/admin/BulkWhatsApp";
+import { ThemeProvider } from "next-themes";
 
 const queryClient = new QueryClient();
 
@@ -72,6 +76,9 @@ const App = () => {
                 <Route path="/admin/approvals" element={<AdminApprovals />} />
                 <Route path="/admin/camp-roster" element={<CampRoster />} />
                 <Route path="/admin/settings" element={<AdminSettings />} />
+                <Route path="/admin/stats" element={<StatsPage />} />
+                <Route path="/admin/print" element={<PrintReport />} />
+                <Route path="/admin/whatsapp" element={<BulkWhatsApp />} />
                 <Route path="*" element={<NotFound />} />
               </Routes>
             </ConfirmProvider>

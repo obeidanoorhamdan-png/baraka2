@@ -64,6 +64,38 @@
     --sidebar-ring: 24 94% 53%;
   }
 
+  .dark {
+    --background: 24 18% 8%;
+    --foreground: 28 30% 94%;
+    --card: 24 16% 12%;
+    --card-foreground: 28 30% 94%;
+    --popover: 24 16% 12%;
+    --popover-foreground: 28 30% 94%;
+    --primary: 24 94% 55%;
+    --primary-foreground: 0 0% 100%;
+    --secondary: 24 14% 18%;
+    --secondary-foreground: 28 30% 90%;
+    --accent: 24 94% 55%;
+    --accent-foreground: 0 0% 100%;
+    --accent-soft: 24 40% 18%;
+    --muted: 24 12% 17%;
+    --muted-foreground: 28 12% 65%;
+    --border: 24 12% 22%;
+    --input: 24 12% 22%;
+    --gradient-parchment: radial-gradient(ellipse at top, hsl(24 18% 12%) 0%, hsl(24 18% 8%) 100%);
+    --sidebar-background: 24 16% 10%;
+    --sidebar-foreground: 28 30% 90%;
+    --sidebar-accent: 24 30% 18%;
+    --sidebar-accent-foreground: 28 90% 70%;
+    --sidebar-border: 24 12% 22%;
+  }
+
+  @media print {
+    header, nav, .no-print { display: none !important; }
+    body { background: white !important; }
+    @page { size: A4; margin: 12mm; }
+  }
+
   /* iOS-like typography: San Francisco on Apple devices, closest Arabic match elsewhere */
   html {
     -webkit-text-size-adjust: 100%;
