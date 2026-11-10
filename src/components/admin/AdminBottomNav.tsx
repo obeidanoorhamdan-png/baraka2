@@ -2,7 +2,7 @@ import { useState } from "react";
 import { NavLink, useLocation } from "react-router-dom";
 import {
   LayoutDashboard, Inbox, ClipboardList, Wrench, Users2, ScrollText, Settings,
-  AlertTriangle, Megaphone, Wand2, FileSpreadsheet, CheckSquare, Lock, LayoutGrid, X,
+  AlertTriangle, Megaphone, Wand2, FileSpreadsheet, CheckSquare, Lock, LayoutGrid, X, BarChart3, Printer, MessageCircle,
 } from "lucide-react";
 
 const main = [
@@ -19,6 +19,9 @@ const more = [
   { title: "المشرفون", url: "/admin/managers", icon: Users2 },
   { title: "أدوات متقدمة", url: "/admin/power", icon: Wand2 },
   { title: "تصدير اكسل", url: "/admin/excel", icon: FileSpreadsheet },
+  { title: "الإحصائيات", url: "/admin/stats", icon: BarChart3 },
+  { title: "كشف للطباعة", url: "/admin/print", icon: Printer },
+  { title: "واتساب جماعي", url: "/admin/whatsapp", icon: MessageCircle },
   { title: "سجل النشاط", url: "/admin/audit", icon: ScrollText },
   { title: "الإعدادات", url: "/admin/settings", icon: Settings },
 ];

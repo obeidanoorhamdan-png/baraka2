@@ -3,6 +3,7 @@ import { AdminLayout } from "@/components/admin/AdminLayout";
 import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { ExcelWizard } from "@/components/ExcelWizard";
+import { ExportProPanel } from "@/components/admin/ExportProPanel";
 import { PRESETS } from "@/lib/excelExport";
 import { Wand2, Sparkles, FileSpreadsheet, Columns3, Filter, Calculator } from "lucide-react";
 
@@ -19,6 +20,7 @@ export default function ExcelExport() {
   return (
     <AdminLayout>
       <div className="space-y-6">
+        <ExportProPanel />
         <div>
           <h1 className="text-2xl font-extrabold flex items-center gap-2">
             <FileSpreadsheet className="h-7 w-7 text-green-600" />

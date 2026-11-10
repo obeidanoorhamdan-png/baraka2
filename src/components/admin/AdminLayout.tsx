@@ -8,6 +8,8 @@ import { useAuth } from "@/hooks/useAuth";
 import { supabase } from "@/integrations/supabase/client";
 import { useConfirm } from "@/components/ConfirmDialog";
 import { NotificationsBell } from "@/components/NotificationsBell";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { ScheduledExportBanner } from "./ScheduledExportBanner";
 
 export const AdminLayout = ({ children, title }: { children: ReactNode; title?: string }) => {
   const { user, isAdmin, loading } = useAuth();
@@ -72,6 +74,7 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title?: 
               {title && <h1 className="text-sm md:text-base font-bold text-primary truncate">{title}</h1>}
             </div>
             <div className="flex items-center gap-1.5 shrink-0">
+              <ThemeToggle />
               <NotificationsBell />
               <Button asChild variant="outline" size="sm" className="gap-1.5 h-9">
                 <a href="/" target="_blank" rel="noopener noreferrer">
@@ -84,7 +87,7 @@ export const AdminLayout = ({ children, title }: { children: ReactNode; title?: 
               </Button>
             </div>
           </header>
-          <main className="flex-1 overflow-x-hidden pb-28 animate-fade-in">{children}</main>
+          <main className="flex-1 overflow-x-hidden pb-28 animate-fade-in"><div className="no-print"><ScheduledExportBanner /></div>{children}</main>
         </div>
       </div>
       <AdminBottomNav />

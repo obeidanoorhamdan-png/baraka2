@@ -1,3 +1,4 @@
+import { FamilyInsights } from "./FamilyInsights";
 import { useEffect, useMemo, useState, type ReactNode } from "react";
 import { Link } from "react-router-dom";
 
@@ -186,6 +187,7 @@ export const FamilyPanel = ({
           </div>
         </section>
       )}
+      {!adminMode && <FamilyInsights profile={profile} app={app} members={members} />}
       <nav aria-label="أقسام الأسرة" className="sticky top-16 z-20 flex gap-1 overflow-x-auto border-b border-border bg-background py-2">
         {[["sec-personal", "الشخصية"], ["sec-social", "الاجتماعية"], ["sec-health", "الصحية"], ...(app ? [["sec-home", "السكن"], ["sec-members", "الأفراد"]] : []), ["sec-docs", "المستندات"], ["sec-complaints", "الشكاوى"]].map(([id, label]) => <Button key={id} variant="ghost" size="sm" className="shrink-0" onClick={() => document.getElementById(id)?.scrollIntoView({ behavior: window.matchMedia("(prefers-reduced-motion: reduce)").matches ? "auto" : "smooth", block: "start" })}>{label}</Button>)}
       </nav>
