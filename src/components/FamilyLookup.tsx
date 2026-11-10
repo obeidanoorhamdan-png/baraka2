@@ -139,7 +139,7 @@ export const FamilyLookup = ({ expanded = false }: { expanded?: boolean }) => {
               <Item label="حالة الطلب" value={STATUS[a?.status]} /><Item label="رقم الأسرة / الخيمة" value={a?.family_no ?? 0} />
               <Item label="عدد الأفراد" value={a?.family_size ?? 0} /><Item label="السكن الأصلي" value={a?.original_residence} />
               <Item label="أقرب معلم بالسكن الأصلي" value={a?.original_landmark} /><Item label="المحافظة الحالية" value={a?.current_governorate} />
-              <Item label="المخيم الحالي" value={a?.current_camp} /><Item label="أقرب معلم حالياً" value={a?.current_landmark} />
+              <Item label="المخيم الحالي" value="بركة 2" /><Item label="أقرب معلم حالياً" value={a?.current_landmark} />
               <Item label="نوع السكن الحالي" value={a?.current_housing_type} /><Item label="حالة السكن السابق" value={a?.prev_housing_status} />
               <Item label="وجود شهيد بالأسرة" value={yn(a?.has_martyr)} /><Item label="اسم الشهيد" value={a?.martyr_name} />
               <Item label="صلة القرابة بالشهيد" value={a?.martyr_relationship} /><Item label="معيلة للأسرة" value={yn(a?.is_female_breadwinner)} />
